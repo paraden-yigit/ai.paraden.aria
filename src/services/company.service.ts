@@ -17,6 +17,21 @@ export const companyService = {
     return normalizeList<Company>(data)
   },
 
+  /** Search by name, domain, country, or description (case-insensitive). */
+  async search(
+    q: string,
+    params: PaginationParams = {},
+  ): Promise<ListResult<Company>> {
+    const data = await apiClient.get<unknown>(
+      `/api/companies/search${buildQuery({
+        q,
+        skip: params.skip,
+        limit: params.limit,
+      })}`,
+    )
+    return normalizeList<Company>(data)
+  },
+
   get(id: number): Promise<Company> {
     return apiClient.get<Company>(`/api/companies/${id}`)
   },

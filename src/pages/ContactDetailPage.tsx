@@ -11,6 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { DataState } from "@/components/DataState"
 import { DescriptionList } from "@/components/DescriptionList"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
@@ -158,24 +163,35 @@ export function ContactDetailPage() {
                 <CardTitle>Contact information</CardTitle>
                 {!editing && (
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleEnrich}
-                      disabled={!canEnrich || enriching}
-                      title={
-                        canEnrich
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {/* Span wrapper so the tooltip still fires while the
+                            button is disabled (no pointer events on it). */}
+                        <span
+                          className="inline-flex"
+                          tabIndex={canEnrich ? undefined : 0}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleEnrich}
+                            disabled={!canEnrich || enriching}
+                          >
+                            {enriching ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="size-4" />
+                            )}
+                            {enriching ? "Enriching…" : "Enrich contact"}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {canEnrich
                           ? "Find this contact's work email via FullEnrich"
-                          : "Needs a LinkedIn URL, or a first and last name"
-                      }
-                    >
-                      {enriching ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="size-4" />
-                      )}
-                      {enriching ? "Enriching…" : "Enrich contact"}
-                    </Button>
+                          : "Needs a LinkedIn URL, or a first and last name"}
+                      </TooltipContent>
+                    </Tooltip>
                     <Button
                       variant="outline"
                       size="sm"

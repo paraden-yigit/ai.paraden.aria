@@ -40,6 +40,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
@@ -132,24 +137,32 @@ export function ContactsTab({ company }: { company: Company }) {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleFind}
-            disabled={!canFind || finding}
-            title={
-              canFind
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Span wrapper so the tooltip still fires while the button is
+                  disabled (a disabled button receives no pointer events). */}
+              <span className="inline-flex" tabIndex={!canFind ? 0 : undefined}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFind}
+                  disabled={!canFind || finding}
+                >
+                  {finding ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <UserSearch className="size-4" />
+                  )}
+                  {finding ? "Finding…" : "Find contacts"}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {canFind
                 ? "Find people at this company via FullEnrich"
-                : "Add a domain or LinkedIn URL to find contacts"
-            }
-          >
-            {finding ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <UserSearch className="size-4" />
-            )}
-            {finding ? "Finding…" : "Find contacts"}
-          </Button>
+                : "Add a domain or LinkedIn URL to find contacts"}
+            </TooltipContent>
+          </Tooltip>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
             New contact

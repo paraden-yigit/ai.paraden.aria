@@ -12,6 +12,11 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { DataState } from "@/components/DataState"
 import { DescriptionList } from "@/components/DescriptionList"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
@@ -111,26 +116,39 @@ export function CompanyDetailPage() {
                     <CardTitle>Company information</CardTitle>
                     {!editing && (
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleEnrich}
-                          disabled={
-                            !(company.domain || company.linkedin_url) || enriching
-                          }
-                          title={
-                            company.domain || company.linkedin_url
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* Span wrapper so the tooltip still fires while the
+                                button is disabled (no pointer events on it). */}
+                            <span
+                              className="inline-flex"
+                              tabIndex={
+                                company.domain || company.linkedin_url ? undefined : 0
+                              }
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleEnrich}
+                                disabled={
+                                  !(company.domain || company.linkedin_url) || enriching
+                                }
+                              >
+                                {enriching ? (
+                                  <Loader2 className="size-4 animate-spin" />
+                                ) : (
+                                  <Sparkles className="size-4" />
+                                )}
+                                {enriching ? "Enriching…" : "Enrich"}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {company.domain || company.linkedin_url
                               ? "Fetch company data from FullEnrich"
-                              : "Add a domain or LinkedIn URL to enable enrichment"
-                          }
-                        >
-                          {enriching ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="size-4" />
-                          )}
-                          {enriching ? "Enriching…" : "Enrich"}
-                        </Button>
+                              : "Add a domain or LinkedIn URL to enable enrichment"}
+                          </TooltipContent>
+                        </Tooltip>
                         <Button
                           variant="outline"
                           size="sm"

@@ -25,6 +25,24 @@ export const contactService = {
     return normalizeList<ContactWithCompany>(data)
   },
 
+  /**
+   * Search the client's contacts by name, email, city, country, or region
+   * (case-insensitive), across every company.
+   */
+  async searchAll(
+    q: string,
+    params: PaginationParams = {},
+  ): Promise<ListResult<ContactWithCompany>> {
+    const data = await apiClient.get<unknown>(
+      `/api/contacts/search${buildQuery({
+        q,
+        skip: params.skip,
+        limit: params.limit,
+      })}`,
+    )
+    return normalizeList<ContactWithCompany>(data)
+  },
+
   async list(
     companyId: number,
     params: PaginationParams = {},

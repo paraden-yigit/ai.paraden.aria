@@ -1,8 +1,9 @@
-import { useState } from "react"
-import { Plus } from "lucide-react"
+import { useCallback, useRef, useState } from "react"
+import { Plus, Search, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -15,12 +16,28 @@ import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { CompaniesTable } from "@/features/companies/CompaniesTable"
 import { CompanyForm } from "@/features/companies/CompanyForm"
+import { ImportDialog } from "@/features/import/ImportDialog"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
+import { useAsync } from "@/hooks/useAsync"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 import { companyService } from "@/services/company.service"
 import { ApiError } from "@/services/http"
+import { parseSpreadsheet, type SpreadsheetRow } from "@/lib/spreadsheet"
 import type { Company, CompanyCreate } from "@/types/company"
 
 export function CompaniesPage() {
+  const [query, setQuery] = useState("")
+  const debouncedQuery = useDebouncedValue(query.trim(), 300)
+
+  // Search when there's a query, otherwise list; refetch when the query changes.
+  const fetchCompanies = useCallback(
+    (params: { skip?: number; limit?: number }) =>
+      debouncedQuery
+        ? companyService.search(debouncedQuery, params)
+        : companyService.list(params),
+    [debouncedQuery],
+  )
+
   const {
     items: companies,
     total,
@@ -31,12 +48,41 @@ export function CompaniesPage() {
     loading,
     error,
     refetch,
-  } = usePaginatedList<Company>(companyService.list)
+  } = usePaginatedList<Company>(fetchCompanies, { deps: [debouncedQuery] })
 
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // A broader company list (beyond the current page) to de-dupe against on import.
+  const loadAllCompanies = useCallback(() => companyService.list({ limit: 200 }), [])
+  const { data: companyList } = useAsync(loadAllCompanies, [])
+  const existingCompanies: Company[] = companyList?.items ?? []
+
+  // Import flow: pick a CSV/XLSX file, then map its columns in a dialog.
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importFile, setImportFile] = useState<{
+    id: number
+    name: string
+    columns: string[]
+    rows: SpreadsheetRow[]
+  } | null>(null)
+
+  async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    // Reset so re-selecting the same file fires onChange again.
+    event.target.value = ""
+    if (!file) return
+    try {
+      const { columns, rows } = await parseSpreadsheet(file)
+      setImportFile({ id: Date.now(), name: file.name, columns, rows })
+      setImportOpen(true)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't read that file.")
+    }
+  }
 
   async function handleCreate(payload: CompanyCreate) {
     setCreating(true)
@@ -69,22 +115,53 @@ export function CompaniesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
-          <p className="text-muted-foreground">Manage your companies.</p>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
+        <p className="text-muted-foreground">Manage your companies.</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search by name, domain, country, or description…"
+            className="pl-9"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setPage(0)
+            }}
+          />
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          New company
-        </Button>
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+            className="hidden"
+            onChange={handleFileSelected}
+          />
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="size-4" />
+            Import
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            New company
+          </Button>
+        </div>
       </div>
 
       <DataState
         loading={loading}
         error={error}
         isEmpty={companies.length === 0}
-        emptyMessage="No companies yet."
+        emptyMessage={
+          debouncedQuery
+            ? `No companies match “${debouncedQuery}”.`
+            : "No companies yet."
+        }
         onRetry={refetch}
       >
         <CompaniesTable companies={companies} onDelete={setCompanyToDelete} />
@@ -113,6 +190,19 @@ export function CompaniesPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {importFile && (
+        <ImportDialog
+          key={importFile.id}
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          fileName={importFile.name}
+          columns={importFile.columns}
+          rows={importFile.rows}
+          existingCompanies={existingCompanies}
+          onImported={refetch}
+        />
+      )}
 
       <ConfirmDialog
         open={companyToDelete !== null}

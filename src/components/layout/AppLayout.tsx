@@ -1,6 +1,15 @@
 import { useState } from "react"
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
-import { Building2, LayoutDashboard, LogOut, Menu, Users } from "lucide-react"
+import {
+  Briefcase,
+  Building2,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageSquareText,
+  Search,
+  Users,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -17,11 +26,43 @@ import {
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/useAuth"
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/companies", label: "Companies", icon: Building2 },
-  { to: "/contacts", label: "Contacts", icon: Users },
+// Sidebar nav grouped into sections. A null title renders the items with no
+// heading (Dashboard sits on its own).
+const navSections: {
+  title: string | null
+  items: { to: string; label: string; icon: typeof LayoutDashboard }[]
+}[] = [
+  {
+    title: null,
+    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    title: "CRM",
+    items: [
+      { to: "/companies", label: "Companies", icon: Building2 },
+      { to: "/contacts", label: "Contacts", icon: Users },
+    ],
+  },
+  {
+    title: "Integrations",
+    items: [
+      { to: "/companies/search", label: "Company Search Full Enrich", icon: Search },
+    ],
+  },
+  {
+    title: "Company",
+    items: [
+      { to: "/company", label: "Company Info", icon: Briefcase },
+      {
+        to: "/company/brand-profile",
+        label: "Brand Profile",
+        icon: MessageSquareText,
+      },
+    ],
+  },
 ]
+
+const navItems = navSections.flatMap((section) => section.items)
 
 function initialsOf(name: string | undefined): string {
   if (!name) return "U"
@@ -60,29 +101,45 @@ export function AppLayout() {
       >
         <div className="flex h-14 items-center px-4 font-semibold">Paraden ARIA</div>
         <Separator />
-        <nav className="space-y-1 p-2">
-          {navItems.map((item) => {
-            const active =
-              item.to === "/"
-                ? location.pathname === "/"
-                : location.pathname.startsWith(item.to)
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-                )}
-              >
-                <item.icon className="size-4" />
-                {item.label}
-              </Link>
-            )
-          })}
+        <nav className="space-y-4 p-2">
+          {navSections.map((section, i) => (
+            <div key={section.title ?? `section-${i}`} className="space-y-1">
+              {section.title && (
+                <p className="px-3 pt-1 pb-0.5 text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase">
+                  {section.title}
+                </p>
+              )}
+              {section.items.map((item) => {
+                // Active when this item is the most specific (longest) matching
+                // path, so /companies/search highlights its own item, not /companies.
+                const matches = navItems
+                  .filter((n) =>
+                    n.to === "/"
+                      ? location.pathname === "/"
+                      : location.pathname === n.to ||
+                        location.pathname.startsWith(`${n.to}/`),
+                  )
+                  .sort((a, b) => b.to.length - a.to.length)
+                const active = matches[0]?.to === item.to
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+                    )}
+                  >
+                    <item.icon className="size-4" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
         </nav>
       </aside>
 
