@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,9 +22,20 @@ import type { Company } from "@/types/company"
 interface CompaniesTableProps {
   companies: Company[]
   onDelete: (company: Company) => void
+  isSelected: (id: number) => boolean
+  onToggle: (company: Company) => void
+  headerState: boolean | "indeterminate"
+  onToggleAll: (checked: boolean) => void
 }
 
-export function CompaniesTable({ companies, onDelete }: CompaniesTableProps) {
+export function CompaniesTable({
+  companies,
+  onDelete,
+  isSelected,
+  onToggle,
+  headerState,
+  onToggleAll,
+}: CompaniesTableProps) {
   const navigate = useNavigate()
 
   return (
@@ -31,6 +43,13 @@ export function CompaniesTable({ companies, onDelete }: CompaniesTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12">
+              <Checkbox
+                checked={headerState}
+                onCheckedChange={(checked) => onToggleAll(checked === true)}
+                aria-label="Select all companies"
+              />
+            </TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Domain</TableHead>
             <TableHead>Industry</TableHead>
@@ -44,8 +63,16 @@ export function CompaniesTable({ companies, onDelete }: CompaniesTableProps) {
             <TableRow
               key={company.id}
               className="cursor-pointer"
+              data-state={isSelected(company.id) ? "selected" : undefined}
               onClick={() => navigate(`/companies/${company.id}`)}
             >
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={isSelected(company.id)}
+                  onCheckedChange={() => onToggle(company)}
+                  aria-label={`Select ${company.name}`}
+                />
+              </TableCell>
               <TableCell className="font-medium">{company.name}</TableCell>
               <TableCell className="text-muted-foreground">{company.domain}</TableCell>
               <TableCell>{company.industry || "—"}</TableCell>

@@ -1,29 +1,27 @@
-import { useCallback, useRef, useState } from "react"
-import { Plus, Search, Upload } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Plus, Search, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { CompaniesTable } from "@/features/companies/CompaniesTable"
-import { CompanyForm } from "@/features/companies/CompanyForm"
+import { AddCompanyFlow } from "@/features/companies/AddCompanyFlow"
 import { ImportDialog } from "@/features/import/ImportDialog"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { useAsync } from "@/hooks/useAsync"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
+import { useRowSelection } from "@/hooks/useRowSelection"
 import { companyService } from "@/services/company.service"
+import { contactService } from "@/services/contact.service"
 import { ApiError } from "@/services/http"
 import { parseSpreadsheet, type SpreadsheetRow } from "@/lib/spreadsheet"
-import type { Company, CompanyCreate } from "@/types/company"
+import type { Company } from "@/types/company"
+
+const getCompanyId = (company: Company) => company.id
 
 export function CompaniesPage() {
   const [query, setQuery] = useState("")
@@ -51,9 +49,16 @@ export function CompaniesPage() {
   } = usePaginatedList<Company>(fetchCompanies, { deps: [debouncedQuery] })
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // Multi-select + bulk delete.
+  const selection = useRowSelection<Company>(getCompanyId)
+  const { clear: clearSelection } = selection
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  // Selection is per-page; reset it when the page or search changes.
+  useEffect(() => clearSelection(), [page, debouncedQuery, clearSelection])
 
   // A broader company list (beyond the current page) to de-dupe against on import.
   const loadAllCompanies = useCallback(() => companyService.list({ limit: 200 }), [])
@@ -84,24 +89,23 @@ export function CompaniesPage() {
     }
   }
 
-  async function handleCreate(payload: CompanyCreate) {
-    setCreating(true)
-    try {
-      await companyService.create(payload)
-      toast.success(`Company "${payload.name}" created.`)
-      setCreateOpen(false)
-      refetch()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to create company.")
-    } finally {
-      setCreating(false)
-    }
+  // A company can only be deleted once it has no contacts.
+  async function companyHasContacts(id: number): Promise<boolean> {
+    const res = await contactService.list(id, { limit: 1 })
+    return res.items.length > 0
   }
 
   async function handleDelete() {
     if (!companyToDelete) return
     setDeleting(true)
     try {
+      if (await companyHasContacts(companyToDelete.id)) {
+        toast.error(
+          `Delete ${companyToDelete.name}'s contacts before deleting the company.`,
+        )
+        setCompanyToDelete(null)
+        return
+      }
       await companyService.remove(companyToDelete.id)
       toast.success(`Company "${companyToDelete.name}" deleted.`)
       setCompanyToDelete(null)
@@ -110,6 +114,47 @@ export function CompaniesPage() {
       toast.error(err instanceof ApiError ? err.message : "Failed to delete company.")
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function handleBulkDelete() {
+    const targets = selection.items
+    if (targets.length === 0) return
+    setBulkDeleting(true)
+    try {
+      // Companies that still have contacts can't be deleted — flag them instead.
+      const checks = await Promise.all(
+        targets.map(async (company) => ({
+          company,
+          blocked: await companyHasContacts(company.id).catch(() => false),
+        })),
+      )
+      const blocked = checks.filter((c) => c.blocked).map((c) => c.company)
+      const deletable = checks.filter((c) => !c.blocked).map((c) => c.company)
+
+      const results = await Promise.allSettled(
+        deletable.map((company) => companyService.remove(company.id)),
+      )
+      const failed = results.filter((r) => r.status === "rejected").length
+      const deleted = deletable.length - failed
+
+      if (deleted > 0) {
+        toast.success(`Deleted ${deleted} ${deleted === 1 ? "company" : "companies"}.`)
+      }
+      if (blocked.length > 0) {
+        toast.error(
+          `Delete contacts first: ${blocked.map((c) => c.name).join(", ")}.`,
+        )
+      }
+      if (failed > 0) {
+        toast.error(`Failed to delete ${failed} ${failed === 1 ? "company" : "companies"}.`)
+      }
+
+      selection.clear()
+      setBulkOpen(false)
+      refetch()
+    } finally {
+      setBulkDeleting(false)
     }
   }
 
@@ -135,6 +180,12 @@ export function CompaniesPage() {
           />
         </div>
         <div className="flex items-center gap-2 sm:ml-auto">
+          {selection.count > 0 && (
+            <Button variant="destructive" onClick={() => setBulkOpen(true)}>
+              <Trash2 className="size-4" />
+              Delete selected ({selection.count})
+            </Button>
+          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -148,7 +199,7 @@ export function CompaniesPage() {
           </Button>
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            New company
+            Add company
           </Button>
         </div>
       </div>
@@ -164,7 +215,14 @@ export function CompaniesPage() {
         }
         onRetry={refetch}
       >
-        <CompaniesTable companies={companies} onDelete={setCompanyToDelete} />
+        <CompaniesTable
+          companies={companies}
+          onDelete={setCompanyToDelete}
+          isSelected={selection.isSelected}
+          onToggle={selection.toggle}
+          headerState={selection.headerState(companies)}
+          onToggleAll={(checked) => selection.toggleAll(companies, checked)}
+        />
         <PaginationFooter
           page={page}
           skip={skip}
@@ -178,15 +236,9 @@ export function CompaniesPage() {
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>New company</DialogTitle>
-            <DialogDescription>Add a company to your list.</DialogDescription>
-          </DialogHeader>
-          <CompanyForm
-            onSubmit={handleCreate}
-            onCancel={() => setCreateOpen(false)}
-            submitting={creating}
-            submitLabel="Create company"
+          <AddCompanyFlow
+            existingCompanies={existingCompanies}
+            onClose={() => setCreateOpen(false)}
           />
         </DialogContent>
       </Dialog>
@@ -217,6 +269,17 @@ export function CompaniesPage() {
         destructive
         loading={deleting}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={bulkOpen}
+        onOpenChange={(open) => !open && setBulkOpen(false)}
+        title={`Delete ${selection.count} ${selection.count === 1 ? "company" : "companies"}?`}
+        description="This permanently deletes the selected companies. Companies that still have contacts will be skipped — delete their contacts first. This action cannot be undone."
+        confirmLabel="Delete selected"
+        destructive
+        loading={bulkDeleting}
+        onConfirm={handleBulkDelete}
       />
     </div>
   )

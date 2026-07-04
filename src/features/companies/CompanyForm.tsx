@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -10,7 +11,7 @@ import { TextareaField } from "@/components/form/TextareaField"
 import { SelectField, type SelectOption } from "@/components/form/SelectField"
 import { ComboboxField } from "@/components/form/ComboboxField"
 import { INDUSTRIES } from "@/features/companies/industries"
-import type { Company, CompanyCreate } from "@/types/company"
+import type { CompanyCreate } from "@/types/company"
 
 // Stored as strings in the form (RHF/shadcn contract); empty means "not set".
 const numericString = z
@@ -19,7 +20,7 @@ const numericString = z
 
 const companySchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  domain: z.string().min(1, "Domain is required").max(255),
+  domain: z.string().max(255),
   industry: z.string(),
   company_type: z.string(),
   headcount_range: z.string(),
@@ -33,6 +34,29 @@ const companySchema = z.object({
 })
 
 type CompanyFormValues = z.infer<typeof companySchema>
+
+/**
+ * Build the validation schema. By default a domain is required (edit flow).
+ * When `requireUrlOrLinkedin` is set (the add flow), the company instead needs
+ * at least one of a domain or a LinkedIn URL — save is blocked if both are empty.
+ */
+function makeCompanySchema(requireUrlOrLinkedin: boolean) {
+  return companySchema.superRefine((values, ctx) => {
+    if (requireUrlOrLinkedin) {
+      if (!values.domain.trim() && !values.linkedin_url.trim()) {
+        const message = "Enter a company URL or a LinkedIn URL to save."
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["domain"], message })
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["linkedin_url"], message })
+      }
+    } else if (!values.domain.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["domain"],
+        message: "Domain is required",
+      })
+    }
+  })
+}
 
 const COMPANY_TYPES: string[] = [
   "Partnership",
@@ -56,7 +80,7 @@ const HEADCOUNT_RANGE_OPTIONS: SelectOption[] = [
   "10001+",
 ].map((r) => ({ value: r, label: r }))
 
-function toFormValues(company?: Company): CompanyFormValues {
+function toFormValues(company?: Partial<CompanyCreate>): CompanyFormValues {
   return {
     name: company?.name ?? "",
     domain: company?.domain ?? "",
@@ -86,7 +110,7 @@ function nullableNumber(value: string): number | null {
 function toPayload(values: CompanyFormValues): CompanyCreate {
   return {
     name: values.name.trim(),
-    domain: values.domain.trim(),
+    domain: nullableString(values.domain),
     industry: nullableString(values.industry),
     company_type: nullableString(values.company_type),
     headcount_range: nullableString(values.headcount_range),
@@ -101,12 +125,14 @@ function toPayload(values: CompanyFormValues): CompanyCreate {
 }
 
 interface CompanyFormProps {
-  /** Existing company when editing; omit for create. */
-  company?: Company
+  /** Existing company when editing, or a draft to prefill; omit for a blank form. */
+  company?: Partial<CompanyCreate>
   onSubmit: (payload: CompanyCreate) => Promise<void>
   onCancel?: () => void
   submitting?: boolean
   submitLabel?: string
+  /** Require a domain OR a LinkedIn URL instead of a domain (the add flow). */
+  requireUrlOrLinkedin?: boolean
 }
 
 export function CompanyForm({
@@ -115,9 +141,14 @@ export function CompanyForm({
   onCancel,
   submitting,
   submitLabel = "Save changes",
+  requireUrlOrLinkedin = false,
 }: CompanyFormProps) {
+  const schema = useMemo(
+    () => makeCompanySchema(requireUrlOrLinkedin),
+    [requireUrlOrLinkedin],
+  )
   const form = useForm<CompanyFormValues>({
-    resolver: zodResolver(companySchema),
+    resolver: zodResolver(schema),
     defaultValues: toFormValues(company),
   })
 

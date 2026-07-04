@@ -114,7 +114,16 @@ export function CompanyDetailPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Company information</CardTitle>
-                    {!editing && (
+                    {!editing && (() => {
+                      const alreadyEnriched = company.enrich_status === "successful"
+                      const canEnrich = Boolean(company.domain || company.linkedin_url)
+                      const enrichDisabled = alreadyEnriched || !canEnrich || enriching
+                      const enrichTooltip = alreadyEnriched
+                        ? "This company is already enriched."
+                        : canEnrich
+                          ? "Fetch company data from FullEnrich"
+                          : "Add a domain or LinkedIn URL to enable enrichment"
+                      return (
                       <div className="flex items-center gap-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -122,32 +131,28 @@ export function CompanyDetailPage() {
                                 button is disabled (no pointer events on it). */}
                             <span
                               className="inline-flex"
-                              tabIndex={
-                                company.domain || company.linkedin_url ? undefined : 0
-                              }
+                              tabIndex={enrichDisabled ? 0 : undefined}
                             >
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={handleEnrich}
-                                disabled={
-                                  !(company.domain || company.linkedin_url) || enriching
-                                }
+                                disabled={enrichDisabled}
                               >
                                 {enriching ? (
                                   <Loader2 className="size-4 animate-spin" />
                                 ) : (
                                   <Sparkles className="size-4" />
                                 )}
-                                {enriching ? "Enriching…" : "Enrich"}
+                                {enriching
+                                  ? "Enriching…"
+                                  : alreadyEnriched
+                                    ? "Enriched"
+                                    : "Enrich"}
                               </Button>
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            {company.domain || company.linkedin_url
-                              ? "Fetch company data from FullEnrich"
-                              : "Add a domain or LinkedIn URL to enable enrichment"}
-                          </TooltipContent>
+                          <TooltipContent>{enrichTooltip}</TooltipContent>
                         </Tooltip>
                         <Button
                           variant="outline"
@@ -158,7 +163,8 @@ export function CompanyDetailPage() {
                           Edit
                         </Button>
                       </div>
-                    )}
+                      )
+                    })()}
                   </CardHeader>
                   <CardContent>
                     {editing ? (

@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Eye, MoreHorizontal, Plus, Search, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import {
   Dialog,
@@ -42,11 +43,14 @@ import { parseSpreadsheet, type SpreadsheetRow } from "@/lib/spreadsheet"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { useAsync } from "@/hooks/useAsync"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
+import { useRowSelection } from "@/hooks/useRowSelection"
 import { contactService } from "@/services/contact.service"
 import { companyService } from "@/services/company.service"
 import { ApiError } from "@/services/http"
 import type { Company } from "@/types/company"
 import type { ContactCreate, ContactWithCompany } from "@/types/contact"
+
+const getContactId = (contact: ContactWithCompany) => contact.id
 
 export function ContactsPage() {
   const navigate = useNavigate()
@@ -87,6 +91,14 @@ export function ContactsPage() {
   const [companyId, setCompanyId] = useState("")
   const [toDelete, setToDelete] = useState<ContactWithCompany | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // Multi-select + bulk delete.
+  const selection = useRowSelection<ContactWithCompany>(getContactId)
+  const { clear: clearSelection } = selection
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  // Selection is per-page; reset it when the page or search changes.
+  useEffect(() => clearSelection(), [page, debouncedQuery, clearSelection])
 
   // Import flow: pick a CSV/XLSX file, then map its columns in a dialog.
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -146,6 +158,34 @@ export function ContactsPage() {
     }
   }
 
+  async function handleBulkDelete() {
+    const targets = selection.items
+    if (targets.length === 0) return
+    setBulkDeleting(true)
+    try {
+      const results = await Promise.allSettled(
+        targets.map((contact) =>
+          contactService.remove(contact.company_id, contact.id),
+        ),
+      )
+      const failed = results.filter((r) => r.status === "rejected").length
+      const deleted = targets.length - failed
+
+      if (deleted > 0) {
+        toast.success(`Deleted ${deleted} ${deleted === 1 ? "contact" : "contacts"}.`)
+      }
+      if (failed > 0) {
+        toast.error(`Failed to delete ${failed} ${failed === 1 ? "contact" : "contacts"}.`)
+      }
+
+      selection.clear()
+      setBulkOpen(false)
+      refetch()
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -168,6 +208,12 @@ export function ContactsPage() {
           />
         </div>
         <div className="flex items-center gap-2 sm:ml-auto">
+          {selection.count > 0 && (
+            <Button variant="destructive" onClick={() => setBulkOpen(true)}>
+              <Trash2 className="size-4" />
+              Delete selected ({selection.count})
+            </Button>
+          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -201,6 +247,15 @@ export function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selection.headerState(contacts)}
+                    onCheckedChange={(checked) =>
+                      selection.toggleAll(contacts, checked === true)
+                    }
+                    aria-label="Select all contacts"
+                  />
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Company</TableHead>
@@ -214,12 +269,20 @@ export function ContactsPage() {
                 <TableRow
                   key={contact.id}
                   className="cursor-pointer"
+                  data-state={selection.isSelected(contact.id) ? "selected" : undefined}
                   onClick={() =>
                     navigate(
                       `/companies/${contact.company_id}/contacts/${contact.id}`,
                     )
                   }
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selection.isSelected(contact.id)}
+                      onCheckedChange={() => selection.toggle(contact)}
+                      aria-label={`Select ${contact.full_name}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{contact.full_name}</TableCell>
                   <TableCell>{contact.job_title || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -332,6 +395,17 @@ export function ContactsPage() {
         destructive
         loading={deleting}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={bulkOpen}
+        onOpenChange={(open) => !open && setBulkOpen(false)}
+        title={`Delete ${selection.count} ${selection.count === 1 ? "contact" : "contacts"}?`}
+        description="This will permanently delete the selected contacts. This action cannot be undone."
+        confirmLabel="Delete selected"
+        destructive
+        loading={bulkDeleting}
+        onConfirm={handleBulkDelete}
       />
     </div>
   )
