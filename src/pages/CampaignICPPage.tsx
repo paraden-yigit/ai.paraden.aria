@@ -1,0 +1,199 @@
+import { useCallback, useEffect, useState } from "react"
+import { Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ICPForm } from "@/features/campaigns/ICPForm"
+import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
+import { icpService } from "@/services/icp.service"
+import { ApiError } from "@/services/http"
+import type { Icp, IcpUpdate } from "@/types/icp"
+
+const POLL_INTERVAL_MS = 2000
+
+export function CampaignICPPage() {
+  const { campaign } = useCampaignContext()
+  const campaignId = campaign.id
+
+  const [icp, setIcp] = useState<Icp | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [starting, setStarting] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      setIcp(await icpService.get(campaignId))
+    } catch (err) {
+      // A 404 just means no ICP has been generated yet — not an error.
+      if (err instanceof ApiError && err.status === 404) setIcp(null)
+      else setLoadError(err instanceof ApiError ? err.message : "Failed to load ICP.")
+    } finally {
+      setLoading(false)
+    }
+  }, [campaignId])
+
+  useEffect(() => {
+    // Kicks off the initial fetch; `load` manages its own loading/error state
+    // (same pattern as the shared useAsync hook).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load()
+  }, [load])
+
+  // Poll while the background agent is generating.
+  useEffect(() => {
+    if (icp?.status !== "generating") return
+    const timer = setInterval(() => {
+      icpService
+        .get(campaignId)
+        .then(setIcp)
+        .catch(() => {
+          /* transient error mid-generation — keep polling */
+        })
+    }, POLL_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [icp?.status, campaignId])
+
+  async function handleGenerate() {
+    setStarting(true)
+    try {
+      // Returns the row in the "generating" state, which kicks off polling.
+      setIcp(await icpService.generate(campaignId))
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Failed to start ICP generation.",
+      )
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  async function handleSave(payload: IcpUpdate) {
+    setSaving(true)
+    try {
+      setIcp(await icpService.update(campaignId, payload))
+      toast.success("ICP saved.")
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to save ICP.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const generating = icp?.status === "generating"
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">
+            Ideal Customer Profile
+          </h2>
+          <p className="text-muted-foreground">
+            The kind of company and contact this campaign should target.
+          </p>
+        </div>
+        {icp?.status === "ready" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerate}
+            disabled={starting}
+          >
+            {starting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+            Regenerate
+          </Button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-2/3" />
+        </div>
+      ) : loadError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-muted-foreground">{loadError}</p>
+            <Button variant="outline" size="sm" onClick={() => void load()}>
+              <RefreshCw className="size-4" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : generating ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            <div>
+              <p className="font-medium">Generating ICP…</p>
+              <p className="text-sm text-muted-foreground">
+                The agent is analysing your brand profile and campaign answers.
+                This usually takes a few seconds.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : icp?.status === "failed" ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <TriangleAlert className="size-6 text-destructive" />
+            <div>
+              <p className="font-medium">ICP generation failed</p>
+              <p className="text-sm text-muted-foreground">
+                {icp.error ?? "Something went wrong while generating the ICP."}
+              </p>
+            </div>
+            <Button onClick={handleGenerate} disabled={starting}>
+              {starting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <RefreshCw className="size-4" />
+              )}
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      ) : icp?.status === "ready" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Targeting profile</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ICPForm icp={icp} onSubmit={handleSave} submitting={saving} />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+            <Sparkles className="size-7 text-muted-foreground" />
+            <div className="max-w-md space-y-1">
+              <p className="font-medium">No ICP generated yet</p>
+              <p className="text-sm text-muted-foreground">
+                Generate an Ideal Customer Profile from your brand profile and this
+                campaign's answers. You can edit every field afterwards.
+              </p>
+            </div>
+            <Button onClick={handleGenerate} disabled={starting}>
+              {starting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
+              Generate ICP
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}

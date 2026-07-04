@@ -5,10 +5,13 @@ import {
   Building2,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   MessageSquareText,
   Search,
+  ShieldCheck,
   Users,
+  UsersRound,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -44,6 +47,10 @@ const navSections: {
     ],
   },
   {
+    title: "Campaign",
+    items: [{ to: "/campaigns", label: "Campaigns", icon: Megaphone }],
+  },
+  {
     title: "Integrations",
     items: [
       { to: "/companies/search", label: "Company Search Full Enrich", icon: Search },
@@ -58,6 +65,8 @@ const navSections: {
         label: "Brand Profile",
         icon: MessageSquareText,
       },
+      { to: "/company/teams", label: "Teams", icon: UsersRound },
+      { to: "/company/users", label: "Users", icon: ShieldCheck },
     ],
   },
 ]

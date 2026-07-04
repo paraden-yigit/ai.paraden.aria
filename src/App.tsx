@@ -11,8 +11,18 @@ import { CompanyDetailPage } from "@/pages/CompanyDetailPage"
 import { CompanySearchPage } from "@/pages/CompanySearchPage"
 import { ContactsPage } from "@/pages/ContactsPage"
 import { ContactDetailPage } from "@/pages/ContactDetailPage"
+import { CampaignsPage } from "@/pages/CampaignsPage"
+import { CampaignLayout } from "@/components/layout/CampaignLayout"
+import { CampaignDashboardPage } from "@/pages/CampaignDashboardPage"
+import { CampaignInfoPage } from "@/pages/CampaignInfoPage"
+import { CampaignQuestionsPage } from "@/pages/CampaignQuestionsPage"
+import { CampaignICPPage } from "@/pages/CampaignICPPage"
+import { CampaignContactsPage } from "@/pages/CampaignContactsPage"
 import { CompanyInfoPage } from "@/pages/CompanyInfoPage"
 import { BrandProfilePage } from "@/pages/BrandProfilePage"
+import { TeamsPage } from "@/pages/TeamsPage"
+import { TeamDetailPage } from "@/pages/TeamDetailPage"
+import { UsersPage } from "@/pages/UsersPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 import { Toaster } from "@/components/ui/sonner"
 
@@ -32,12 +42,23 @@ function App() {
               <Route path="/companies/search" element={<CompanySearchPage />} />
               <Route path="/companies/:id" element={<CompanyDetailPage />} />
               <Route path="/contacts" element={<ContactsPage />} />
+              <Route path="/campaigns" element={<CampaignsPage />} />
+              <Route path="/campaigns/:id" element={<CampaignLayout />}>
+                <Route index element={<CampaignDashboardPage />} />
+                <Route path="info" element={<CampaignInfoPage />} />
+                <Route path="questions" element={<CampaignQuestionsPage />} />
+                <Route path="icp" element={<CampaignICPPage />} />
+                <Route path="contacts" element={<CampaignContactsPage />} />
+              </Route>
               <Route
                 path="/companies/:companyId/contacts/:contactId"
                 element={<ContactDetailPage />}
               />
               <Route path="/company" element={<CompanyInfoPage />} />
               <Route path="/company/brand-profile" element={<BrandProfilePage />} />
+              <Route path="/company/teams" element={<TeamsPage />} />
+              <Route path="/company/teams/:id" element={<TeamDetailPage />} />
+              <Route path="/company/users" element={<UsersPage />} />
             </Route>
           </Route>
 
