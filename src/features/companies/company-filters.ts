@@ -1,6 +1,5 @@
-// Shared company-filter option lists, used by both the company search form
-// (src/features/fullenrich/CompanySearchForm.tsx) and the campaign ICP editor
-// (src/features/campaigns/ICPForm.tsx). These mirror the backend
+// Shared company-filter option lists, used by the product ICP editor
+// (src/features/products/ICPForm.tsx). These mirror the backend
 // app/icp_taxonomy.py (COMPANY_TYPES, REVENUE_RANGES).
 
 // Multi-select option list, matching the company create form's dropdown.

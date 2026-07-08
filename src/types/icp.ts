@@ -1,10 +1,10 @@
-// The campaign's generated Ideal Customer Profile (mirrors the API's IcpRead).
+// The product's generated Ideal Customer Profile (mirrors the API's IcpRead).
 
 export type IcpStatus = "generating" | "ready" | "failed"
 
 export interface Icp {
   id: number
-  campaign_id: number
+  product_id: number
   client_id: number
   status: IcpStatus
   error: string | null

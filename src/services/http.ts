@@ -49,7 +49,13 @@ let refreshPromise: Promise<void> | null = null
 
 function buildHeaders(method: HttpMethod, options: RequestOptions): Headers {
   const headers = new Headers(options.headers)
-  if (!headers.has("Content-Type") && options.body !== undefined) {
+  // FormData sets its own multipart Content-Type (with boundary); only default
+  // to JSON for plain bodies.
+  if (
+    !headers.has("Content-Type") &&
+    options.body !== undefined &&
+    !(options.body instanceof FormData)
+  ) {
     headers.set("Content-Type", "application/json")
   }
   // App-level key gates the whole API — sent on every request.
@@ -102,7 +108,12 @@ async function rawRequest<T>(
   const response = await fetch(`${config.apiBaseUrl}${path}`, {
     method,
     headers: buildHeaders(method, options),
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body:
+      options.body === undefined
+        ? undefined
+        : options.body instanceof FormData
+          ? options.body
+          : JSON.stringify(options.body),
     // Send/receive the httpOnly session cookies cross-subdomain.
     credentials: "include",
     signal: options.signal,

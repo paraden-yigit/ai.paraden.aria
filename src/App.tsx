@@ -6,18 +6,14 @@ import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/LoginPage"
 import { DashboardPage } from "@/pages/DashboardPage"
-import { CompaniesPage } from "@/pages/CompaniesPage"
-import { CompanyDetailPage } from "@/pages/CompanyDetailPage"
-import { CompanySearchPage } from "@/pages/CompanySearchPage"
-import { ContactsPage } from "@/pages/ContactsPage"
-import { ContactDetailPage } from "@/pages/ContactDetailPage"
+import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
+import { NewCampaignPage } from "@/pages/NewCampaignPage"
 import { CampaignLayout } from "@/components/layout/CampaignLayout"
 import { CampaignDashboardPage } from "@/pages/CampaignDashboardPage"
-import { CampaignInfoPage } from "@/pages/CampaignInfoPage"
-import { CampaignQuestionsPage } from "@/pages/CampaignQuestionsPage"
-import { CampaignICPPage } from "@/pages/CampaignICPPage"
 import { CampaignContactsPage } from "@/pages/CampaignContactsPage"
+import { ProductsPage } from "@/pages/ProductsPage"
+import { ProductDetailPage } from "@/pages/ProductDetailPage"
 import { CompanyInfoPage } from "@/pages/CompanyInfoPage"
 import { BrandProfilePage } from "@/pages/BrandProfilePage"
 import { TeamsPage } from "@/pages/TeamsPage"
@@ -36,24 +32,19 @@ function App() {
           </Route>
 
           <Route element={<ProtectedRoute />}>
+            {/* Full-page campaign wizard — deliberately outside AppLayout so it
+                has no sidebar or header, only its own close button. */}
+            <Route path="/campaigns/new" element={<NewCampaignPage />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
-              <Route path="/companies" element={<CompaniesPage />} />
-              <Route path="/companies/search" element={<CompanySearchPage />} />
-              <Route path="/companies/:id" element={<CompanyDetailPage />} />
-              <Route path="/contacts" element={<ContactsPage />} />
+              <Route path="/exclusions" element={<ExclusionListPage />} />
               <Route path="/campaigns" element={<CampaignsPage />} />
               <Route path="/campaigns/:id" element={<CampaignLayout />}>
                 <Route index element={<CampaignDashboardPage />} />
-                <Route path="info" element={<CampaignInfoPage />} />
-                <Route path="questions" element={<CampaignQuestionsPage />} />
-                <Route path="icp" element={<CampaignICPPage />} />
                 <Route path="contacts" element={<CampaignContactsPage />} />
               </Route>
-              <Route
-                path="/companies/:companyId/contacts/:contactId"
-                element={<ContactDetailPage />}
-              />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/products/:id" element={<ProductDetailPage />} />
               <Route path="/company" element={<CompanyInfoPage />} />
               <Route path="/company/brand-profile" element={<BrandProfilePage />} />
               <Route path="/company/teams" element={<TeamsPage />} />

@@ -1,26 +1,21 @@
 import { useCallback, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { CampaignsTable } from "@/features/campaigns/CampaignsTable"
-import { CampaignForm } from "@/features/campaigns/CampaignForm"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { campaignService } from "@/services/campaign.service"
 import { ApiError } from "@/services/http"
-import type { Campaign, CampaignCreate } from "@/types/campaign"
+import type { Campaign } from "@/types/campaign"
 
 export function CampaignsPage() {
+  const navigate = useNavigate()
+
   const fetchCampaigns = useCallback(
     (params: { skip?: number; limit?: number }) => campaignService.list(params),
     [],
@@ -38,24 +33,8 @@ export function CampaignsPage() {
     refetch,
   } = usePaginatedList<Campaign>(fetchCampaigns)
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  async function handleCreate(payload: CampaignCreate) {
-    setCreating(true)
-    try {
-      await campaignService.create(payload)
-      toast.success(`Campaign "${payload.name}" created.`)
-      setCreateOpen(false)
-      refetch()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to create campaign.")
-    } finally {
-      setCreating(false)
-    }
-  }
 
   async function handleDelete() {
     if (!campaignToDelete) return
@@ -79,7 +58,7 @@ export function CampaignsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
           <p className="text-muted-foreground">Manage your campaigns.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => navigate("/campaigns/new")}>
           <Plus className="size-4" />
           New campaign
         </Button>
@@ -103,21 +82,6 @@ export function CampaignsPage() {
           onNext={() => setPage((p) => p + 1)}
         />
       </DataState>
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New campaign</DialogTitle>
-            <DialogDescription>Add a campaign to your list.</DialogDescription>
-          </DialogHeader>
-          <CampaignForm
-            onSubmit={handleCreate}
-            onCancel={() => setCreateOpen(false)}
-            submitting={creating}
-            submitLabel="Create campaign"
-          />
-        </DialogContent>
-      </Dialog>
 
       <ConfirmDialog
         open={campaignToDelete !== null}

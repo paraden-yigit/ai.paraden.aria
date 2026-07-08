@@ -1,16 +1,15 @@
 import { useState } from "react"
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import {
+  Ban,
   Briefcase,
-  Building2,
   LayoutDashboard,
   LogOut,
   Megaphone,
   Menu,
   MessageSquareText,
-  Search,
+  Package,
   ShieldCheck,
-  Users,
   UsersRound,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -41,19 +40,13 @@ const navSections: {
   },
   {
     title: "CRM",
-    items: [
-      { to: "/companies", label: "Companies", icon: Building2 },
-      { to: "/contacts", label: "Contacts", icon: Users },
-    ],
+    items: [{ to: "/exclusions", label: "Exclusion List", icon: Ban }],
   },
   {
     title: "Campaign",
-    items: [{ to: "/campaigns", label: "Campaigns", icon: Megaphone }],
-  },
-  {
-    title: "Integrations",
     items: [
-      { to: "/companies/search", label: "Company Search Full Enrich", icon: Search },
+      { to: "/campaigns", label: "Campaigns", icon: Megaphone },
+      { to: "/products", label: "Products", icon: Package },
     ],
   },
   {

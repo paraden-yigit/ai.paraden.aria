@@ -5,7 +5,6 @@ import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Form } from "@/components/ui/form"
-import { TextField } from "@/components/form/TextField"
 import { TextareaField } from "@/components/form/TextareaField"
 import type { BrandProfile, BrandProfileUpdate } from "@/types/brand-profile"
 
@@ -14,8 +13,8 @@ const brandProfileSchema = z.object({
   market_positioning: z.string(),
   competitors: z.string(),
   email_tone: z.string(),
-  email_opening: z.string().max(255),
-  email_closing: z.string().max(255),
+  email_opening: z.string(),
+  email_closing: z.string(),
   closing_question: z.string(),
   dos_and_donts: z.string(),
 })
@@ -111,22 +110,22 @@ export function BrandProfileForm({
           disabled={submitting}
         />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
-            control={form.control}
-            name="email_opening"
-            label="How should emails open?"
-            placeholder="Hi John,"
-            disabled={submitting}
-          />
-          <TextField
-            control={form.control}
-            name="email_closing"
-            label="How should emails close?"
-            placeholder="Regards, Peter"
-            disabled={submitting}
-          />
-        </div>
+        <TextareaField
+          control={form.control}
+          name="email_opening"
+          label="How should emails open?"
+          placeholder="Hi John,"
+          rows={2}
+          disabled={submitting}
+        />
+        <TextareaField
+          control={form.control}
+          name="email_closing"
+          label="How should emails close?"
+          placeholder="Regards, Peter"
+          rows={2}
+          disabled={submitting}
+        />
 
         <TextareaField
           control={form.control}

@@ -44,6 +44,8 @@ function joinLocation(c: CampaignContact): string {
 export function CampaignContactsPage() {
   const { campaign } = useCampaignContext()
   const campaignId = campaign.id
+  // The ICP now lives on the campaign's linked product; contacts are gated on it.
+  const productId = campaign.product_id
 
   const [icp, setIcp] = useState<Icp | null>(null)
   const [search, setSearch] = useState<CampaignContactSearch | null>(null)
@@ -62,12 +64,15 @@ export function CampaignContactsPage() {
     setLoading(true)
     setLoadError(null)
     try {
-      // Both can legitimately 404 (no ICP / no search yet) — treat as null.
+      // Both can legitimately 404 (no ICP / no search yet) — treat as null. The
+      // ICP is the product's; skip the call entirely if no product is linked.
       const [icpResult, searchResult] = await Promise.all([
-        icpService.get(campaignId).catch((err) => {
-          if (err instanceof ApiError && err.status === 404) return null
-          throw err
-        }),
+        productId != null
+          ? icpService.get(productId).catch((err) => {
+              if (err instanceof ApiError && err.status === 404) return null
+              throw err
+            })
+          : Promise.resolve(null),
         campaignContactService.get(campaignId).catch((err) => {
           if (err instanceof ApiError && err.status === 404) return null
           throw err
@@ -82,7 +87,7 @@ export function CampaignContactsPage() {
     } finally {
       setLoading(false)
     }
-  }, [campaignId])
+  }, [campaignId, productId])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -165,7 +170,7 @@ export function CampaignContactsPage() {
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Contacts</h2>
           <p className="text-muted-foreground">
-            People at companies that match this campaign's ICP, found via
+            People at companies that match the linked product's ICP, found via
             FullEnrich.
           </p>
         </div>
@@ -202,6 +207,19 @@ export function CampaignContactsPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : productId == null ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+            <Sparkles className="size-7 text-muted-foreground" />
+            <div className="max-w-md space-y-1">
+              <p className="font-medium">Link a product first</p>
+              <p className="text-sm text-muted-foreground">
+                Finding contacts uses the linked product's Ideal Customer Profile.
+                Link a product to this campaign, then generate its ICP.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       ) : !icpReady ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
@@ -209,13 +227,13 @@ export function CampaignContactsPage() {
             <div className="max-w-md space-y-1">
               <p className="font-medium">Generate the ICP first</p>
               <p className="text-sm text-muted-foreground">
-                Finding contacts uses this campaign's Ideal Customer Profile to
-                search for matching companies and people. Generate the ICP, then
-                come back here.
+                Finding contacts uses the linked product's Ideal Customer Profile
+                to search for matching companies and people. Generate the ICP on
+                the product, then come back here.
               </p>
             </div>
             <Button asChild>
-              <Link to="../icp">Go to ICP</Link>
+              <Link to={`/products/${productId}?tab=icp`}>Go to ICP</Link>
             </Button>
           </CardContent>
         </Card>
@@ -381,7 +399,7 @@ export function CampaignContactsPage() {
             <div className="max-w-md space-y-1">
               <p className="font-medium">No contacts found yet</p>
               <p className="text-sm text-muted-foreground">
-                Fetch up to 50 companies that match this campaign's ICP, then
+                Fetch up to 50 companies that match the product's ICP, then
                 search for the matching people inside them. You can re-run this
                 any time.
               </p>

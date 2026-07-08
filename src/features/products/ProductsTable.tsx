@@ -17,14 +17,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatDateTime } from "@/lib/format"
-import type { Campaign } from "@/types/campaign"
+import type { Product } from "@/types/product"
 
-interface CampaignsTableProps {
-  campaigns: Campaign[]
-  onDelete: (campaign: Campaign) => void
+interface ProductsTableProps {
+  products: Product[]
+  onDelete: (product: Product) => void
 }
 
-export function CampaignsTable({ campaigns, onDelete }: CampaignsTableProps) {
+export function ProductsTable({ products, onDelete }: ProductsTableProps) {
   const navigate = useNavigate()
 
   return (
@@ -33,24 +33,20 @@ export function CampaignsTable({ campaigns, onDelete }: CampaignsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Product</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {campaigns.map((campaign) => (
+          {products.map((product) => (
             <TableRow
-              key={campaign.id}
+              key={product.id}
               className="cursor-pointer"
-              onClick={() => navigate(`/campaigns/${campaign.id}`)}
+              onClick={() => navigate(`/products/${product.id}`)}
             >
-              <TableCell className="font-medium">{campaign.name}</TableCell>
+              <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell className="text-muted-foreground">
-                {campaign.product_name ?? "—"}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDateTime(campaign.created_at)}
+                {formatDateTime(product.created_at)}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
@@ -62,14 +58,14 @@ export function CampaignsTable({ campaigns, onDelete }: CampaignsTableProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
-                      onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                      onClick={() => navigate(`/products/${product.id}`)}
                     >
                       <Eye className="size-4" />
                       View
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
-                      onClick={() => onDelete(campaign)}
+                      onClick={() => onDelete(product)}
                     >
                       <Trash2 className="size-4" />
                       Delete

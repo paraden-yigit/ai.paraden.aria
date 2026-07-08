@@ -13,9 +13,6 @@ import type { CampaignContext } from "@/features/campaigns/useCampaignContext"
 // rest are relative to /campaigns/:id.
 const TABS: { to: string; label: string; end?: boolean }[] = [
   { to: "", label: "Dashboard", end: true },
-  { to: "info", label: "Campaign Info" },
-  { to: "questions", label: "Questions" },
-  { to: "icp", label: "ICP" },
   { to: "contacts", label: "Contacts" },
 ]
 

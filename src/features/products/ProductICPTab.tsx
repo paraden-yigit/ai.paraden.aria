@@ -5,18 +5,23 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ICPForm } from "@/features/campaigns/ICPForm"
-import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
+import { ICPForm } from "@/features/products/ICPForm"
 import { icpService } from "@/services/icp.service"
 import { ApiError } from "@/services/http"
 import type { Icp, IcpUpdate } from "@/types/icp"
 
 const POLL_INTERVAL_MS = 2000
 
-export function CampaignICPPage() {
-  const { campaign } = useCampaignContext()
-  const campaignId = campaign.id
+interface ProductICPTabProps {
+  productId: number
+}
 
+/**
+ * ICP tab for a product: generate the Ideal Customer Profile from the product
+ * brief + brand profile, poll while the agent runs, then show it in an editable
+ * form. The ICP is stored per product and reused by every campaign on it.
+ */
+export function ProductICPTab({ productId }: ProductICPTabProps) {
   const [icp, setIcp] = useState<Icp | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -27,7 +32,7 @@ export function CampaignICPPage() {
     setLoading(true)
     setLoadError(null)
     try {
-      setIcp(await icpService.get(campaignId))
+      setIcp(await icpService.get(productId))
     } catch (err) {
       // A 404 just means no ICP has been generated yet — not an error.
       if (err instanceof ApiError && err.status === 404) setIcp(null)
@@ -35,11 +40,9 @@ export function CampaignICPPage() {
     } finally {
       setLoading(false)
     }
-  }, [campaignId])
+  }, [productId])
 
   useEffect(() => {
-    // Kicks off the initial fetch; `load` manages its own loading/error state
-    // (same pattern as the shared useAsync hook).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
@@ -49,20 +52,20 @@ export function CampaignICPPage() {
     if (icp?.status !== "generating") return
     const timer = setInterval(() => {
       icpService
-        .get(campaignId)
+        .get(productId)
         .then(setIcp)
         .catch(() => {
           /* transient error mid-generation — keep polling */
         })
     }, POLL_INTERVAL_MS)
     return () => clearInterval(timer)
-  }, [icp?.status, campaignId])
+  }, [icp?.status, productId])
 
   async function handleGenerate() {
     setStarting(true)
     try {
       // Returns the row in the "generating" state, which kicks off polling.
-      setIcp(await icpService.generate(campaignId))
+      setIcp(await icpService.generate(productId))
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to start ICP generation.",
@@ -75,7 +78,7 @@ export function CampaignICPPage() {
   async function handleSave(payload: IcpUpdate) {
     setSaving(true)
     try {
-      setIcp(await icpService.update(campaignId, payload))
+      setIcp(await icpService.update(productId, payload))
       toast.success("ICP saved.")
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to save ICP.")
@@ -94,7 +97,7 @@ export function CampaignICPPage() {
             Ideal Customer Profile
           </h2>
           <p className="text-muted-foreground">
-            The kind of company and contact this campaign should target.
+            The kind of company and contact this product's campaigns should target.
           </p>
         </div>
         {icp?.status === "ready" && (
@@ -137,8 +140,8 @@ export function CampaignICPPage() {
             <div>
               <p className="font-medium">Generating ICP…</p>
               <p className="text-sm text-muted-foreground">
-                The agent is analysing your brand profile and campaign answers.
-                This usually takes a few seconds.
+                The agent is analysing your brand profile and product brief. This
+                usually takes a few seconds.
               </p>
             </div>
           </CardContent>
@@ -180,7 +183,7 @@ export function CampaignICPPage() {
               <p className="font-medium">No ICP generated yet</p>
               <p className="text-sm text-muted-foreground">
                 Generate an Ideal Customer Profile from your brand profile and this
-                campaign's answers. You can edit every field afterwards.
+                product's brief. You can edit every field afterwards.
               </p>
             </div>
             <Button onClick={handleGenerate} disabled={starting}>
