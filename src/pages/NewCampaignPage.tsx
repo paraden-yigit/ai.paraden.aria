@@ -8,15 +8,20 @@ import { StepDetails } from "@/features/campaigns/wizard/StepDetails"
 import { StepUpload } from "@/features/campaigns/wizard/StepUpload"
 import { StepMapping } from "@/features/campaigns/wizard/StepMapping"
 import { StepReview } from "@/features/campaigns/wizard/StepReview"
+import { StepDiscovery } from "@/features/campaigns/wizard/StepDiscovery"
 import type { ParsedCsv } from "@/features/campaigns/wizard/csv"
 import type { Campaign } from "@/types/campaign"
 
 // Top-level steps shown in the stepper. "Upload contacts" is a single step whose
 // upload → map → review flow is handled internally as sub-steps (not surfaced in
 // the stepper).
-const STEPS: WizardStep[] = [{ title: "Details" }, { title: "Upload contacts" }]
+const STEPS: WizardStep[] = [
+  { title: "Details" },
+  { title: "Upload contacts" },
+  { title: "Find contacts" },
+]
 
-type MainStep = 0 | 1
+type MainStep = 0 | 1 | 2
 type SubStep = "upload" | "mapping" | "review"
 
 /**
@@ -42,8 +47,8 @@ export function NewCampaignPage() {
   }
 
   function renderContent() {
-    // Step 1 — details. Also the fallback if we somehow reach step 2 with no
-    // created campaign yet.
+    // Step 1 — details. Also the fallback if we somehow reach a later step with
+    // no created campaign yet.
     if (mainStep === 0 || !campaign) {
       return (
         <StepDetails
@@ -51,6 +56,21 @@ export function NewCampaignPage() {
           onSaved={(saved) => {
             setCampaign(saved)
             setSubStep("upload")
+            setMainStep(1)
+          }}
+        />
+      )
+    }
+
+    // Step 3 — find contacts (discovery).
+    if (mainStep === 2) {
+      return (
+        <StepDiscovery
+          campaignId={campaign.id}
+          productId={campaign.product_id}
+          onFinish={finish}
+          onBack={() => {
+            setSubStep("review")
             setMainStep(1)
           }}
         />
@@ -100,7 +120,7 @@ export function NewCampaignPage() {
           <StepReview
             campaignId={campaign.id}
             skippedUpload={skippedUpload}
-            onFinish={finish}
+            onContinue={() => setMainStep(2)}
           />
         )
       default:
