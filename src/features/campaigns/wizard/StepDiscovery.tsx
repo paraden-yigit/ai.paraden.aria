@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button"
 import { CompaniesAccordion } from "@/features/campaigns/wizard/CompaniesAccordion"
 import { EditIcpDialog } from "@/features/products/EditIcpDialog"
 import { campaignDiscoveryService } from "@/services/campaign-discovery.service"
+import { campaignUploadService } from "@/services/campaign-upload.service"
 import { ApiError } from "@/services/http"
 import type { DiscoverySearch } from "@/types/campaign-discovery"
+import type { CampaignUploadReview } from "@/types/campaign-upload"
 
 interface StepDiscoveryProps {
   campaignId: number
@@ -45,6 +47,8 @@ export function StepDiscovery({
   const [approving, setApproving] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [icpOpen, setIcpOpen] = useState(false)
+  // Contacts already discovered + approved for this campaign (shown on resume).
+  const [saved, setSaved] = useState<CampaignUploadReview | null>(null)
 
   // Initial state fetch (a run may already be staged from a previous visit).
   useEffect(() => {
@@ -54,6 +58,20 @@ export function StepDiscovery({
       .then((s) => active && setState(s))
       .catch(() => active && setState(IDLE))
       .finally(() => active && setLoading(false))
+    return () => {
+      active = false
+    }
+  }, [campaignId])
+
+  // Already-discovered contacts (approved in a prior visit).
+  useEffect(() => {
+    let active = true
+    campaignUploadService
+      .review(campaignId, "discovered")
+      .then((r) => active && setSaved(r))
+      .catch(() => {
+        /* non-fatal — just don't show the saved section */
+      })
     return () => {
       active = false
     }
@@ -142,21 +160,35 @@ export function StepDiscovery({
     return (
       <div className="space-y-6">
         {companies.length > 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Found{" "}
-            <span className="font-medium text-foreground">
-              {companies.length} companies
-            </span>
-            {state.contacts_found != null && (
-              <>
-                {" "}and{" "}
-                <span className="font-medium text-foreground">
-                  {state.contacts_found} contacts
-                </span>
-              </>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Found{" "}
+              <span className="font-medium text-foreground">
+                {companies.length} companies
+              </span>
+              {state.contacts_found != null && (
+                <>
+                  {" "}and{" "}
+                  <span className="font-medium text-foreground">
+                    {state.contacts_found} contacts
+                  </span>
+                </>
+              )}
+              . Approve to add them, or repopulate for a different set.
+            </p>
+            {productId != null && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIcpOpen(true)}
+                disabled={busy}
+              >
+                <Pencil className="size-4" />
+                Edit ICP
+              </Button>
             )}
-            . Approve to add them, or repopulate for a different set.
-          </p>
+          </div>
         ) : state.target === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
             <Sparkles className="size-6 text-muted-foreground" />
@@ -232,6 +264,42 @@ export function StepDiscovery({
             onSaved={handleGenerate}
           />
         )}
+      </div>
+    )
+  }
+
+  // Resumed with already-discovered contacts and no active run — show them,
+  // with the option to find more.
+  if (saved && saved.companies.length > 0) {
+    return (
+      <div className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Already added{" "}
+          <span className="font-medium text-foreground">
+            {saved.total_contacts} contacts
+          </span>{" "}
+          across{" "}
+          <span className="font-medium text-foreground">
+            {saved.companies.length} companies
+          </span>
+          . Find more, or continue.
+        </p>
+        <CompaniesAccordion companies={saved.companies} />
+        <div className="flex items-center justify-between gap-2">
+          <Button type="button" variant="ghost" onClick={onBack}>
+            <ArrowLeft className="size-4" />
+            Back
+          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={handleGenerate}>
+              <RefreshCw className="size-4" />
+              Find more
+            </Button>
+            <Button type="button" onClick={onFinish}>
+              Continue
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }

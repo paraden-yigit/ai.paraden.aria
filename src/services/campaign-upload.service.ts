@@ -19,10 +19,14 @@ export const campaignUploadService = {
     )
   },
 
-  /** The step-4 review: companies (each with their people) plus totals. */
-  review(campaignId: number): Promise<CampaignUploadReview> {
+  /** Companies (each with their people) plus totals, filtered to a source
+   * ("uploaded" or "discovered"). */
+  review(
+    campaignId: number,
+    source: "uploaded" | "discovered" = "uploaded",
+  ): Promise<CampaignUploadReview> {
     return apiClient.get<CampaignUploadReview>(
-      `/api/campaigns/${campaignId}/uploaded-contacts/review`,
+      `/api/campaigns/${campaignId}/uploaded-contacts/review?source=${source}`,
     )
   },
 }

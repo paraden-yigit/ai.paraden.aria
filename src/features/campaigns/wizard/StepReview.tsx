@@ -1,5 +1,5 @@
 import { useCallback } from "react"
-import { ArrowRight, Users } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { DataState } from "@/components/DataState"
@@ -12,35 +12,19 @@ import {
 
 interface StepReviewProps {
   campaignId: number
-  skippedUpload: boolean
   onContinue: () => void
 }
 
 /**
- * Review the uploaded companies and contacts (expandable rows). When the upload
- * step was skipped there's nothing to review. Continues to the discovery step.
+ * Review the uploaded companies and contacts (expandable rows). Only shown after
+ * a CSV was uploaded and mapped. Continues to the discovery step.
  */
-export function StepReview({ campaignId, skippedUpload, onContinue }: StepReviewProps) {
+export function StepReview({ campaignId, onContinue }: StepReviewProps) {
   const fetchReview = useCallback(
     () => campaignUploadService.review(campaignId),
     [campaignId],
   )
   const { data, loading, error, refetch } = useAsync(fetchReview, [campaignId])
-
-  if (skippedUpload) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
-          <Users className="size-6 text-muted-foreground" />
-          <p className="text-sm font-medium">No contacts uploaded</p>
-          <p className="text-xs text-muted-foreground">
-            You skipped the upload step. You can still find new contacts next.
-          </p>
-        </div>
-        <StepFooter onContinue={onContinue} />
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">

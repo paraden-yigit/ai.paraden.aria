@@ -1,33 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import {
-  ExternalLink,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-  TriangleAlert,
-  Users,
-} from "lucide-react"
+import { Loader2, RefreshCw, Sparkles, TriangleAlert, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { PaginationFooter } from "@/components/PaginationFooter"
+  CompaniesAccordion,
+  type AccordionCompany,
+} from "@/features/campaigns/wizard/CompaniesAccordion"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
-import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { icpService } from "@/services/icp.service"
 import { campaignContactService } from "@/services/campaign-contact.service"
 import { ApiError } from "@/services/http"
-import type { ListResult, PaginationParams } from "@/types/api"
 import type { Icp } from "@/types/icp"
 import type {
   CampaignContact,
@@ -36,9 +22,38 @@ import type {
 } from "@/types/campaign-contact"
 
 const POLL_INTERVAL_MS = 2000
+// The contacts/list endpoint caps a page at 200; loop pages to load them all so
+// companies aren't split across pages in the grouped view.
+const PAGE_SIZE = 200
+const MAX_PAGES = 25
 
-function joinLocation(c: CampaignContact): string {
-  return [c.city, c.country].filter(Boolean).join(", ") || "—"
+/** Group the flat contact list into expandable companies (same shape the wizard
+ * accordion renders). Contacts arrive ordered by company, so first-seen order is
+ * preserved. */
+function groupByCompany(contacts: CampaignContact[]): AccordionCompany[] {
+  const byKey = new Map<string, AccordionCompany>()
+  const order: string[] = []
+  for (const c of contacts) {
+    const key = `${c.company_name ?? ""}|${c.company_domain ?? ""}`
+    let group = byKey.get(key)
+    if (!group) {
+      group = {
+        name: c.company_name,
+        domain: c.company_domain,
+        industry: c.company_industry,
+        contacts: [],
+      }
+      byKey.set(key, group)
+      order.push(key)
+    }
+    group.contacts.push({
+      full_name: c.full_name,
+      job_title: c.job_title,
+      email: c.email,
+      linkedin_url: c.linkedin_url,
+    })
+  }
+  return order.map((k) => byKey.get(k) as AccordionCompany)
 }
 
 export function CampaignContactsPage() {
@@ -56,9 +71,13 @@ export function CampaignContactsPage() {
   // (running -> ready/failed) rather than to every poll.
   const prevStatusRef = useRef<CampaignContactSearchStatus | undefined>(undefined)
 
+  // The campaign's contacts (all pages), grouped into companies for display.
+  const [contacts, setContacts] = useState<CampaignContact[]>([])
+  const [contactsLoading, setContactsLoading] = useState(false)
+  const [contactsError, setContactsError] = useState<string | null>(null)
+
   const icpReady = icp?.status === "ready"
   const running = search?.status === "running"
-  const ready = search?.status === "ready"
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -108,10 +127,7 @@ export function CampaignContactsPage() {
     return () => clearInterval(timer)
   }, [search?.status, campaignId])
 
-  // Surface when a (re-)run finishes. Because FullEnrich is deterministic for a
-  // given ICP, a fresh search can return the same people — so without this the
-  // "Find again" result can look identical to the previous one. The paginated
-  // list itself refetches via its own deps when `status`/`updated_at` change.
+  // Surface when a (re-)run finishes.
   useEffect(() => {
     const prev = prevStatusRef.current
     const current = search?.status
@@ -125,36 +141,48 @@ export function CampaignContactsPage() {
     }
   }, [search?.status, search?.contacts_found, search?.error])
 
-  // The found people, paginated. Only fetched once a search is ready; refetched
-  // when a (re-)run finishes (search.updated_at changes).
-  const fetchContacts = useCallback(
-    (params: PaginationParams): Promise<ListResult<CampaignContact>> =>
-      ready
-        ? campaignContactService.list(campaignId, params)
-        : Promise.resolve({ items: [], total: 0 }),
-    [ready, campaignId],
-  )
+  // Load ALL of the campaign's contacts (looping pages) so companies group
+  // cleanly. Re-runs whenever a search finishes (search.updated_at changes).
+  const loadContacts = useCallback(async () => {
+    setContactsLoading(true)
+    setContactsError(null)
+    try {
+      const all: CampaignContact[] = []
+      for (let pageIdx = 0; pageIdx < MAX_PAGES; pageIdx++) {
+        const res = await campaignContactService.list(campaignId, {
+          skip: pageIdx * PAGE_SIZE,
+          limit: PAGE_SIZE,
+        })
+        all.push(...res.items)
+        const total = res.total ?? all.length
+        if (res.items.length === 0 || all.length >= total) break
+      }
+      setContacts(all)
+    } catch (err) {
+      setContactsError(
+        err instanceof ApiError ? err.message : "Failed to load contacts.",
+      )
+    } finally {
+      setContactsLoading(false)
+    }
+  }, [campaignId])
 
-  const {
-    items: contacts,
-    total,
-    page,
-    setPage,
-    skip,
-    hasNextPage,
-    loading: listLoading,
-    error: listError,
-    refetch: refetchList,
-  } = usePaginatedList<CampaignContact>(fetchContacts, {
-    deps: [ready, campaignId, search?.updated_at],
-  })
+  // Load the campaign's contacts regardless of whether a FullEnrich search has
+  // run — CSV-uploaded contacts have no search row but should still show. Refetch
+  // when a search completes (updated_at changes) to pick up newly found people.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadContacts()
+  }, [loadContacts, search?.updated_at])
+
+  const companies = useMemo(() => groupByCompany(contacts), [contacts])
+  const hasContacts = companies.length > 0
 
   async function handleGenerate() {
     setStarting(true)
     try {
       // Returns the row in the "running" state, which kicks off polling.
       setSearch(await campaignContactService.generate(campaignId))
-      setPage(0)
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to start contact search.",
@@ -174,7 +202,7 @@ export function CampaignContactsPage() {
             FullEnrich.
           </p>
         </div>
-        {icpReady && ready && (
+        {icpReady && hasContacts && !running && (
           <Button
             variant="outline"
             size="sm"
@@ -186,7 +214,7 @@ export function CampaignContactsPage() {
             ) : (
               <RefreshCw className="size-4" />
             )}
-            Find again
+            Find more
           </Button>
         )}
       </div>
@@ -202,6 +230,50 @@ export function CampaignContactsPage() {
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="text-sm text-muted-foreground">{loadError}</p>
             <Button variant="outline" size="sm" onClick={() => void load()}>
+              <RefreshCw className="size-4" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : running ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            <div>
+              <p className="font-medium">Finding contacts…</p>
+              <p className="text-sm text-muted-foreground">
+                Fetching matching companies and searching for people inside them.
+                This can take a little while.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : hasContacts ? (
+        // The campaign has contacts (uploaded and/or discovered) — show them
+        // grouped by company, regardless of any FullEnrich search state.
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{contacts.length}</span>{" "}
+            {contacts.length === 1 ? "contact" : "contacts"} across{" "}
+            <span className="font-medium text-foreground">
+              {companies.length}
+            </span>{" "}
+            {companies.length === 1 ? "company" : "companies"}. Expand a company to
+            see its people.
+          </p>
+          <CompaniesAccordion companies={companies} />
+        </div>
+      ) : contactsLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-2/3" />
+        </div>
+      ) : contactsError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-muted-foreground">{contactsError}</p>
+            <Button variant="outline" size="sm" onClick={() => void loadContacts()}>
               <RefreshCw className="size-4" />
               Retry
             </Button>
@@ -237,19 +309,6 @@ export function CampaignContactsPage() {
             </Button>
           </CardContent>
         </Card>
-      ) : running ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            <div>
-              <p className="font-medium">Finding contacts…</p>
-              <p className="text-sm text-muted-foreground">
-                Fetching matching companies and searching for people inside them.
-                This can take a little while.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       ) : search?.status === "failed" ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
@@ -270,128 +329,6 @@ export function CampaignContactsPage() {
             </Button>
           </CardContent>
         </Card>
-      ) : ready ? (
-        listLoading && contacts.length === 0 ? (
-          <div className="space-y-3">
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-9 w-2/3" />
-          </div>
-        ) : listError ? (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-              <p className="text-sm text-muted-foreground">{listError}</p>
-              <Button variant="outline" size="sm" onClick={refetchList}>
-                <RefreshCw className="size-4" />
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        ) : total === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-              <Users className="size-7 text-muted-foreground" />
-              <div className="max-w-md space-y-1">
-                <p className="font-medium">No contacts found</p>
-                <p className="text-sm text-muted-foreground">
-                  No people matched across the companies we searched. Try
-                  broadening the ICP (seniority, job functions, or company
-                  filters) and run the search again.
-                </p>
-              </div>
-              <Button onClick={handleGenerate} disabled={starting}>
-                {starting ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4" />
-                )}
-                Find again
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                {total ?? search.contacts_found ?? contacts.length}
-              </span>{" "}
-              {(total ?? search.contacts_found ?? contacts.length) === 1
-                ? "contact"
-                : "contacts"}{" "}
-              across{" "}
-              <span className="font-medium text-foreground">
-                {search.companies_found ?? 0}
-              </span>{" "}
-              {(search.companies_found ?? 0) === 1 ? "company" : "companies"}.
-            </p>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Seniority</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Industry</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead className="w-20">LinkedIn</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {contacts.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell className="font-medium">
-                        {contact.full_name || "—"}
-                      </TableCell>
-                      <TableCell>{contact.job_title || "—"}</TableCell>
-                      <TableCell>{contact.seniority || "—"}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span>{contact.company_name || "—"}</span>
-                          {contact.company_domain && (
-                            <span className="text-xs text-muted-foreground">
-                              {contact.company_domain}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {contact.company_industry || "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {joinLocation(contact)}
-                      </TableCell>
-                      <TableCell>
-                        {contact.linkedin_url ? (
-                          <a
-                            href={contact.linkedin_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                          >
-                            View
-                            <ExternalLink className="size-3" />
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <PaginationFooter
-              page={page}
-              skip={skip}
-              count={contacts.length}
-              total={total}
-              hasNextPage={hasNextPage}
-              onPrev={() => setPage((p) => Math.max(0, p - 1))}
-              onNext={() => setPage((p) => p + 1)}
-            />
-          </div>
-        )
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-12 text-center">

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import {
   Ban,
+  Bot,
   Briefcase,
   LayoutDashboard,
   LogOut,
@@ -57,6 +58,11 @@ const navSections: {
         to: "/company/brand-profile",
         label: "Brand Profile",
         icon: MessageSquareText,
+      },
+      {
+        to: "/company/agent-instructions",
+        label: "Agent Instructions",
+        icon: Bot,
       },
       { to: "/company/teams", label: "Teams", icon: UsersRound },
       { to: "/company/users", label: "Users", icon: ShieldCheck },

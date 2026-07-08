@@ -1,11 +1,18 @@
-import { useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { ArrowLeft, ArrowRight, FileText, Loader2, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { useAsync } from "@/hooks/useAsync"
+import { campaignUploadService } from "@/services/campaign-upload.service"
+import {
+  CompaniesAccordion,
+  ContactsTable,
+} from "@/features/campaigns/wizard/CompaniesAccordion"
 import { parseCsvFile, type ParsedCsv } from "./csv"
 
 interface StepUploadProps {
+  campaignId: number
   parsed: ParsedCsv | null
   fileName: string | null
   onParsed: (parsed: ParsedCsv, fileName: string) => void
@@ -17,10 +24,11 @@ interface StepUploadProps {
 
 /**
  * Step 2 — optionally upload a CSV of contacts. Reminds the user of the required
- * columns first, validates the file is a readable CSV with data rows, and only
- * enables "Continue" once a file has parsed. Can be skipped entirely.
+ * columns first, validates the file, and (when resuming) shows contacts already
+ * uploaded to this campaign. Can be skipped.
  */
 export function StepUpload({
+  campaignId,
   parsed,
   fileName,
   onParsed,
@@ -31,6 +39,16 @@ export function StepUpload({
 }: StepUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [parsing, setParsing] = useState(false)
+
+  // Contacts already uploaded to this campaign (shown when resuming setup).
+  const fetchUploaded = useCallback(
+    () => campaignUploadService.review(campaignId, "uploaded"),
+    [campaignId],
+  )
+  const { data: uploaded } = useAsync(fetchUploaded, [campaignId])
+  const hasUploaded =
+    !!uploaded &&
+    (uploaded.companies.length > 0 || uploaded.unassigned_contacts.length > 0)
 
   async function handleSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -63,6 +81,23 @@ export function StepUpload({
           can map the rest of your columns on the next step.
         </p>
       </div>
+
+      {hasUploaded && uploaded && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">
+            Already uploaded ({uploaded.total_contacts}{" "}
+            {uploaded.total_contacts === 1 ? "contact" : "contacts"})
+          </p>
+          {uploaded.companies.length > 0 && (
+            <CompaniesAccordion companies={uploaded.companies} />
+          )}
+          {uploaded.unassigned_contacts.length > 0 && (
+            <div className="rounded-lg border">
+              <ContactsTable contacts={uploaded.unassigned_contacts} />
+            </div>
+          )}
+        </div>
+      )}
 
       <input
         ref={inputRef}
@@ -118,10 +153,16 @@ export function StepUpload({
             <Upload className="size-6 text-muted-foreground" />
           )}
           <span className="text-sm font-medium">
-            {parsing ? "Reading file…" : "Select a CSV file"}
+            {parsing
+              ? "Reading file…"
+              : hasUploaded
+                ? "Upload another CSV"
+                : "Select a CSV file"}
           </span>
           <span className="text-xs text-muted-foreground">
-            or skip this step to add contacts later
+            {hasUploaded
+              ? "add more contacts"
+              : "or skip this step to add contacts later"}
           </span>
         </button>
       )}
@@ -132,17 +173,26 @@ export function StepUpload({
           Back
         </Button>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onSkip} disabled={parsing}>
-            Skip this step
-          </Button>
-          <Button
-            type="button"
-            onClick={onContinue}
-            disabled={parsing || !parsed}
-          >
-            Continue
-            <ArrowRight className="size-4" />
-          </Button>
+          {parsed ? (
+            <>
+              <Button type="button" variant="outline" onClick={onSkip} disabled={parsing}>
+                Skip this step
+              </Button>
+              <Button type="button" onClick={onContinue} disabled={parsing}>
+                Continue
+                <ArrowRight className="size-4" />
+              </Button>
+            </>
+          ) : hasUploaded ? (
+            <Button type="button" onClick={onSkip} disabled={parsing}>
+              Continue
+              <ArrowRight className="size-4" />
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" onClick={onSkip} disabled={parsing}>
+              Skip this step
+            </Button>
+          )}
         </div>
       </div>
     </div>

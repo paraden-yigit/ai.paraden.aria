@@ -16,6 +16,7 @@ import { ProductsPage } from "@/pages/ProductsPage"
 import { ProductDetailPage } from "@/pages/ProductDetailPage"
 import { CompanyInfoPage } from "@/pages/CompanyInfoPage"
 import { BrandProfilePage } from "@/pages/BrandProfilePage"
+import { AgentInstructionsPage } from "@/pages/AgentInstructionsPage"
 import { TeamsPage } from "@/pages/TeamsPage"
 import { TeamDetailPage } from "@/pages/TeamDetailPage"
 import { UsersPage } from "@/pages/UsersPage"
@@ -47,6 +48,10 @@ function App() {
               <Route path="/products/:id" element={<ProductDetailPage />} />
               <Route path="/company" element={<CompanyInfoPage />} />
               <Route path="/company/brand-profile" element={<BrandProfilePage />} />
+              <Route
+                path="/company/agent-instructions"
+                element={<AgentInstructionsPage />}
+              />
               <Route path="/company/teams" element={<TeamsPage />} />
               <Route path="/company/teams/:id" element={<TeamDetailPage />} />
               <Route path="/company/users" element={<UsersPage />} />

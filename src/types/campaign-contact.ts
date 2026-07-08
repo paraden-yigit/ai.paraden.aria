@@ -19,6 +19,7 @@ export interface CampaignContact {
   city: string | null
   region: string | null
   country: string | null
+  email: string | null
   company_name: string | null
   company_domain: string | null
   company_linkedin_url: string | null

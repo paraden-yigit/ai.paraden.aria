@@ -32,4 +32,10 @@ export const campaignService = {
   remove(id: number): Promise<unknown> {
     return apiClient.delete(`/api/campaigns/${id}`)
   },
+
+  /** Start the setup wizard over: wipe the campaign's uploaded/discovered data
+   * (keeping name + product) and reset it to step 1. */
+  reset(id: number): Promise<Campaign> {
+    return apiClient.post<Campaign>(`/api/campaigns/${id}/reset`)
+  },
 }

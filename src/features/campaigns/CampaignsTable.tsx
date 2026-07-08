@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom"
 import { Eye, MoreHorizontal, Trash2 } from "lucide-react"
 
 import {
@@ -10,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,12 +21,13 @@ import type { Campaign } from "@/types/campaign"
 
 interface CampaignsTableProps {
   campaigns: Campaign[]
+  /** Opening a completed campaign goes to its detail; an incomplete one prompts
+   * to resume or restart — the page decides. */
+  onOpen: (campaign: Campaign) => void
   onDelete: (campaign: Campaign) => void
 }
 
-export function CampaignsTable({ campaigns, onDelete }: CampaignsTableProps) {
-  const navigate = useNavigate()
-
+export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTableProps) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -43,9 +44,16 @@ export function CampaignsTable({ campaigns, onDelete }: CampaignsTableProps) {
             <TableRow
               key={campaign.id}
               className="cursor-pointer"
-              onClick={() => navigate(`/campaigns/${campaign.id}`)}
+              onClick={() => onOpen(campaign)}
             >
-              <TableCell className="font-medium">{campaign.name}</TableCell>
+              <TableCell className="font-medium">
+                <span className="flex items-center gap-2">
+                  {campaign.name}
+                  {!campaign.setup_completed && (
+                    <Badge variant="secondary">Setup incomplete</Badge>
+                  )}
+                </span>
+              </TableCell>
               <TableCell className="text-muted-foreground">
                 {campaign.product_name ?? "—"}
               </TableCell>
@@ -61,9 +69,7 @@ export function CampaignsTable({ campaigns, onDelete }: CampaignsTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                    >
+                    <DropdownMenuItem onClick={() => onOpen(campaign)}>
                       <Eye className="size-4" />
                       View
                     </DropdownMenuItem>

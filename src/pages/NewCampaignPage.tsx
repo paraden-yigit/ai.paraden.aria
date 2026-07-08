@@ -1,16 +1,28 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { X } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { Loader2, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { useAsync } from "@/hooks/useAsync"
+import { clientService } from "@/services/client.service"
+import { campaignService } from "@/services/campaign.service"
 import { WizardStepper, type WizardStep } from "@/features/campaigns/wizard/WizardStepper"
 import { StepDetails } from "@/features/campaigns/wizard/StepDetails"
 import { StepUpload } from "@/features/campaigns/wizard/StepUpload"
 import { StepMapping } from "@/features/campaigns/wizard/StepMapping"
 import { StepReview } from "@/features/campaigns/wizard/StepReview"
 import { StepDiscovery } from "@/features/campaigns/wizard/StepDiscovery"
+import {
+  SequenceBuilder,
+  type SequenceConfig,
+} from "@/features/campaigns/wizard/SequenceBuilder"
+import { SequencePreview } from "@/features/campaigns/wizard/SequencePreview"
 import type { ParsedCsv } from "@/features/campaigns/wizard/csv"
 import type { Campaign } from "@/types/campaign"
+import { campaignEmailService } from "@/services/campaign-email.service"
+import { ApiError } from "@/services/http"
+import type { EmailSelection } from "@/types/campaign-email"
 
 // Top-level steps shown in the stepper. "Upload contacts" is a single step whose
 // upload → map → review flow is handled internally as sub-steps (not surfaced in
@@ -19,9 +31,11 @@ const STEPS: WizardStep[] = [
   { title: "Details" },
   { title: "Upload contacts" },
   { title: "Find contacts" },
+  { title: "Sequence" },
+  { title: "Preview" },
 ]
 
-type MainStep = 0 | 1 | 2
+type MainStep = 0 | 1 | 2 | 3 | 4
 type SubStep = "upload" | "mapping" | "review"
 
 /**
@@ -31,12 +45,62 @@ type SubStep = "upload" | "mapping" | "review"
  */
 export function NewCampaignPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const resumeId = searchParams.get("resume")
+  const resumeMode = searchParams.get("mode")
+  const { data: client } = useAsync(clientService.get, [])
   const [mainStep, setMainStep] = useState<MainStep>(0)
   const [subStep, setSubStep] = useState<SubStep>("upload")
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [parsed, setParsed] = useState<ParsedCsv | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
-  const [skippedUpload, setSkippedUpload] = useState(false)
+  const [sequenceConfig, setSequenceConfig] = useState<SequenceConfig | null>(null)
+  const [loadingCampaign, setLoadingCampaign] = useState(Boolean(resumeId))
+
+  // Resume an existing campaign's setup (from the campaigns list). "restart" was
+  // already reset server-side, so it begins at step 1 (upload contacts);
+  // "continue" resumes at the step last reached.
+  useEffect(() => {
+    if (!resumeId) return
+    let active = true
+    const load = async () => {
+      try {
+        const c = await campaignService.get(Number(resumeId))
+        if (!active) return
+        setCampaign(c)
+        setSubStep("upload")
+        // Restore a previously saved sequence so the builder resumes with it.
+        if (c.sequence_touches === 2 || c.sequence_touches === 3) {
+          setSequenceConfig({
+            touches: c.sequence_touches,
+            gaps: {
+              advancer: c.sequence_advancer_gap ?? 6,
+              closer: c.sequence_closer_gap ?? 17,
+            },
+            closerStyle: c.sequence_closer_style === "soft" ? "soft" : "pure",
+          })
+        }
+        const step =
+          resumeMode === "restart" ? 1 : Math.min(4, Math.max(1, c.setup_step))
+        setMainStep(step as MainStep)
+      } catch {
+        toast.error("Couldn't open that campaign.")
+        navigate("/campaigns")
+      } finally {
+        if (active) setLoadingCampaign(false)
+      }
+    }
+    void load()
+    return () => {
+      active = false
+    }
+  }, [resumeId, resumeMode, navigate])
+
+  // Persist the current top-level step so the user can resume where they left off.
+  useEffect(() => {
+    if (!campaign || campaign.setup_completed || mainStep < 1) return
+    campaignService.update(campaign.id, { setup_step: mainStep }).catch(() => {})
+  }, [campaign, mainStep])
 
   function close() {
     navigate("/campaigns")
@@ -46,7 +110,38 @@ export function NewCampaignPage() {
     navigate(campaign ? `/campaigns/${campaign.id}` : "/campaigns")
   }
 
+  async function complete(selections: EmailSelection[]) {
+    if (campaign) {
+      // Save the chosen outreach emails first — this is the point of the step,
+      // so surface a failure and stay on the preview rather than completing.
+      try {
+        await campaignEmailService.save(campaign.id, selections)
+      } catch (err) {
+        toast.error(
+          err instanceof ApiError ? err.message : "Couldn't save the emails.",
+        )
+        return
+      }
+      // Mark the wizard done so the campaigns list stops offering to resume it.
+      try {
+        await campaignService.update(campaign.id, { setup_completed: true })
+      } catch {
+        /* best effort — still take the user to the campaign */
+      }
+    }
+    toast.success("Campaign created.")
+    finish()
+  }
+
   function renderContent() {
+    if (loadingCampaign) {
+      return (
+        <div className="flex items-center justify-center p-10">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      )
+    }
+
     // Step 1 — details. Also the fallback if we somehow reach a later step with
     // no created campaign yet.
     if (mainStep === 0 || !campaign) {
@@ -68,11 +163,54 @@ export function NewCampaignPage() {
         <StepDiscovery
           campaignId={campaign.id}
           productId={campaign.product_id}
-          onFinish={finish}
+          onFinish={() => setMainStep(3)}
           onBack={() => {
-            setSubStep("review")
+            setSubStep(parsed ? "review" : "upload")
             setMainStep(1)
           }}
+        />
+      )
+    }
+
+    // Step 4 — sequence setup.
+    if (mainStep === 3) {
+      return (
+        <SequenceBuilder
+          clientName={client?.name ?? "Your"}
+          initialTouches={sequenceConfig?.touches}
+          initialGaps={sequenceConfig?.gaps}
+          onBack={() => setMainStep(2)}
+          onPreview={async (config) => {
+            setSequenceConfig(config)
+            if (campaign) {
+              // Persist the approved sequence before previewing it.
+              try {
+                await campaignService.update(campaign.id, {
+                  sequence_touches: config.touches,
+                  sequence_advancer_gap: config.gaps.advancer,
+                  sequence_closer_gap: config.gaps.closer,
+                  sequence_closer_style: config.closerStyle,
+                })
+              } catch {
+                toast.error("Couldn't save the sequence.")
+              }
+            }
+            setMainStep(4)
+          }}
+        />
+      )
+    }
+
+    // Step 5 — preview the sequence against a sample prospect.
+    if (mainStep === 4) {
+      return (
+        <SequencePreview
+          campaignId={campaign.id}
+          shape={sequenceConfig?.touches ?? 3}
+          advancerGap={sequenceConfig?.gaps.advancer ?? 6}
+          closerGap={sequenceConfig?.gaps.closer ?? 17}
+          onBack={() => setMainStep(3)}
+          onCreate={complete}
         />
       )
     }
@@ -82,12 +220,12 @@ export function NewCampaignPage() {
       case "upload":
         return (
           <StepUpload
+            campaignId={campaign.id}
             parsed={parsed}
             fileName={fileName}
             onParsed={(result, name) => {
               setParsed(result)
               setFileName(name)
-              setSkippedUpload(false)
             }}
             onClear={() => {
               setParsed(null)
@@ -97,8 +235,7 @@ export function NewCampaignPage() {
             onSkip={() => {
               setParsed(null)
               setFileName(null)
-              setSkippedUpload(true)
-              setSubStep("review")
+              setMainStep(2)
             }}
             onBack={() => setMainStep(0)}
           />
@@ -108,10 +245,7 @@ export function NewCampaignPage() {
           <StepMapping
             campaignId={campaign.id}
             parsed={parsed}
-            onSaved={() => {
-              setSkippedUpload(false)
-              setSubStep("review")
-            }}
+            onSaved={() => setSubStep("review")}
             onBack={() => setSubStep("upload")}
           />
         ) : null
@@ -119,7 +253,6 @@ export function NewCampaignPage() {
         return (
           <StepReview
             campaignId={campaign.id}
-            skippedUpload={skippedUpload}
             onContinue={() => setMainStep(2)}
           />
         )

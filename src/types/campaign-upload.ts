@@ -51,6 +51,8 @@ export interface UploadResult {
 /** A contact as returned by the step-4 review. */
 export interface CampaignUploadedContact {
   id: number
+  /** "uploaded" (CSV) or "discovered" (FullEnrich). */
+  source: string
   full_name: string | null
   first_name: string | null
   last_name: string | null
@@ -69,6 +71,8 @@ export interface CampaignUploadedContact {
 /** A company (with its people) as returned by the step-4 review. */
 export interface CampaignCompanyReview {
   id: number
+  /** "uploaded" (CSV) or "discovered" (FullEnrich). */
+  source: string
   name: string | null
   domain: string | null
   description: string | null
