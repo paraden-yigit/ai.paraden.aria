@@ -13,3 +13,14 @@ const ROLE_LABELS: Record<string, string> = {
 export function roleLabel(role: string): string {
   return ROLE_LABELS[role] ?? role
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  pending: "Invited",
+  inactive: "Inactive",
+}
+
+/** Human-readable label for a user status (falls back to the raw value). */
+export function statusLabel(status: string): string {
+  return STATUS_LABELS[status] ?? status
+}

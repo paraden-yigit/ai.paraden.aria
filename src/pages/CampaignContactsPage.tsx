@@ -198,8 +198,8 @@ export function CampaignContactsPage() {
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Contacts</h2>
           <p className="text-muted-foreground">
-            People at companies that match the linked product's ICP, found via
-            FullEnrich.
+            Everyone in this campaign: contacts you uploaded, plus people ARIA
+            found to match the product's targeting profile.
           </p>
         </div>
         {icpReady && hasContacts && !running && (

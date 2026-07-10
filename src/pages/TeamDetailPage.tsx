@@ -26,7 +26,7 @@ import { DataState } from "@/components/DataState"
 import { useAsync } from "@/hooks/useAsync"
 import { teamService } from "@/services/team.service"
 import { ApiError } from "@/services/http"
-import { roleLabel } from "@/lib/roles"
+import { roleLabel, statusLabel } from "@/lib/roles"
 import type { User } from "@/types/auth"
 
 export function TeamDetailPage() {
@@ -188,7 +188,9 @@ export function TeamDetailPage() {
                             <Badge variant="outline">{roleLabel(member.role)}</Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{member.status}</Badge>
+                            <Badge variant="secondary">
+                              {statusLabel(member.status)}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <Button

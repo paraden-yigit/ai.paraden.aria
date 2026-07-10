@@ -205,7 +205,7 @@ function RequirementRow({ met, label }: { met: boolean; label: string }) {
       )}
     >
       {met ? (
-        <Check className="size-4 text-emerald-500" />
+        <Check className="size-4 text-[#1c8676]" />
       ) : (
         <X className="size-4 text-muted-foreground" />
       )}
