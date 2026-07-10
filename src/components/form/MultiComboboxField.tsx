@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/popover"
 import {
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -31,6 +32,8 @@ interface MultiComboboxFieldProps<T extends FieldValues> {
   placeholder?: string
   searchPlaceholder?: string
   disabled?: boolean
+  /** Plain-language helper rendered under the field. */
+  description?: string
 }
 
 /**
@@ -47,6 +50,7 @@ export function MultiComboboxField<T extends FieldValues>({
   placeholder = "Select…",
   searchPlaceholder = "Search…",
   disabled,
+  description,
 }: MultiComboboxFieldProps<T>) {
   return (
     <FormField
@@ -65,6 +69,7 @@ export function MultiComboboxField<T extends FieldValues>({
               searchPlaceholder={searchPlaceholder}
               disabled={disabled}
             />
+            {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
           </FormItem>
         )
@@ -193,7 +198,7 @@ function MultiCombobox({
       </Popover>
 
       {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {selected.map((option) => (
             <Badge key={option} variant="secondary" className="gap-1 pr-1 font-normal">
               <span className="truncate">{option}</span>
@@ -208,6 +213,16 @@ function MultiCombobox({
               </button>
             </Badge>
           ))}
+          {selected.length > 1 && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange([])}
+              className="text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              Clear all
+            </button>
+          )}
         </div>
       )}
     </div>
