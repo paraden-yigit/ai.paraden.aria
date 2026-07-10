@@ -4,6 +4,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { CompaniesAccordion } from "@/features/campaigns/wizard/CompaniesAccordion"
+import { IcpSummaryPanel } from "@/features/campaigns/wizard/IcpSummaryPanel"
 import { EditIcpDialog } from "@/features/products/EditIcpDialog"
 import { campaignDiscoveryService } from "@/services/campaign-discovery.service"
 import { campaignUploadService } from "@/services/campaign-upload.service"
@@ -48,6 +49,8 @@ export function StepDiscovery({
   const [approving, setApproving] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [icpOpen, setIcpOpen] = useState(false)
+  // Bumped after the ICP dialog saves so the sidebar summary re-fetches.
+  const [icpVersion, setIcpVersion] = useState(0)
   // Contacts already discovered + approved for this campaign (shown on resume).
   const [saved, setSaved] = useState<CampaignUploadReview | null>(null)
 
@@ -155,40 +158,37 @@ export function StepDiscovery({
     )
   }
 
-  // Ready — show the staged preview.
+  // Ready — show the staged preview beside the targeting summary.
   if (status === "ready" && state) {
     const companies = state.companies
     return (
       <div className="space-y-6">
         {companies.length > 0 ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Found{" "}
-              <span className="font-medium text-foreground">
-                {companies.length} companies
-              </span>
-              {state.contacts_found != null && (
-                <>
-                  {" "}and{" "}
-                  <span className="font-medium text-foreground">
-                    {state.contacts_found} contacts
-                  </span>
-                </>
-              )}
-              . Approve to add them, or repopulate for a different set.
-            </p>
-            {productId != null && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIcpOpen(true)}
-                disabled={busy}
-              >
-                <Pencil className="size-4" />
-                Edit ICP
-              </Button>
-            )}
+          <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6 lg:space-y-0">
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Found{" "}
+                <span className="font-medium text-foreground">
+                  {companies.length} companies
+                </span>
+                {state.contacts_found != null && (
+                  <>
+                    {" "}and{" "}
+                    <span className="font-medium text-foreground">
+                      {state.contacts_found} contacts
+                    </span>
+                  </>
+                )}
+                . Approve to add them, or repopulate for a different set.
+              </p>
+              <CompaniesAccordion companies={companies} />
+            </div>
+            <IcpSummaryPanel
+              productId={productId}
+              onEdit={() => setIcpOpen(true)}
+              disabled={busy}
+              refreshKey={icpVersion}
+            />
           </div>
         ) : state.target === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
@@ -221,8 +221,6 @@ export function StepDiscovery({
             )}
           </div>
         )}
-
-        {companies.length > 0 && <CompaniesAccordion companies={companies} />}
 
         <div className="flex items-center justify-between gap-2">
           <Button type="button" variant="ghost" onClick={onBack} disabled={busy}>
@@ -262,7 +260,10 @@ export function StepDiscovery({
             productId={productId}
             open={icpOpen}
             onOpenChange={setIcpOpen}
-            onSaved={handleGenerate}
+            onSaved={() => {
+              setIcpVersion((v) => v + 1)
+              void handleGenerate()
+            }}
           />
         )}
       </div>
@@ -305,20 +306,24 @@ export function StepDiscovery({
     )
   }
 
-  // Idle or failed — the prompt.
+  // Idle or failed — the prompt, beside who we would search for.
   return (
     <div className="space-y-6">
-      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
-        <Sparkles className="size-6 text-muted-foreground" />
-        <p className="text-sm font-medium">Find new contacts?</p>
-        <p className="max-w-md text-xs text-muted-foreground">
-          We&apos;ll find companies matching your product&apos;s ICP, plus a
-          couple of contacts at each, to fill your campaign up to 50 companies.
-          You can review and approve before anything is saved.
-        </p>
-        {status === "failed" && state?.error && (
-          <p className="text-xs text-destructive">{state.error}</p>
-        )}
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6 lg:space-y-0">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
+          <Sparkles className="size-6 text-muted-foreground" />
+          <p className="text-sm font-medium">Find new contacts?</p>
+          <p className="max-w-md text-xs text-muted-foreground">
+            ARIA finds companies matching this product&apos;s targeting
+            profile, plus a couple of contacts at each, filling the campaign
+            up to 50 companies. You review and approve before anything is
+            saved.
+          </p>
+          {status === "failed" && state?.error && (
+            <p className="text-xs text-destructive">{state.error}</p>
+          )}
+        </div>
+        <IcpSummaryPanel productId={productId} refreshKey={icpVersion} />
       </div>
 
       <div className="flex items-center justify-between gap-2">
