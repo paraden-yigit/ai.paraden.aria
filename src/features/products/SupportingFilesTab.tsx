@@ -159,8 +159,9 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
             Supporting files
           </h2>
           <p className="text-muted-foreground">
-            Upload documents (PDF, Word, Excel, text, RTF, or images). We extract
-            their text content automatically.
+            Brochures, case studies, spec sheets: ARIA reads these when writing
+            this product's targeting profile and emails. PDF, Word, Excel,
+            text, RTF or images, up to 25 MB each.
           </p>
         </div>
         <input
