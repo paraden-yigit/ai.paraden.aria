@@ -28,10 +28,11 @@ export function ProductDetailPage() {
   const navigate = useNavigate()
 
   // The active tab is reflected in ?tab= so it can be deep-linked (e.g. the
-  // campaign Contacts page sends users straight to the ICP tab).
+  // campaign Contacts page sends users straight to the targeting tab). The old
+  // "files" tab merged into Product Info, so its deep links land there.
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get("tab")
-  const activeTab = tabParam === "icp" || tabParam === "files" ? tabParam : "info"
+  const activeTab = tabParam === "icp" ? "icp" : "info"
 
   const fetcher = useCallback(() => productService.get(productId), [productId])
   const { data: product, loading, error, refetch } = useAsync(fetcher, [productId])
@@ -63,8 +64,25 @@ export function ProductDetailPage() {
     }
   }
 
+  // The nine brief answers, for the completeness hint. Empty answers degrade
+  // targeting and email quality, so the surface says how far along it is.
+  const briefFields = product
+    ? [
+        product.offering,
+        product.audience,
+        product.problem_solved,
+        product.buyer_challenges,
+        product.proof_points,
+        product.buyer_outcome,
+        product.winning_emails,
+        product.supporting_data,
+        product.email_approver,
+      ]
+    : []
+  const answered = briefFields.filter((v) => !!v?.trim()).length
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link to="/products">
           <ArrowLeft className="size-4" />
@@ -97,21 +115,27 @@ export function ProductDetailPage() {
             >
               <TabsList>
                 <TabsTrigger value="info">Product Info</TabsTrigger>
-                <TabsTrigger value="icp">ICP</TabsTrigger>
-                <TabsTrigger value="files">Supporting Files</TabsTrigger>
+                <TabsTrigger value="icp">Targeting</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="mt-4 space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Product information</CardTitle>
+                    <CardTitle>Teach ARIA about this product</CardTitle>
                     <CardDescription>
-                      The product name and brief. These answers are used to
-                      generate this product's outreach.
+                      {answered} of 9 questions answered. Everything here feeds
+                      the targeting profile and the outreach emails: the more
+                      you answer, the better both get.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ProductInfoView product={product} onSave={handleSave} />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <SupportingFilesTab productId={productId} />
                   </CardContent>
                 </Card>
 
@@ -139,10 +163,6 @@ export function ProductDetailPage() {
 
               <TabsContent value="icp" className="mt-4">
                 <ProductICPTab productId={productId} />
-              </TabsContent>
-
-              <TabsContent value="files" className="mt-4">
-                <SupportingFilesTab productId={productId} />
               </TabsContent>
             </Tabs>
           </>

@@ -29,8 +29,9 @@ import {
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/useAuth"
 
-// Sidebar nav grouped into sections. A null title renders the items with no
-// heading (Dashboard sits on its own).
+// Sidebar nav grouped into sections, ordered by workflow: teach ARIA about
+// the business first, run campaigns second, housekeeping last. A null title
+// renders the items with no heading (Dashboard sits on its own).
 const navSections: {
   title: string | null
   items: { to: string; label: string; icon: typeof LayoutDashboard }[]
@@ -40,30 +41,32 @@ const navSections: {
     items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: "CRM",
-    items: [{ to: "/exclusions", label: "Exclusion List", icon: Ban }],
-  },
-  {
-    title: "Campaign",
+    title: "Teach ARIA",
     items: [
-      { to: "/campaigns", label: "Campaigns", icon: Megaphone },
-      { to: "/products", label: "Products", icon: Package },
-    ],
-  },
-  {
-    title: "Company",
-    items: [
-      { to: "/company", label: "Company Info", icon: Briefcase },
       {
         to: "/company/brand-profile",
         label: "Brand Profile",
         icon: MessageSquareText,
       },
+      { to: "/products", label: "Products", icon: Package },
       {
         to: "/company/agent-instructions",
         label: "Agent Instructions",
         icon: Bot,
       },
+    ],
+  },
+  {
+    title: "Campaigns",
+    items: [
+      { to: "/campaigns", label: "Campaigns", icon: Megaphone },
+      { to: "/exclusions", label: "Exclusion List", icon: Ban },
+    ],
+  },
+  {
+    title: "Your company",
+    items: [
+      { to: "/company", label: "Company Info", icon: Briefcase },
       { to: "/company/teams", label: "Teams", icon: UsersRound },
       { to: "/company/users", label: "Users", icon: ShieldCheck },
     ],
