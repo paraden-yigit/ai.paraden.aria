@@ -6,6 +6,8 @@ interface DataStateProps {
   error: string | null
   isEmpty: boolean
   emptyMessage: string
+  /** Optional call to action rendered under the empty message (e.g. a create button). */
+  emptyAction?: React.ReactNode
   onRetry: () => void
   /** Number of skeleton rows to render while loading. */
   skeletonRows?: number
@@ -21,6 +23,7 @@ export function DataState({
   error,
   isEmpty,
   emptyMessage,
+  emptyAction,
   onRetry,
   skeletonRows = 6,
   children,
@@ -48,8 +51,9 @@ export function DataState({
 
   if (isEmpty) {
     return (
-      <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-        {emptyMessage}
+      <div className="flex flex-col items-center gap-4 rounded-md border border-dashed p-10 text-center">
+        <p className="max-w-md text-sm text-muted-foreground">{emptyMessage}</p>
+        {emptyAction}
       </div>
     )
   }

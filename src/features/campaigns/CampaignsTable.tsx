@@ -1,4 +1,4 @@
-import { Eye, MoreHorizontal, Trash2 } from "lucide-react"
+import { Eye, Megaphone, MoreHorizontal, Trash2 } from "lucide-react"
 
 import {
   Table,
@@ -34,6 +34,7 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Product</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="w-12" />
@@ -46,13 +47,23 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
               className="cursor-pointer"
               onClick={() => onOpen(campaign)}
             >
-              <TableCell className="font-medium">
-                <span className="flex items-center gap-2">
-                  {campaign.name}
-                  {!campaign.setup_completed && (
-                    <Badge variant="secondary">Setup incomplete</Badge>
-                  )}
+              <TableCell>
+                <span className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted"
+                  >
+                    <Megaphone className="size-4 text-muted-foreground" />
+                  </span>
+                  <span className="font-medium">{campaign.name}</span>
                 </span>
+              </TableCell>
+              <TableCell>
+                {campaign.setup_completed ? (
+                  <Badge variant="outline">Ready</Badge>
+                ) : (
+                  <Badge variant="secondary">Setup incomplete</Badge>
+                )}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {campaign.product_name ?? "No product"}
