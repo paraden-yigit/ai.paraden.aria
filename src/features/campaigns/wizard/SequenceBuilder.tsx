@@ -40,18 +40,18 @@ interface StepMeta {
 
 const OPENER: StepMeta = {
   icon: Mail,
-  title: "Opener",
-  subtitle: "full first-touch bundle",
+  title: "The opener",
+  subtitle: "Introduces you and why you are relevant.",
 }
 const ADVANCER: StepMeta = {
   icon: CornerUpRight,
-  title: "Advancer",
-  subtitle: "new angle · soft ask",
+  title: "The follow up",
+  subtitle: "Returns with a fresh angle and a soft ask.",
 }
 const CLOSER: StepMeta = {
   icon: Flag,
-  title: "Closer",
-  subtitle: "withdrawal · in-thread",
+  title: "The closer",
+  subtitle: "Politely closes the loop and leaves the door open.",
 }
 
 interface SequenceBuilderProps {
@@ -92,60 +92,99 @@ export function SequenceBuilder({
 
   return (
     <div className="space-y-6">
-      {/* Shape toggle */}
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-sm font-medium">Sequence shape</span>
-        <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
-          <ShapeSegment
-            active={touches === 2}
-            onClick={() => setTouches(2)}
-            label="2 touches"
-          />
-          <ShapeSegment
-            active={touches === 3}
-            onClick={() => setTouches(3)}
-            label="3 touches"
-          />
+      <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8 lg:space-y-0">
+        <div className="space-y-6">
+          {/* Shape toggle */}
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium">How many emails?</span>
+            <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
+              <ShapeSegment
+                active={touches === 2}
+                onClick={() => setTouches(2)}
+                label="2 emails"
+              />
+              <ShapeSegment
+                active={touches === 3}
+                onClick={() => setTouches(3)}
+                label="3 emails"
+              />
+            </div>
+          </div>
+
+          {/* Steps timeline */}
+          <div>
+            {touches === 3 ? (
+              <>
+                <StepNode n={1} meta={OPENER} />
+                <DelayConnector
+                  value={gaps.advancer}
+                  onChange={(v) => setGap("advancer", v)}
+                />
+                <StepNode n={2} meta={ADVANCER} />
+                <DelayConnector
+                  value={gaps.closer}
+                  onChange={(v) => setGap("closer", v)}
+                />
+                <StepNode n={3} meta={CLOSER} />
+              </>
+            ) : (
+              <>
+                <StepNode n={1} meta={OPENER} />
+                <DelayConnector
+                  value={gaps.closer}
+                  onChange={(v) => setGap("closer", v)}
+                />
+                <StepNode n={2} meta={CLOSER} />
+              </>
+            )}
+          </div>
+
+          {/* Total summary */}
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
+            <Calendar className="size-4 shrink-0 text-muted-foreground" />
+            <span>
+              {touches} emails over {span} working days, about{" "}
+              {weeks === 1 ? "a week" : `${weeks} weeks`}
+            </span>
+          </div>
         </div>
+
+        {/* What this means, in plain terms */}
+        <aside className="h-fit rounded-lg border bg-muted/30 p-4">
+          <p className="text-sm font-semibold">What this means</p>
+          <div className="mt-2 space-y-2 text-sm leading-relaxed text-muted-foreground">
+            <p>Email 1 goes out when the campaign starts.</p>
+            {touches === 3 ? (
+              <>
+                <p>
+                  Email 2 follows {gaps.advancer} working{" "}
+                  {gaps.advancer === 1 ? "day" : "days"} later, trying a fresh
+                  angle.
+                </p>
+                <p>
+                  Email 3 politely closes the loop {gaps.closer} working{" "}
+                  {gaps.closer === 1 ? "day" : "days"} after that.
+                </p>
+              </>
+            ) : (
+              <p>
+                Email 2 politely closes the loop {gaps.closer} working{" "}
+                {gaps.closer === 1 ? "day" : "days"} later.
+              </p>
+            )}
+            <p>
+              Waiting a few working days between emails is normal: it gives
+              people room to reply without feeling chased.
+            </p>
+          </div>
+          <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+            Next, ARIA drafts the wording and you choose your favourite for
+            each email. Nothing sends by itself.
+          </p>
+        </aside>
       </div>
 
-      {/* 3.3 — steps timeline */}
-      <div>
-        {touches === 3 ? (
-          <>
-            <StepNode n={1} meta={OPENER} />
-            <DelayConnector
-              value={gaps.advancer}
-              onChange={(v) => setGap("advancer", v)}
-            />
-            <StepNode n={2} meta={ADVANCER} />
-            <DelayConnector
-              value={gaps.closer}
-              onChange={(v) => setGap("closer", v)}
-            />
-            <StepNode n={3} meta={CLOSER} />
-          </>
-        ) : (
-          <>
-            <StepNode n={1} meta={OPENER} />
-            <DelayConnector
-              value={gaps.closer}
-              onChange={(v) => setGap("closer", v)}
-            />
-            <StepNode n={2} meta={CLOSER} />
-          </>
-        )}
-      </div>
-
-      {/* 3.4 — total summary */}
-      <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
-        <Calendar className="size-4 shrink-0 text-muted-foreground" />
-        <span>
-          {touches} touches over {span} working days (~{weeks} weeks)
-        </span>
-      </div>
-
-      {/* 3.5 — actions */}
+      {/* Actions */}
       <div
         className={cn(
           "flex items-center gap-2",
@@ -159,7 +198,7 @@ export function SequenceBuilder({
           </Button>
         )}
         <Button type="button" onClick={() => onPreview?.(config)}>
-          Preview against a prospect
+          Preview the emails
         </Button>
       </div>
     </div>
