@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { DataState } from "@/components/DataState"
 import { useAsync } from "@/hooks/useAsync"
 import { teamService } from "@/services/team.service"
@@ -74,6 +75,9 @@ export function TeamDetailPage() {
       setAdding(false)
     }
   }
+
+  // Removal confirms first, like every other destructive action in the app.
+  const [pendingRemoval, setPendingRemoval] = useState<User | null>(null)
 
   async function handleRemove(member: User) {
     setRemovingId(member.id)
@@ -192,7 +196,7 @@ export function TeamDetailPage() {
                               size="icon"
                               className="size-8"
                               disabled={removingId === member.id}
-                              onClick={() => handleRemove(member)}
+                              onClick={() => setPendingRemoval(member)}
                             >
                               {removingId === member.id ? (
                                 <Loader2 className="size-4 animate-spin" />
@@ -212,6 +216,27 @@ export function TeamDetailPage() {
           </Card>
         )}
       </DataState>
+
+      <ConfirmDialog
+        open={pendingRemoval != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRemoval(null)
+        }}
+        title="Remove from this team?"
+        description={
+          pendingRemoval
+            ? `${pendingRemoval.full_name} will be removed from this team. Their account and their work are not affected, and you can add them back at any time.`
+            : ""
+        }
+        confirmLabel="Remove"
+        destructive
+        loading={removingId != null}
+        onConfirm={async () => {
+          if (!pendingRemoval) return
+          await handleRemove(pendingRemoval)
+          setPendingRemoval(null)
+        }}
+      />
     </div>
   )
 }
