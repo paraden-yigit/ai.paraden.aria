@@ -26,7 +26,7 @@ export function PaginationFooter({
       <p className="text-sm text-muted-foreground">
         {typeof total === "number"
           ? count > 0
-            ? `Showing ${skip + 1}–${skip + count} of ${total}`
+            ? `Showing ${skip + 1} to ${skip + count} of ${total}`
             : `0 of ${total}`
           : `Page ${page + 1}`}
       </p>

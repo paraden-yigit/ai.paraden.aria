@@ -55,7 +55,7 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
                 </span>
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {campaign.product_name ?? "—"}
+                {campaign.product_name ?? "No product"}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDateTime(campaign.created_at)}

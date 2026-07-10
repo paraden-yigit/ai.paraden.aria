@@ -109,7 +109,7 @@ export function StepMapping({ campaignId, parsed, onSaved, onBack }: StepMapping
   async function handleConfirm() {
     const rows = buildRows()
     if (rows.length === 0) {
-      toast.error("No rows to import — check your column mapping.")
+      toast.error("No rows to import. Check your column mapping.")
       return
     }
     setSaving(true)

@@ -106,7 +106,7 @@ export function ProductDetailPage() {
                   <CardHeader>
                     <CardTitle>Product information</CardTitle>
                     <CardDescription>
-                      The product name and brief — these answers are used to
+                      The product name and brief. These answers are used to
                       generate this product's outreach.
                     </CardDescription>
                   </CardHeader>

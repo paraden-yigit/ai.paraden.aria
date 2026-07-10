@@ -75,7 +75,7 @@ export function StepUpload({
         <p className="mt-1 text-muted-foreground">
           Your CSV must include each contact&apos;s{" "}
           <span className="font-medium text-foreground">full name</span> and a way
-          to identify their company — a{" "}
+          to identify their company: a{" "}
           <span className="font-medium text-foreground">company domain</span> or a{" "}
           <span className="font-medium text-foreground">LinkedIn URL</span>. You
           can map the rest of your columns on the next step.

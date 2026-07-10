@@ -133,8 +133,8 @@ export function CampaignsPage() {
             <DialogTitle>Finish setting up this campaign?</DialogTitle>
             <DialogDescription>
               You left the setup for “{incomplete?.name}” incomplete. Continue
-              where you left off, or start over from the contact-upload step —
-              starting over clears any uploaded and discovered contacts but keeps
+              where you left off, or start over from the contact-upload step.
+              Starting over clears any uploaded and discovered contacts but keeps
               the campaign name and product.
             </DialogDescription>
           </DialogHeader>

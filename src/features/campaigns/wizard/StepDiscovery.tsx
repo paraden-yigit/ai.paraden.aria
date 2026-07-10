@@ -15,7 +15,8 @@ interface StepDiscoveryProps {
   campaignId: number
   /** The campaign's product (for quick-editing the ICP); null if none. */
   productId: number | null
-  onFinish: () => void
+  /** `skipped` is true when the user skipped discovery rather than approving. */
+  onFinish: (skipped?: boolean) => void
   onBack: () => void
 }
 
@@ -125,7 +126,7 @@ export function StepDiscovery({
     } catch {
       /* best effort — discard staging */
     }
-    onFinish()
+    onFinish(true)
   }
 
   if (loading) {
@@ -202,9 +203,9 @@ export function StepDiscovery({
             <Sparkles className="size-6 text-muted-foreground" />
             <p className="text-sm font-medium">No companies matched your ICP</p>
             <p className="max-w-md text-xs text-muted-foreground">
-              Your ideal customer profile may be too narrow. Try broadening it —
-              widen the headcount range, add more industries or countries, or relax
-              seniority — then repopulate.
+              Your ideal customer profile may be too narrow. Try broadening it:
+              widen the headcount range, add more industries or countries, or
+              relax seniority. Then repopulate.
             </p>
             {productId != null && (
               <Button
@@ -295,7 +296,7 @@ export function StepDiscovery({
               <RefreshCw className="size-4" />
               Find more
             </Button>
-            <Button type="button" onClick={onFinish}>
+            <Button type="button" onClick={() => onFinish()}>
               Continue
             </Button>
           </div>
@@ -311,9 +312,9 @@ export function StepDiscovery({
         <Sparkles className="size-6 text-muted-foreground" />
         <p className="text-sm font-medium">Find new contacts?</p>
         <p className="max-w-md text-xs text-muted-foreground">
-          We&apos;ll find companies matching your product&apos;s ICP — and a couple
-          of contacts at each — to fill your campaign up to 50 companies. You can
-          review and approve before anything is saved.
+          We&apos;ll find companies matching your product&apos;s ICP, plus a
+          couple of contacts at each, to fill your campaign up to 50 companies.
+          You can review and approve before anything is saved.
         </p>
         {status === "failed" && state?.error && (
           <p className="text-xs text-destructive">{state.error}</p>

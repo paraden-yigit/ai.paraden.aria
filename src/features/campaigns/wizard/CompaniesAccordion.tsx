@@ -89,12 +89,12 @@ export function ContactsTable({ contacts }: { contacts: AccordionContact[] }) {
         <tbody>
           {contacts.map((contact, index) => (
             <tr key={index} className="border-t">
-              <td className="px-3 py-2">{contact.full_name || "—"}</td>
+              <td className="px-3 py-2">{contact.full_name || "Unnamed"}</td>
               <td className="px-3 py-2 text-muted-foreground">
-                {contact.job_title || "—"}
+                {contact.job_title || "No title"}
               </td>
               <td className="px-3 py-2 text-muted-foreground">
-                {contact.email || "—"}
+                {contact.email || "No email yet"}
               </td>
               <td className="px-3 py-2 text-muted-foreground">
                 {contact.linkedin_url ? (
@@ -107,7 +107,7 @@ export function ContactsTable({ contacts }: { contacts: AccordionContact[] }) {
                     Profile
                   </a>
                 ) : (
-                  "—"
+                  "None"
                 )}
               </td>
             </tr>

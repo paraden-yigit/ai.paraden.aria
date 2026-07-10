@@ -105,7 +105,7 @@ export function BrandProfileForm({
           control={form.control}
           name="email_tone"
           label="How should your emails sound?"
-          placeholder="Describe the tone and voice — e.g. warm and conversational, but professional; avoid jargon."
+          placeholder="Describe the tone and voice, e.g. warm and conversational, but professional; avoid jargon."
           rows={3}
           disabled={submitting}
         />
