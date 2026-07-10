@@ -23,7 +23,7 @@ import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { userService } from "@/services/user.service"
 import { ApiError } from "@/services/http"
 import { useAuth } from "@/features/auth/useAuth"
-import { USER_ROLES, roleLabel, type UserRole } from "@/lib/roles"
+import { USER_ROLES, roleLabel, statusLabel, type UserRole } from "@/lib/roles"
 import type { User } from "@/types/auth"
 
 export function UsersPage() {
@@ -101,7 +101,7 @@ export function UsersPage() {
                     <TableCell className="font-medium">{u.full_name}</TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{u.status}</Badge>
+                      <Badge variant="secondary">{statusLabel(u.status)}</Badge>
                     </TableCell>
                     <TableCell>
                       {editable ? (

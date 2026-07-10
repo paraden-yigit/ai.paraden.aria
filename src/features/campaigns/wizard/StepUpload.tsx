@@ -70,7 +70,7 @@ export function StepUpload({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
+      <div className="rounded-lg border border-[#f5b740]/50 bg-[#f5b740]/8 p-4 text-sm">
         <p className="font-medium text-foreground">Before you upload</p>
         <p className="mt-1 text-muted-foreground">
           Your CSV must include each contact&apos;s{" "}

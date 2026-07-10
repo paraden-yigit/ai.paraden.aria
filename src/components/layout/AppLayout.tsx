@@ -110,13 +110,21 @@ export function AppLayout() {
           sidebarOpen && "translate-x-0",
         )}
       >
-        <div className="flex h-14 items-center px-4 font-semibold">Paraden ARIA</div>
+        <div className="flex h-14 items-center px-4">
+          <Link to="/" onClick={() => setSidebarOpen(false)} aria-label="Paraden ARIA home">
+            <img
+              src="/paraden-aria.svg"
+              alt="Paraden ARIA"
+              className="h-7 w-auto"
+            />
+          </Link>
+        </div>
         <Separator />
         <nav className="space-y-4 p-2">
           {navSections.map((section, i) => (
             <div key={section.title ?? `section-${i}`} className="space-y-1">
               {section.title && (
-                <p className="px-3 pt-1 pb-0.5 text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase">
+                <p className="px-3 pt-1 pb-0.5 font-mono text-[11px] tracking-widest text-muted-foreground/70 uppercase">
                   {section.title}
                 </p>
               )}
