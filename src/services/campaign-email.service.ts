@@ -1,6 +1,7 @@
 import type {
   EmailGeneration,
   EmailSelection,
+  SavedCampaignEmail,
   SaveEmailsResult,
 } from "@/types/campaign-email"
 import { apiClient } from "./http"
@@ -31,6 +32,13 @@ export const campaignEmailService = {
     return apiClient.post<SaveEmailsResult>(
       `/api/campaigns/${campaignId}/emails/save`,
       { selections },
+    )
+  },
+
+  /** The campaign's saved outreach emails (one per step), in sending order. */
+  saved(campaignId: number): Promise<SavedCampaignEmail[]> {
+    return apiClient.get<SavedCampaignEmail[]>(
+      `/api/campaigns/${campaignId}/emails/saved`,
     )
   },
 }

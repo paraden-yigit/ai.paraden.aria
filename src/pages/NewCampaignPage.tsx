@@ -107,7 +107,13 @@ export function NewCampaignPage() {
   }
 
   function finish() {
-    navigate(campaign ? `/campaigns/${campaign.id}` : "/campaigns")
+    // justCompleted lets the campaign dashboard greet the user with its
+    // completion moment instead of a cold landing.
+    if (campaign) {
+      navigate(`/campaigns/${campaign.id}`, { state: { justCompleted: true } })
+    } else {
+      navigate("/campaigns")
+    }
   }
 
   async function complete(selections: EmailSelection[]) {
