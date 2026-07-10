@@ -90,12 +90,14 @@ interface ICPFormProps {
   icp: Icp
   onSubmit: (payload: IcpUpdate) => void
   submitting?: boolean
+  /** Rendered as a secondary button so the user can leave without saving. */
+  onCancel?: () => void
 }
 
 /** Editable ICP form. Predefined attributes reuse the company-search UX
  * (searchable multi-selects); keywords/specialties are comma-separated text and
  * headcount is a numeric min/max. */
-export function ICPForm({ icp, onSubmit, submitting }: ICPFormProps) {
+export function ICPForm({ icp, onSubmit, submitting, onCancel }: ICPFormProps) {
   const form = useForm<ICPFormValues>({
     resolver: zodResolver(icpSchema),
     defaultValues: toDefaults(icp),
@@ -120,125 +122,153 @@ export function ICPForm({ icp, onSubmit, submitting }: ICPFormProps) {
         onSubmit={form.handleSubmit((values) => onSubmit(toPayload(values)))}
         className="space-y-6"
       >
-        <section className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            Company attributes
-          </h3>
-          <TextField
-            control={form.control}
-            name="keywords"
-            label="Keywords"
-            placeholder="artificial intelligence, fintech"
-            description="Comma-separated keywords describing the target companies."
-            disabled={submitting}
-          />
-          <TextField
-            control={form.control}
-            name="specialties"
-            label="Specialties"
-            placeholder="machine learning, payments"
-            description="Comma-separated specialties."
-            disabled={submitting}
-          />
-          <MultiComboboxField
-            control={form.control}
-            name="industries"
-            label="Industries"
-            options={INDUSTRIES}
-            placeholder="Select industries…"
-            searchPlaceholder="Search industries…"
-            disabled={submitting}
-          />
-          <MultiComboboxField
-            control={form.control}
-            name="company_types"
-            label="Company types"
-            options={COMPANY_TYPES}
-            placeholder="Select company types…"
-            searchPlaceholder="Search company types…"
-            disabled={submitting}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <TextField
+        <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2">
+          <section className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">The companies we look for</h3>
+              <p className="text-sm text-muted-foreground">
+                Broaden a field to find more companies; narrow it to find a
+                closer match.
+              </p>
+            </div>
+            <MultiComboboxField
               control={form.control}
-              name="headcount_min"
-              label="Headcount (min)"
-              type="number"
-              placeholder="50"
+              name="industries"
+              label="Industries"
+              options={INDUSTRIES}
+              placeholder="Select industries…"
+              searchPlaceholder="Search industries…"
+              description="The sectors the companies operate in."
+              disabled={submitting}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <TextField
+                control={form.control}
+                name="headcount_min"
+                label="Smallest size"
+                type="number"
+                placeholder="50"
+                description="Fewest employees."
+                disabled={submitting}
+              />
+              <TextField
+                control={form.control}
+                name="headcount_max"
+                label="Largest size"
+                type="number"
+                placeholder="500"
+                description="Most employees."
+                disabled={submitting}
+              />
+            </div>
+            <MultiComboboxField
+              control={form.control}
+              name="countries"
+              label="Countries"
+              options={COUNTRIES}
+              placeholder="Select countries…"
+              searchPlaceholder="Search countries…"
+              description="Where the companies are based."
+              disabled={submitting}
+            />
+            <MultiComboboxField
+              control={form.control}
+              name="revenue_ranges"
+              label="Yearly revenue"
+              options={REVENUE_RANGES}
+              placeholder="Select revenue ranges…"
+              searchPlaceholder="Search ranges…"
+              description="Roughly how much they make a year. Leave empty for any."
+              disabled={submitting}
+            />
+            <MultiComboboxField
+              control={form.control}
+              name="company_types"
+              label="Company types"
+              options={COMPANY_TYPES}
+              placeholder="Select company types…"
+              searchPlaceholder="Search company types…"
+              description="Ownership style, like privately held or public."
               disabled={submitting}
             />
             <TextField
               control={form.control}
-              name="headcount_max"
-              label="Headcount (max)"
-              type="number"
-              placeholder="500"
+              name="keywords"
+              label="Themes"
+              placeholder="artificial intelligence, fintech"
+              description="Words that describe the companies you want, separated by commas."
               disabled={submitting}
             />
-          </div>
-          <MultiComboboxField
-            control={form.control}
-            name="countries"
-            label="Targeted countries"
-            options={COUNTRIES}
-            placeholder="Select countries…"
-            searchPlaceholder="Search countries…"
-            disabled={submitting}
-          />
-          <MultiComboboxField
-            control={form.control}
-            name="revenue_ranges"
-            label="Revenue ranges"
-            options={REVENUE_RANGES}
-            placeholder="Select revenue ranges…"
-            searchPlaceholder="Search ranges…"
-            disabled={submitting}
-          />
-        </section>
+            <TextField
+              control={form.control}
+              name="specialties"
+              label="Specialties"
+              placeholder="machine learning, payments"
+              description="What those companies are good at, separated by commas."
+              disabled={submitting}
+            />
+          </section>
 
-        <Separator />
+          <Separator className="lg:hidden" />
 
-        <section className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            Contact attributes
-          </h3>
-          <MultiComboboxField
-            control={form.control}
-            name="seniority"
-            label="Seniority"
-            options={SENIORITY}
-            placeholder="Select seniority levels…"
-            searchPlaceholder="Search seniority…"
-            disabled={submitting}
-          />
-          <MultiComboboxField
-            control={form.control}
-            name="job_functions"
-            label="Job functions"
-            options={JOB_FUNCTIONS}
-            placeholder="Select job functions…"
-            searchPlaceholder="Search functions…"
-            disabled={submitting}
-          />
-          <MultiComboboxField
-            control={form.control}
-            name="job_subfunctions"
-            label="Job subfunctions"
-            options={subfunctionOptions}
-            placeholder="Select job subfunctions…"
-            searchPlaceholder="Search subfunctions…"
-            disabled={submitting}
-          />
-        </section>
+          <section className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">The people we contact</h3>
+              <p className="text-sm text-muted-foreground">
+                Who at those companies the outreach is written to.
+              </p>
+            </div>
+            <MultiComboboxField
+              control={form.control}
+              name="seniority"
+              label="Seniority"
+              options={SENIORITY}
+              placeholder="Select seniority levels…"
+              searchPlaceholder="Search seniority…"
+              description="How senior the people you want to reach are."
+              disabled={submitting}
+            />
+            <MultiComboboxField
+              control={form.control}
+              name="job_functions"
+              label="Departments"
+              options={JOB_FUNCTIONS}
+              placeholder="Select departments…"
+              searchPlaceholder="Search departments…"
+              description="Where in the company they work."
+              disabled={submitting}
+            />
+            <MultiComboboxField
+              control={form.control}
+              name="job_subfunctions"
+              label="Specialisms"
+              options={subfunctionOptions}
+              placeholder="Select specialisms…"
+              searchPlaceholder="Search specialisms…"
+              description="Narrower roles within those departments. Leave broad if unsure."
+              disabled={submitting}
+            />
+          </section>
+        </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-2 border-t pt-4">
+          {onCancel && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={submitting}
+            >
+              Back to overview
+            </Button>
+          )}
           <Button type="submit" disabled={submitting}>
             {submitting ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
               <Save className="size-4" />
             )}
-            Save ICP
+            Save changes
           </Button>
         </div>
       </form>
