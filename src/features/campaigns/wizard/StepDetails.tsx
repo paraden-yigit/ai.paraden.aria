@@ -83,7 +83,7 @@ export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
             productsLoading
               ? "Loading products…"
               : productOptions.length === 0
-                ? "No products yet — create one first"
+                ? "No products yet. Create one first"
                 : "Select a product"
           }
           disabled={submitting || productsLoading || productOptions.length === 0}

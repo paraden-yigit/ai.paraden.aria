@@ -89,7 +89,13 @@ export function ProductsPage() {
         loading={loading}
         error={error}
         isEmpty={products.length === 0}
-        emptyMessage="No products yet."
+        emptyMessage="No products yet. Products teach ARIA what you sell, and every campaign starts from one."
+        emptyAction={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Create your first product
+          </Button>
+        }
         onRetry={refetch}
       >
         <ProductsTable products={products} onDelete={setProductToDelete} />

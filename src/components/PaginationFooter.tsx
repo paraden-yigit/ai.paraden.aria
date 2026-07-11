@@ -11,7 +11,8 @@ interface PaginationFooterProps {
   onNext: () => void
 }
 
-/** Reusable list pagination footer: range summary + Previous/Next controls. */
+/** Reusable list pagination footer: range summary + Previous/Next controls.
+ * Renders nothing when everything fits on a single page. */
 export function PaginationFooter({
   page,
   skip,
@@ -21,12 +22,13 @@ export function PaginationFooter({
   onPrev,
   onNext,
 }: PaginationFooterProps) {
+  if (page === 0 && !hasNextPage) return null
   return (
     <div className="flex items-center justify-between">
       <p className="text-sm text-muted-foreground">
         {typeof total === "number"
           ? count > 0
-            ? `Showing ${skip + 1}–${skip + count} of ${total}`
+            ? `Showing ${skip + 1} to ${skip + count} of ${total}`
             : `0 of ${total}`
           : `Page ${page + 1}`}
       </p>

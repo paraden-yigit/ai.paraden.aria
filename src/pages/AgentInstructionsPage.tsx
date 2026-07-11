@@ -61,7 +61,7 @@ export function AgentInstructionsPage() {
             Agent Instructions
           </h1>
           <p className="text-muted-foreground">
-            Custom rules the AI follows when writing your outreach emails — banned
+            Custom rules the AI follows when writing your outreach emails: banned
             words, phrasings to avoid, tone preferences, and anything else it
             should always or never do.
           </p>

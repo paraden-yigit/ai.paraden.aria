@@ -1,6 +1,6 @@
-/** Format an ISO date string as a readable local date-time. Returns "—" if empty. */
+/** Format an ISO date string as a readable local date-time. Returns "Not set" if empty. */
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "—"
+  if (!iso) return "Not set"
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
   return date.toLocaleString(undefined, {

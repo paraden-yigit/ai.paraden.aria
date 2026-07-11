@@ -4,8 +4,6 @@ import { Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { useAsync } from "@/hooks/useAsync"
-import { clientService } from "@/services/client.service"
 import { campaignService } from "@/services/campaign.service"
 import { WizardStepper, type WizardStep } from "@/features/campaigns/wizard/WizardStepper"
 import { StepDetails } from "@/features/campaigns/wizard/StepDetails"
@@ -48,9 +46,11 @@ export function NewCampaignPage() {
   const [searchParams] = useSearchParams()
   const resumeId = searchParams.get("resume")
   const resumeMode = searchParams.get("mode")
-  const { data: client } = useAsync(clientService.get, [])
   const [mainStep, setMainStep] = useState<MainStep>(0)
   const [subStep, setSubStep] = useState<SubStep>("upload")
+  // Steps the user chose to skip, so the stepper renders them as skipped
+  // rather than pretending they were completed.
+  const [skippedSteps, setSkippedSteps] = useState<number[]>([])
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [parsed, setParsed] = useState<ParsedCsv | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -101,6 +101,16 @@ export function NewCampaignPage() {
     if (!campaign || campaign.setup_completed || mainStep < 1) return
     campaignService.update(campaign.id, { setup_step: mainStep }).catch(() => {})
   }, [campaign, mainStep])
+
+  function markSkipped(step: MainStep, skipped: boolean) {
+    setSkippedSteps((prev) =>
+      skipped
+        ? prev.includes(step)
+          ? prev
+          : [...prev, step]
+        : prev.filter((s) => s !== step),
+    )
+  }
 
   function close() {
     navigate("/campaigns")
@@ -163,7 +173,10 @@ export function NewCampaignPage() {
         <StepDiscovery
           campaignId={campaign.id}
           productId={campaign.product_id}
-          onFinish={() => setMainStep(3)}
+          onFinish={(skipped) => {
+            markSkipped(2, Boolean(skipped))
+            setMainStep(3)
+          }}
           onBack={() => {
             setSubStep(parsed ? "review" : "upload")
             setMainStep(1)
@@ -176,7 +189,6 @@ export function NewCampaignPage() {
     if (mainStep === 3) {
       return (
         <SequenceBuilder
-          clientName={client?.name ?? "Your"}
           initialTouches={sequenceConfig?.touches}
           initialGaps={sequenceConfig?.gaps}
           onBack={() => setMainStep(2)}
@@ -231,10 +243,14 @@ export function NewCampaignPage() {
               setParsed(null)
               setFileName(null)
             }}
-            onContinue={() => setSubStep("mapping")}
+            onContinue={() => {
+              markSkipped(1, false)
+              setSubStep("mapping")
+            }}
             onSkip={() => {
               setParsed(null)
               setFileName(null)
+              markSkipped(1, true)
               setMainStep(2)
             }}
             onBack={() => setMainStep(0)}
@@ -279,7 +295,7 @@ export function NewCampaignPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
-          <WizardStepper steps={STEPS} current={mainStep} />
+          <WizardStepper steps={STEPS} current={mainStep} skipped={skippedSteps} />
         </div>
         <div className="rounded-xl border bg-card p-6">{renderContent()}</div>
       </main>

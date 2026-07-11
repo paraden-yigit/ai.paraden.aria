@@ -12,25 +12,18 @@ const brandProfileSchema = z.object({
   value_proposition: z.string(),
   market_positioning: z.string(),
   competitors: z.string(),
-  email_tone: z.string(),
-  email_opening: z.string(),
-  email_closing: z.string(),
   closing_question: z.string(),
-  dos_and_donts: z.string(),
 })
 
 type BrandProfileFormValues = z.infer<typeof brandProfileSchema>
 
 // Form keys map 1:1 to BrandProfileUpdate fields; all are optional ("" → null).
+// The email-voice questions moved to the User Profile page.
 const FIELDS = [
   "value_proposition",
   "market_positioning",
   "competitors",
-  "email_tone",
-  "email_opening",
-  "email_closing",
   "closing_question",
-  "dos_and_donts",
 ] as const
 
 function toFormValues(profile: BrandProfile): BrandProfileFormValues {
@@ -38,11 +31,7 @@ function toFormValues(profile: BrandProfile): BrandProfileFormValues {
     value_proposition: profile.value_proposition ?? "",
     market_positioning: profile.market_positioning ?? "",
     competitors: profile.competitors ?? "",
-    email_tone: profile.email_tone ?? "",
-    email_opening: profile.email_opening ?? "",
-    email_closing: profile.email_closing ?? "",
     closing_question: profile.closing_question ?? "",
-    dos_and_donts: profile.dos_and_donts ?? "",
   }
 }
 
@@ -103,43 +92,10 @@ export function BrandProfileForm({
 
         <TextareaField
           control={form.control}
-          name="email_tone"
-          label="How should your emails sound?"
-          placeholder="Describe the tone and voice — e.g. warm and conversational, but professional; avoid jargon."
-          rows={3}
-          disabled={submitting}
-        />
-
-        <TextareaField
-          control={form.control}
-          name="email_opening"
-          label="How should emails open?"
-          placeholder="Hi John,"
-          rows={2}
-          disabled={submitting}
-        />
-        <TextareaField
-          control={form.control}
-          name="email_closing"
-          label="How should emails close?"
-          placeholder="Regards, Peter"
-          rows={2}
-          disabled={submitting}
-        />
-
-        <TextareaField
-          control={form.control}
           name="closing_question"
           label="Standard closing question for every email"
           placeholder="e.g. Would you be open to a quick 15-minute call next week?"
           rows={2}
-          disabled={submitting}
-        />
-        <TextareaField
-          control={form.control}
-          name="dos_and_donts"
-          label="Anything we should never say / always say?"
-          rows={3}
           disabled={submitting}
         />
 

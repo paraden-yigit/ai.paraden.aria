@@ -10,6 +10,8 @@ export interface AuthContextValue {
   /** Authenticate with email + password and load the session. */
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  /** Re-fetch the current user (e.g. after a profile edit) and update state. */
+  refreshUser: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)

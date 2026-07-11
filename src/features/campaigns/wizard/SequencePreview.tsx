@@ -251,11 +251,11 @@ export function SequencePreview({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          No contacts yet, so these are reusable templates — placeholders like{" "}
+          No contacts yet, so these are reusable templates: placeholders like{" "}
           <code className="rounded bg-muted px-1 py-0.5 text-xs">
             {"{{first_name}}"}
           </code>{" "}
-          fill in per prospect when the campaign runs.
+          will be filled in for each prospect.
         </p>
       )}
 

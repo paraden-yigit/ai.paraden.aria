@@ -34,12 +34,12 @@ interface FieldConfig {
 const FIELDS: FieldConfig[] = [
   { key: "name", label: "Product name", multiline: false, placeholder: "Acme Widget", required: true },
   { key: "offering", label: "1. What is this offering?", multiline: true, rows: 3, placeholder: "The product or service this is about." },
-  { key: "audience", label: "2. Who is it for?", multiline: true, rows: 3, placeholder: "Target buyer — job titles, seniority, country." },
+  { key: "audience", label: "2. Who is it for?", multiline: true, rows: 3, placeholder: "Target buyer: job titles, seniority, country." },
   { key: "problem_solved", label: "3. What problem does it solve for the buyer?", multiline: true, rows: 3 },
   { key: "buyer_challenges", label: "4. What are the biggest challenges the buyer faces?", multiline: true, rows: 4, placeholder: "The pains and obstacles the buyer is dealing with." },
   { key: "proof_points", label: "5. Key facts, stats, proof points", multiline: true, rows: 4 },
   { key: "buyer_outcome", label: "6. What does the buyer get?", multiline: true, rows: 3 },
-  { key: "winning_emails", label: "7. Past emails that worked (gold standard)", multiline: true, rows: 6, placeholder: "Paste any emails that have worked well — these become the gold-standard reference." },
+  { key: "winning_emails", label: "7. Past emails that worked (gold standard)", multiline: true, rows: 6, placeholder: "Paste any emails that have worked well. These become the gold-standard reference." },
   { key: "supporting_data", label: "8. Supporting data", multiline: true, rows: 4, placeholder: "Success metrics and any analytical data relevant to the product." },
   { key: "email_approver", label: "9. Who signs off the email?", multiline: true, rows: 2 },
 ]
@@ -160,7 +160,9 @@ export function ProductInfoView({ product, onSave }: ProductInfoViewProps) {
               </div>
             ) : (
               <dd className="mt-1 text-sm whitespace-pre-wrap">
-                {value || <span className="text-muted-foreground">—</span>}
+                {value || (
+                  <span className="text-muted-foreground">Not answered yet</span>
+                )}
               </dd>
             )}
           </div>

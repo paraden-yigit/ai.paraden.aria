@@ -103,7 +103,13 @@ export function CampaignsPage() {
         loading={loading}
         error={error}
         isEmpty={campaigns.length === 0}
-        emptyMessage="No campaigns yet."
+        emptyMessage="No campaigns yet. When you start one, ARIA finds matching prospects and drafts the outreach for you."
+        emptyAction={
+          <Button onClick={() => navigate("/campaigns/new")}>
+            <Plus className="size-4" />
+            Start your first campaign
+          </Button>
+        }
         onRetry={refetch}
       >
         <CampaignsTable
@@ -133,8 +139,8 @@ export function CampaignsPage() {
             <DialogTitle>Finish setting up this campaign?</DialogTitle>
             <DialogDescription>
               You left the setup for “{incomplete?.name}” incomplete. Continue
-              where you left off, or start over from the contact-upload step —
-              starting over clears any uploaded and discovered contacts but keeps
+              where you left off, or start over from the contact-upload step.
+              Starting over clears any uploaded and discovered contacts but keeps
               the campaign name and product.
             </DialogDescription>
           </DialogHeader>

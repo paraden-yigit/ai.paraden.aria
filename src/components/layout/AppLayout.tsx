@@ -6,11 +6,13 @@ import {
   Briefcase,
   LayoutDashboard,
   LogOut,
+  Mail,
   Megaphone,
   Menu,
   MessageSquareText,
   Package,
   ShieldCheck,
+  UserRound,
   UsersRound,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -180,6 +182,18 @@ export function AppLayout() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{user?.full_name ?? "My account"}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/profile">
+                  <UserRound className="size-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/email-settings">
+                  <Mail className="size-4" />
+                  Email settings
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="size-4" />
                 Log out

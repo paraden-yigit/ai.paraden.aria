@@ -46,7 +46,7 @@ export function ExcludedCompaniesTable({
             <TableRow key={company.id}>
               <TableCell className="font-medium">{company.name}</TableCell>
               <TableCell className="text-muted-foreground">
-                {company.domain || "—"}
+                {company.domain || "None"}
               </TableCell>
               <TableCell className="max-w-xs truncate text-muted-foreground">
                 {company.linkedin_url ? (
@@ -60,7 +60,7 @@ export function ExcludedCompaniesTable({
                     {company.linkedin_url}
                   </a>
                 ) : (
-                  "—"
+                  "None"
                 )}
               </TableCell>
               <TableCell className="text-muted-foreground">
