@@ -33,7 +33,7 @@ const IDLE: DiscoverySearch = {
 
 /**
  * Step "Find contacts" — asks whether to discover new ICP-matched companies to
- * fill the campaign to 50, runs the search in the background (polling for the
+ * reach the campaign's target, runs the search in the background (polling for the
  * staged preview), and lets the user repopulate, approve (save), or skip.
  */
 export function StepDiscovery({
@@ -193,9 +193,9 @@ export function StepDiscovery({
         ) : state.target === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
             <Sparkles className="size-6 text-muted-foreground" />
-            <p className="text-sm font-medium">Campaign is full</p>
+            <p className="text-sm font-medium">Target reached</p>
             <p className="text-xs text-muted-foreground">
-              This campaign already has 50 companies.
+              This campaign has already reached its target.
             </p>
           </div>
         ) : (
@@ -313,8 +313,8 @@ export function StepDiscovery({
         <p className="text-sm font-medium">Find new contacts?</p>
         <p className="max-w-md text-xs text-muted-foreground">
           We&apos;ll find companies matching your product&apos;s ICP, plus a
-          couple of contacts at each, to fill your campaign up to 50 companies.
-          You can review and approve before anything is saved.
+          couple of contacts at each, to reach your campaign&apos;s target. You
+          can review and approve before anything is saved.
         </p>
         {status === "failed" && state?.error && (
           <p className="text-xs text-destructive">{state.error}</p>
