@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react"
+import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Card, CardContent } from "@/components/ui/card"
@@ -35,8 +36,13 @@ export function BrandProfilePage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Brand Profile</h1>
         <p className="text-muted-foreground">
-          Tell us about your company and how your outreach emails should sound. We
-          use these answers when generating emails.
+          Tell us about your company: what you do, how you position yourself, and
+          your competitors. We use these answers when generating emails. How your
+          emails sound and your signature live in{" "}
+          <Link to="/email-settings" className="underline underline-offset-4">
+            email settings
+          </Link>
+          .
         </p>
       </div>
 

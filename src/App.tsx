@@ -6,6 +6,8 @@ import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/LoginPage"
 import { DashboardPage } from "@/pages/DashboardPage"
+import { UserProfilePage } from "@/pages/UserProfilePage"
+import { EmailSettingsPage } from "@/pages/EmailSettingsPage"
 import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
 import { NewCampaignPage } from "@/pages/NewCampaignPage"
@@ -38,6 +40,8 @@ function App() {
             <Route path="/campaigns/new" element={<NewCampaignPage />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/profile" element={<UserProfilePage />} />
+              <Route path="/email-settings" element={<EmailSettingsPage />} />
               <Route path="/exclusions" element={<ExclusionListPage />} />
               <Route path="/campaigns" element={<CampaignsPage />} />
               <Route path="/campaigns/:id" element={<CampaignLayout />}>
