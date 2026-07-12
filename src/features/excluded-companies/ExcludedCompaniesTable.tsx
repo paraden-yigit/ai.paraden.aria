@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { Ban, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 
 import {
   Table,
@@ -34,8 +34,7 @@ export function ExcludedCompaniesTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Company name</TableHead>
-            <TableHead>Domain</TableHead>
+            <TableHead>Company</TableHead>
             <TableHead>LinkedIn URL</TableHead>
             <TableHead>Added</TableHead>
             <TableHead className="w-12" />
@@ -44,9 +43,21 @@ export function ExcludedCompaniesTable({
         <TableBody>
           {companies.map((company) => (
             <TableRow key={company.id}>
-              <TableCell className="font-medium">{company.name}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {company.domain || "None"}
+              <TableCell>
+                <span className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted"
+                  >
+                    <Ban className="size-4 text-muted-foreground" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-medium">{company.name}</span>
+                    <span className="block text-sm text-muted-foreground">
+                      {company.domain || "No domain"}
+                    </span>
+                  </span>
+                </span>
               </TableCell>
               <TableCell className="max-w-xs truncate text-muted-foreground">
                 {company.linkedin_url ? (

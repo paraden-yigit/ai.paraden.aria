@@ -145,7 +145,15 @@ export function ExclusionListPage() {
         emptyMessage={
           debouncedQuery
             ? `No excluded companies match “${debouncedQuery}”.`
-            : "No companies on the exclusion list yet."
+            : "No companies on the exclusion list yet. Anyone you add here is left out of every campaign, always."
+        }
+        emptyAction={
+          debouncedQuery ? undefined : (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              Add a company
+            </Button>
+          )
         }
         onRetry={refetch}
       >

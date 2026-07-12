@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataState } from "@/components/DataState"
 import { DescriptionList } from "@/components/DescriptionList"
+import { CompanyLogoCard } from "@/features/company-profile/CompanyLogoCard"
 import { CompanyProfileForm } from "@/features/company-profile/CompanyProfileForm"
 import { useAsync } from "@/hooks/useAsync"
 import { clientService } from "@/services/client.service"
@@ -51,43 +52,46 @@ export function CompanyInfoPage() {
         skeletonRows={4}
       >
         {client && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{client.name}</CardTitle>
-              {!editing && (
-                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                  <Pencil className="size-4" />
-                  Edit
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {editing ? (
-                <CompanyProfileForm
-                  client={client}
-                  onSubmit={handleSave}
-                  onCancel={() => setEditing(false)}
-                  submitting={saving}
-                />
-              ) : (
-                <DescriptionList
-                  items={[
-                    { label: "Legal name", value: client.legal_business_name },
-                    { label: "Address", value: client.address },
-                    { label: "Country", value: client.country },
-                    { label: "Email", value: client.email },
-                    { label: "Phone", value: client.phone },
-                    { label: "URL", value: client.url },
-                    {
-                      label: "Company reg. number",
-                      value: client.company_registration_number,
-                    },
-                    { label: "VAT reg. number", value: client.vat_registration_number },
-                  ]}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Card className="xl:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>{client.name}</CardTitle>
+                {!editing && (
+                  <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                    <Pencil className="size-4" />
+                    Edit
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {editing ? (
+                  <CompanyProfileForm
+                    client={client}
+                    onSubmit={handleSave}
+                    onCancel={() => setEditing(false)}
+                    submitting={saving}
+                  />
+                ) : (
+                  <DescriptionList
+                    items={[
+                      { label: "Legal name", value: client.legal_business_name },
+                      { label: "Address", value: client.address },
+                      { label: "Country", value: client.country },
+                      { label: "Email", value: client.email },
+                      { label: "Phone", value: client.phone },
+                      { label: "URL", value: client.url },
+                      {
+                        label: "Company reg. number",
+                        value: client.company_registration_number,
+                      },
+                      { label: "VAT reg. number", value: client.vat_registration_number },
+                    ]}
+                  />
+                )}
+              </CardContent>
+            </Card>
+            <CompanyLogoCard />
+          </div>
         )}
       </DataState>
     </div>
