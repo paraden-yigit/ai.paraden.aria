@@ -259,9 +259,10 @@ export function CampaignContactsPage() {
               {companies.length}
             </span>{" "}
             {companies.length === 1 ? "company" : "companies"}. Expand a company to
-            see its people.
+            see its people, and click a person for their details.
           </p>
-          <CompaniesAccordion companies={companies} />
+          {/* No height cap here (unlike the wizard): the list gets the page. */}
+          <CompaniesAccordion companies={companies} className="max-h-none" />
         </div>
       ) : contactsLoading ? (
         <div className="space-y-3">

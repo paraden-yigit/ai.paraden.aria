@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { DataState } from "@/components/DataState"
+import { RunCampaignCard } from "@/features/campaigns/RunCampaignCard"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
 import { loadContactStats } from "@/features/campaigns/contactStats"
 import { useAsync } from "@/hooks/useAsync"
@@ -259,6 +260,8 @@ export function CampaignDashboardPage() {
               </p>
             </CardContent>
           </Card>
+
+          <RunCampaignCard campaign={campaign} />
         </div>
       </div>
     </div>

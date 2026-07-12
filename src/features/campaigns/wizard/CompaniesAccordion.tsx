@@ -1,7 +1,22 @@
 import { useState } from "react"
-import { Building2, ChevronDown, ChevronRight } from "lucide-react"
+import {
+  AtSign,
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+} from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
 /** Minimal structural shapes the accordion needs — both the upload-review and
  * discovery company/contact types satisfy these. */
@@ -19,20 +34,67 @@ export interface AccordionCompany {
   contacts: AccordionContact[]
 }
 
-/** A list of companies as expandable rows; expanding one reveals its contacts.
- * Shared by the upload-review and discovery steps. The list scrolls within a
- * bounded height so the wizard always fits the page. */
-export function CompaniesAccordion({ companies }: { companies: AccordionCompany[] }) {
+interface SelectedContact {
+  contact: AccordionContact
+  company: AccordionCompany | null
+}
+
+function initialsOf(name: string | null): string {
+  if (!name) return "?"
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join("")
+}
+
+/** A list of companies as expandable rows; expanding one reveals its contacts,
+ * and clicking a contact opens a detail panel. The list scrolls within a
+ * bounded height by default (the wizard needs to fit the page); pass a
+ * `max-h-*` class via className to change or lift the bound. */
+export function CompaniesAccordion({
+  companies,
+  className,
+}: {
+  companies: AccordionCompany[]
+  className?: string
+}) {
+  const [selected, setSelected] = useState<SelectedContact | null>(null)
+
   return (
-    <div className="max-h-[45vh] divide-y overflow-y-auto rounded-lg border">
-      {companies.map((company, index) => (
-        <CompanyRow key={`${company.domain ?? company.name ?? "co"}-${index}`} company={company} />
-      ))}
-    </div>
+    <>
+      <div
+        className={cn(
+          "max-h-[45vh] divide-y overflow-y-auto rounded-lg border",
+          className,
+        )}
+      >
+        {companies.map((company, index) => (
+          <CompanyRow
+            key={`${company.domain ?? company.name ?? "co"}-${index}`}
+            company={company}
+            onSelect={(contact) => setSelected({ contact, company })}
+          />
+        ))}
+      </div>
+      <ContactSheet
+        selected={selected}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null)
+        }}
+      />
+    </>
   )
 }
 
-function CompanyRow({ company }: { company: AccordionCompany }) {
+function CompanyRow({
+  company,
+  onSelect,
+}: {
+  company: AccordionCompany
+  onSelect: (contact: AccordionContact) => void
+}) {
   const [open, setOpen] = useState(false)
   const subtitle = [company.domain, company.industry].filter(Boolean).join(" · ")
 
@@ -48,7 +110,12 @@ function CompanyRow({ company }: { company: AccordionCompany }) {
         ) : (
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
         )}
-        <Building2 className="size-4 shrink-0 text-muted-foreground" />
+        <span
+          aria-hidden="true"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+        >
+          <Building2 className="size-4" />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">
             {company.name || company.domain || "Unnamed company"}
@@ -64,56 +131,156 @@ function CompanyRow({ company }: { company: AccordionCompany }) {
       </button>
       {open && (
         <div className="border-t bg-muted/20">
-          <ContactsTable contacts={company.contacts} />
+          <ContactsTable contacts={company.contacts} onSelect={onSelect} />
         </div>
       )}
     </div>
   )
 }
 
-export function ContactsTable({ contacts }: { contacts: AccordionContact[] }) {
+/** Contact rows: monogram, name and title, email state. With `onSelect` each
+ * row is clickable and opens the caller's detail panel. */
+export function ContactsTable({
+  contacts,
+  onSelect,
+}: {
+  contacts: AccordionContact[]
+  onSelect?: (contact: AccordionContact) => void
+}) {
   if (contacts.length === 0) {
     return <p className="p-3 text-xs text-muted-foreground">No contacts.</p>
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs text-muted-foreground">
-            <th className="px-3 py-2 font-medium">Name</th>
-            <th className="px-3 py-2 font-medium">Job title</th>
-            <th className="px-3 py-2 font-medium">Email</th>
-            <th className="px-3 py-2 font-medium">LinkedIn</th>
-          </tr>
-        </thead>
-        <tbody>
-          {contacts.map((contact, index) => (
-            <tr key={index} className="border-t">
-              <td className="px-3 py-2">{contact.full_name || "Unnamed"}</td>
-              <td className="px-3 py-2 text-muted-foreground">
+    <ul className="divide-y">
+      {contacts.map((contact, index) => {
+        const inner = (
+          <>
+            <span
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold"
+            >
+              {initialsOf(contact.full_name)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">
+                {contact.full_name || "Unnamed"}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
                 {contact.job_title || "No title"}
-              </td>
-              <td className="px-3 py-2 text-muted-foreground">
-                {contact.email || "No email yet"}
-              </td>
-              <td className="px-3 py-2 text-muted-foreground">
-                {contact.linkedin_url ? (
-                  <a
-                    href={contact.linkedin_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary underline-offset-2 hover:underline"
-                  >
-                    Profile
-                  </a>
-                ) : (
-                  "None"
+              </span>
+            </span>
+            <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+              <AtSign className="size-3.5" />
+              {contact.email || "No email yet"}
+            </span>
+            {onSelect && (
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+            )}
+          </>
+        )
+        return (
+          <li key={index}>
+            {onSelect ? (
+              <button
+                type="button"
+                onClick={() => onSelect(contact)}
+                className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+              >
+                {inner}
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 px-3 py-2.5">{inner}</div>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** Slide-over with everything known about one contact. */
+function ContactSheet({
+  selected,
+  onOpenChange,
+}: {
+  selected: SelectedContact | null
+  onOpenChange: (open: boolean) => void
+}) {
+  const contact = selected?.contact
+  const company = selected?.company
+
+  return (
+    <Sheet open={selected !== null} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="sm:max-w-md">
+        {contact && (
+          <>
+            <SheetHeader className="pb-0">
+              <span
+                aria-hidden="true"
+                className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary"
+              >
+                {initialsOf(contact.full_name)}
+              </span>
+              <SheetTitle className="pt-2">
+                {contact.full_name || "Unnamed contact"}
+              </SheetTitle>
+              <SheetDescription>
+                {contact.job_title || "No job title on file"}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="space-y-6 overflow-y-auto p-4">
+              <section className="space-y-2">
+                <h3 className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+                  Contact
+                </h3>
+                <p className="flex items-center gap-2 text-sm">
+                  <AtSign className="size-4 shrink-0 text-muted-foreground" />
+                  {contact.email ? (
+                    <span className="break-all">{contact.email}</span>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      No email address yet
+                    </span>
+                  )}
+                </p>
+                {contact.linkedin_url && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a
+                      href={contact.linkedin_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ExternalLink className="size-4" />
+                      LinkedIn profile
+                    </a>
+                  </Button>
                 )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              </section>
+              {company && (
+                <section className="space-y-2">
+                  <h3 className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+                    Company
+                  </h3>
+                  <p className="flex items-center gap-2 text-sm">
+                    <Building2 className="size-4 shrink-0 text-muted-foreground" />
+                    {company.name || company.domain || "Unnamed company"}
+                  </p>
+                  {company.domain && (
+                    <p className="text-sm text-muted-foreground">
+                      {company.domain}
+                    </p>
+                  )}
+                  {company.industry && (
+                    <p className="text-sm text-muted-foreground">
+                      {company.industry}
+                    </p>
+                  )}
+                </section>
+              )}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   )
 }
