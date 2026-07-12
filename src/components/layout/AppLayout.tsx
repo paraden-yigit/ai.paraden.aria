@@ -9,10 +9,13 @@ import {
   Megaphone,
   Menu,
   MessageSquareText,
+  Moon,
   Package,
   ShieldCheck,
+  Sun,
   UsersRound,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -88,9 +91,11 @@ function initialsOf(name: string | undefined): string {
 /** Authenticated dashboard shell: left sidebar nav + top bar + content outlet. */
 export function AppLayout() {
   const { user, logout } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const isDark = resolvedTheme === "dark"
 
   async function handleLogout() {
     try {
@@ -113,7 +118,7 @@ export function AppLayout() {
         <div className="flex h-14 items-center px-4">
           <Link to="/" onClick={() => setSidebarOpen(false)} aria-label="Paraden ARIA home">
             <img
-              src="/paraden-aria.svg"
+              src={isDark ? "/paraden-aria-no-box-dark.svg" : "/paraden-aria-no-box.svg"}
               alt="Paraden ARIA"
               className="h-7 w-auto"
             />
@@ -180,6 +185,15 @@ export function AppLayout() {
             <Menu className="size-5" />
           </Button>
           <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+            title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+          >
+            {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
