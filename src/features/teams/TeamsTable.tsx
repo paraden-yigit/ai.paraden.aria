@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom"
-import { MoreHorizontal, Pencil, Trash2, Users } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Users, UsersRound } from "lucide-react"
 
 import {
   Table,
@@ -45,7 +45,17 @@ export function TeamsTable({ teams, onEdit, onDelete }: TeamsTableProps) {
               className="cursor-pointer"
               onClick={() => navigate(`/company/teams/${team.id}`)}
             >
-              <TableCell className="font-medium">{team.name}</TableCell>
+              <TableCell>
+                <span className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+                  >
+                    <UsersRound className="size-4" />
+                  </span>
+                  <span className="font-medium">{team.name}</span>
+                </span>
+              </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDateTime(team.created_at)}
               </TableCell>

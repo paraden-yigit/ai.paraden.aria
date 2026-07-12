@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react"
 import { toast } from "sonner"
 
-import { Card, CardContent } from "@/components/ui/card"
 import { DataState } from "@/components/DataState"
 import { BrandProfileForm } from "@/features/brand-profile/BrandProfileForm"
 import { useAsync } from "@/hooks/useAsync"
@@ -15,16 +14,17 @@ export function BrandProfilePage() {
 
   const [saving, setSaving] = useState(false)
 
+  // Rethrows on failure so the form keeps its unsaved-changes state.
   async function handleSave(payload: BrandProfileUpdate) {
     setSaving(true)
     try {
       await brandProfileService.save(payload)
       toast.success("Brand profile saved.")
-      refetch()
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to save brand profile.",
       )
+      throw err
     } finally {
       setSaving(false)
     }
@@ -49,15 +49,11 @@ export function BrandProfilePage() {
         skeletonRows={6}
       >
         {profile && (
-          <Card>
-            <CardContent className="pt-6">
-              <BrandProfileForm
-                profile={profile}
-                onSubmit={handleSave}
-                submitting={saving}
-              />
-            </CardContent>
-          </Card>
+          <BrandProfileForm
+            profile={profile}
+            onSubmit={handleSave}
+            submitting={saving}
+          />
         )}
       </DataState>
     </div>

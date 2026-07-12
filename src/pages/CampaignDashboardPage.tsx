@@ -17,45 +17,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { DataState } from "@/components/DataState"
+import { RunCampaignCard } from "@/features/campaigns/RunCampaignCard"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
+import { loadContactStats } from "@/features/campaigns/contactStats"
 import { useAsync } from "@/hooks/useAsync"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
-import { campaignContactService } from "@/services/campaign-contact.service"
 import { campaignEmailService } from "@/services/campaign-email.service"
 import { formatDateTime } from "@/lib/format"
-import type { CampaignContact } from "@/types/campaign-contact"
-
-// The contacts/list endpoint caps a page at 200; loop pages (same pattern as
-// the Contacts tab) so the counts cover everyone in the campaign.
-const PAGE_SIZE = 200
-const MAX_PAGES = 25
-
-interface ContactStats {
-  people: number
-  companies: number
-  reachable: number
-}
-
-async function loadContactStats(campaignId: number): Promise<ContactStats> {
-  const all: CampaignContact[] = []
-  for (let pageIdx = 0; pageIdx < MAX_PAGES; pageIdx++) {
-    const res = await campaignContactService.list(campaignId, {
-      skip: pageIdx * PAGE_SIZE,
-      limit: PAGE_SIZE,
-    })
-    all.push(...res.items)
-    const total = res.total ?? all.length
-    if (res.items.length === 0 || all.length >= total) break
-  }
-  const companies = new Set(
-    all.map((c) => c.company_domain ?? c.company_name ?? `contact-${c.id}`),
-  )
-  return {
-    people: all.length,
-    companies: companies.size,
-    reachable: all.filter((c) => !!c.email?.trim()).length,
-  }
-}
 
 /** Total span of the sequence in working days (sum of the configured gaps). */
 function sequenceSpanDays(gaps: (number | null)[]): number {
@@ -292,6 +260,8 @@ export function CampaignDashboardPage() {
               </p>
             </CardContent>
           </Card>
+
+          <RunCampaignCard campaign={campaign} />
         </div>
       </div>
     </div>

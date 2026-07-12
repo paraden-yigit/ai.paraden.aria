@@ -13,7 +13,7 @@ import {
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
-import { ProductsTable } from "@/features/products/ProductsTable"
+import { ProductCards } from "@/features/products/ProductCards"
 import { ProductForm } from "@/features/products/ProductForm"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { productService } from "@/services/product.service"
@@ -98,7 +98,7 @@ export function ProductsPage() {
         }
         onRetry={refetch}
       >
-        <ProductsTable products={products} onDelete={setProductToDelete} />
+        <ProductCards products={products} onDelete={setProductToDelete} />
         <PaginationFooter
           page={page}
           skip={skip}

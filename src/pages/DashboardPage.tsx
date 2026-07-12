@@ -9,9 +9,67 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { CampaignSpotlight } from "@/features/dashboard/CampaignSpotlight"
+import { KnowledgeMeter } from "@/features/dashboard/KnowledgeMeter"
+import { SampleCharts } from "@/features/dashboard/SampleCharts"
 import { SetupChecklist } from "@/features/onboarding/SetupChecklist"
 import { useSetupState } from "@/features/onboarding/useSetupState"
 import { useAuth } from "@/features/auth/useAuth"
+
+function AccountCard() {
+  const { user } = useAuth()
+  return (
+    <Card className="h-fit">
+      <CardHeader>
+        <CardTitle>Your account</CardTitle>
+        <CardDescription>Session active</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-1 text-sm text-muted-foreground">
+        <div>{user?.email}</div>
+        {user?.client_id != null && <div>Client #{user.client_id}</div>}
+      </CardContent>
+    </Card>
+  )
+}
+
+function QuickActionsCard() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Quick actions</CardTitle>
+        <CardDescription>
+          Jump back into the things you use most.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        <Button asChild>
+          <Link to="/campaigns/new">
+            <Plus className="size-4" />
+            New campaign
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/campaigns">
+            <Megaphone className="size-4" />
+            Campaigns
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/products">
+            <Package className="size-4" />
+            Products
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/company/brand-profile">
+            <MessageSquareText className="size-4" />
+            Brand profile
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -27,64 +85,31 @@ export function DashboardPage() {
           {setup.loading
             ? "You're signed in to Paraden ARIA."
             : setup.allDone
-              ? "You're all set. What would you like to do?"
+              ? "Here's where your outreach stands."
               : "Let's get ARIA working for you."}
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {setup.allDone ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick actions</CardTitle>
-                <CardDescription>
-                  Jump back into the things you use most.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                <Button asChild>
-                  <Link to="/campaigns/new">
-                    <Plus className="size-4" />
-                    New campaign
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/campaigns">
-                    <Megaphone className="size-4" />
-                    Campaigns
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/products">
-                    <Package className="size-4" />
-                    Products
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/company/brand-profile">
-                    <MessageSquareText className="size-4" />
-                    Brand profile
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <SetupChecklist state={setup} />
-          )}
+      {setup.allDone ? (
+        <div className="grid gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            <CampaignSpotlight />
+            <SampleCharts />
+          </div>
+          <div className="space-y-6">
+            <QuickActionsCard />
+            <KnowledgeMeter setup={setup} />
+            <AccountCard />
+          </div>
         </div>
-
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>Your account</CardTitle>
-            <CardDescription>Session active</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm text-muted-foreground">
-            <div>{user?.email}</div>
-            {user?.client_id != null && <div>Client #{user.client_id}</div>}
-          </CardContent>
-        </Card>
-      </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <SetupChecklist state={setup} />
+          </div>
+          <AccountCard />
+        </div>
+      )}
     </div>
   )
 }

@@ -15,7 +15,8 @@ import {
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
-import { CampaignsTable } from "@/features/campaigns/CampaignsTable"
+import { CampaignCards } from "@/features/campaigns/CampaignCards"
+import { CampaignSpotlight } from "@/features/dashboard/CampaignSpotlight"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { campaignService } from "@/services/campaign.service"
 import { ApiError } from "@/services/http"
@@ -112,7 +113,8 @@ export function CampaignsPage() {
         }
         onRetry={refetch}
       >
-        <CampaignsTable
+        {page === 0 && <CampaignSpotlight />}
+        <CampaignCards
           campaigns={campaigns}
           onOpen={handleOpen}
           onDelete={setCampaignToDelete}
