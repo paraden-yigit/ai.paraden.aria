@@ -43,7 +43,7 @@ const statTiles = [
 
 /** Dashboard hero: what the most recent campaign has prepared, at a glance. */
 export function CampaignSpotlight() {
-  const fetcher = useCallback(loadSpotlight, [])
+  const fetcher = useCallback(() => loadSpotlight(), [])
   const spotlight = useAsync(fetcher, [])
 
   if (spotlight.loading) {

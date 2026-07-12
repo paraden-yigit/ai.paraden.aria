@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
@@ -171,7 +171,7 @@ export function BrandProfileForm({
     resolver: zodResolver(brandProfileSchema),
     defaultValues: toFormValues(profile),
   })
-  const values = form.watch()
+  const values = useWatch({ control: form.control })
   const { isDirty } = form.formState
 
   async function handleSubmit(formValues: BrandProfileFormValues) {
@@ -190,7 +190,7 @@ export function BrandProfileForm({
         <div className="grid gap-6 xl:grid-cols-2">
           {SECTIONS.map((section) => {
             const answered = section.fields.filter(
-              (f) => values[f].trim() !== "",
+              (f) => (values[f] ?? "").trim() !== "",
             ).length
             const complete = answered === section.fields.length
             return (
