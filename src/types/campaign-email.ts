@@ -69,3 +69,20 @@ export interface EmailSelection {
 export interface SaveEmailsResult {
   saved: number
 }
+
+/**
+ * A saved outreach email (one per sequence step), as persisted on "Create
+ * campaign". Mirrors the API's CampaignEmailRead. `subject` is empty for
+ * closers that reply in the same thread; `approach` is the angle label the
+ * user picked in the wizard.
+ */
+export interface SavedCampaignEmail {
+  id: number
+  step_index: number
+  step_kind: string
+  approach: string | null
+  subject: string | null
+  body: string | null
+  created_at: string
+  updated_at: string
+}

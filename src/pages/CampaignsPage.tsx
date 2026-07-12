@@ -103,7 +103,13 @@ export function CampaignsPage() {
         loading={loading}
         error={error}
         isEmpty={campaigns.length === 0}
-        emptyMessage="No campaigns yet."
+        emptyMessage="No campaigns yet. When you start one, ARIA finds matching prospects and drafts the outreach for you."
+        emptyAction={
+          <Button onClick={() => navigate("/campaigns/new")}>
+            <Plus className="size-4" />
+            Start your first campaign
+          </Button>
+        }
         onRetry={refetch}
       >
         <CampaignsTable

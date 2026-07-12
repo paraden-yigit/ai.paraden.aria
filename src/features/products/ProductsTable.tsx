@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -24,6 +25,24 @@ interface ProductsTableProps {
   onDelete: (product: Product) => void
 }
 
+// The nine product-brief answers, used for the completeness hint. A fuller
+// brief means sharper ICP generation and better outreach drafts.
+const BRIEF_KEYS = [
+  "offering",
+  "audience",
+  "problem_solved",
+  "buyer_challenges",
+  "proof_points",
+  "buyer_outcome",
+  "winning_emails",
+  "supporting_data",
+  "email_approver",
+] as const
+
+function answeredCount(product: Product): number {
+  return BRIEF_KEYS.filter((key) => product[key]?.trim()).length
+}
+
 export function ProductsTable({ products, onDelete }: ProductsTableProps) {
   const navigate = useNavigate()
 
@@ -33,18 +52,47 @@ export function ProductsTable({ products, onDelete }: ProductsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Brief</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => (
+          {products.map((product) => {
+            const answered = answeredCount(product)
+            return (
             <TableRow
               key={product.id}
               className="cursor-pointer"
               onClick={() => navigate(`/products/${product.id}`)}
             >
-              <TableCell className="font-medium">{product.name}</TableCell>
+              <TableCell>
+                <span className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted text-sm font-semibold uppercase"
+                  >
+                    {product.name.charAt(0)}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-medium">{product.name}</span>
+                    {product.offering && (
+                      <span className="block max-w-md truncate text-sm text-muted-foreground">
+                        {product.offering}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </TableCell>
+              <TableCell>
+                {answered === BRIEF_KEYS.length ? (
+                  <Badge variant="outline">Complete</Badge>
+                ) : (
+                  <Badge variant="secondary">
+                    {answered} of {BRIEF_KEYS.length} answered
+                  </Badge>
+                )}
+              </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDateTime(product.created_at)}
               </TableCell>
@@ -74,7 +122,8 @@ export function ProductsTable({ products, onDelete }: ProductsTableProps) {
                 </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+            )
+          })}
         </TableBody>
       </Table>
     </div>
