@@ -13,9 +13,6 @@ export interface Product {
   buyer_challenges: string | null
   proof_points: string | null
   buyer_outcome: string | null
-  winning_emails: string | null
-  supporting_data: string | null
-  email_approver: string | null
   created_at: string
   updated_at: string
 }
@@ -28,9 +25,6 @@ export interface ProductCreate {
   buyer_challenges?: string | null
   proof_points?: string | null
   buyer_outcome?: string | null
-  winning_emails?: string | null
-  supporting_data?: string | null
-  email_approver?: string | null
 }
 
 export type ProductUpdate = Partial<ProductCreate>

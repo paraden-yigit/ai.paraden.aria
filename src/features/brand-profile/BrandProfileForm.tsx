@@ -12,7 +12,6 @@ const brandProfileSchema = z.object({
   value_proposition: z.string(),
   market_positioning: z.string(),
   competitors: z.string(),
-  closing_question: z.string(),
 })
 
 type BrandProfileFormValues = z.infer<typeof brandProfileSchema>
@@ -23,7 +22,6 @@ const FIELDS = [
   "value_proposition",
   "market_positioning",
   "competitors",
-  "closing_question",
 ] as const
 
 function toFormValues(profile: BrandProfile): BrandProfileFormValues {
@@ -31,7 +29,6 @@ function toFormValues(profile: BrandProfile): BrandProfileFormValues {
     value_proposition: profile.value_proposition ?? "",
     market_positioning: profile.market_positioning ?? "",
     competitors: profile.competitors ?? "",
-    closing_question: profile.closing_question ?? "",
   }
 }
 
@@ -87,15 +84,6 @@ export function BrandProfileForm({
           label="Who are your competitors?"
           placeholder="List your main competitors."
           rows={3}
-          disabled={submitting}
-        />
-
-        <TextareaField
-          control={form.control}
-          name="closing_question"
-          label="Standard closing question for every email"
-          placeholder="e.g. Would you be open to a quick 15-minute call next week?"
-          rows={2}
           disabled={submitting}
         />
 
