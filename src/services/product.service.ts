@@ -51,6 +51,13 @@ export const productService = {
     return apiClient.post<ProductFile>(`/api/products/${productId}/files`, body)
   },
 
+  addFileFromUrl(productId: number, url: string): Promise<ProductFile> {
+    return apiClient.post<ProductFile>(
+      `/api/products/${productId}/files/from-url`,
+      { url },
+    )
+  },
+
   removeFile(productId: number, fileId: number): Promise<unknown> {
     return apiClient.delete(`/api/products/${productId}/files/${fileId}`)
   },

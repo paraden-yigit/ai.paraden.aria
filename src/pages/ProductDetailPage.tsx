@@ -97,8 +97,8 @@ export function ProductDetailPage() {
             >
               <TabsList>
                 <TabsTrigger value="info">Product Info</TabsTrigger>
-                <TabsTrigger value="icp">ICP</TabsTrigger>
                 <TabsTrigger value="files">Supporting Files</TabsTrigger>
+                <TabsTrigger value="icp">ICP</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="mt-4 space-y-6">

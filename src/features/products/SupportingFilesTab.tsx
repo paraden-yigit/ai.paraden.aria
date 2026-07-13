@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react"
 import {
   CheckCircle2,
+  ChevronDown,
+  Link2,
   Loader2,
+  Plus,
   Trash2,
   TriangleAlert,
   Upload,
@@ -10,6 +13,13 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { AddFileFromUrlDialog } from "@/features/products/AddFileFromUrlDialog"
 import {
   Table,
   TableBody,
@@ -106,6 +116,8 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
 
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [urlDialogOpen, setUrlDialogOpen] = useState(false)
+  const [dragging, setDragging] = useState(false)
   const [fileToDelete, setFileToDelete] = useState<ProductFile | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -119,11 +131,7 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
     return () => clearInterval(id)
   }, [hasPending, refetch])
 
-  async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    // Reset the input so the same file can be re-selected later.
-    event.target.value = ""
-    if (!file) return
+  async function uploadFile(file: File) {
     setUploading(true)
     try {
       await productService.uploadFile(productId, file)
@@ -134,6 +142,35 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
     } finally {
       setUploading(false)
     }
+  }
+
+  function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    // Reset the input so the same file can be re-selected later.
+    event.target.value = ""
+    if (!file) return
+    void uploadFile(file)
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setDragging(false)
+    if (uploading) return
+    const file = event.dataTransfer.files?.[0]
+    if (file) void uploadFile(file)
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
+    // Only react to file drags, and keep the drop effect while hovering.
+    if (!Array.from(event.dataTransfer.types).includes("Files")) return
+    event.preventDefault()
+    if (!dragging) setDragging(true)
+  }
+
+  function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    // Ignore leaves fired while moving between child elements.
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+    setDragging(false)
   }
 
   async function handleDelete() {
@@ -152,7 +189,19 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className="relative space-y-6"
+      onDragEnter={handleDragOver}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary bg-background/80 text-center backdrop-blur-sm">
+          <Upload className="size-6 text-primary" />
+          <p className="text-sm font-medium">Drop the file to upload it</p>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
@@ -170,14 +219,29 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
           className="hidden"
           onChange={handleUpload}
         />
-        <Button onClick={() => inputRef.current?.click()} disabled={uploading}>
-          {uploading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Upload className="size-4" />
-          )}
-          Upload file
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button disabled={uploading}>
+              {uploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Plus className="size-4" />
+              )}
+              Add Supporting File
+              <ChevronDown className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => inputRef.current?.click()}>
+              <Upload className="size-4" />
+              Upload file
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setUrlDialogOpen(true)}>
+              <Link2 className="size-4" />
+              From URL
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <DataState
@@ -231,6 +295,13 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
           </Table>
         </div>
       </DataState>
+
+      <AddFileFromUrlDialog
+        productId={productId}
+        open={urlDialogOpen}
+        onOpenChange={setUrlDialogOpen}
+        onAdded={refetch}
+      />
 
       <ConfirmDialog
         open={fileToDelete !== null}
