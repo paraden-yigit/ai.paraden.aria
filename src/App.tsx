@@ -17,7 +17,6 @@ import { CampaignContactsPage } from "@/pages/CampaignContactsPage"
 import { ProductsPage } from "@/pages/ProductsPage"
 import { ProductDetailPage } from "@/pages/ProductDetailPage"
 import { CompanyInfoPage } from "@/pages/CompanyInfoPage"
-import { BrandProfilePage } from "@/pages/BrandProfilePage"
 import { AgentInstructionsPage } from "@/pages/AgentInstructionsPage"
 import { TeamsPage } from "@/pages/TeamsPage"
 import { TeamDetailPage } from "@/pages/TeamDetailPage"
@@ -51,7 +50,6 @@ function App() {
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
               <Route path="/company" element={<CompanyInfoPage />} />
-              <Route path="/company/brand-profile" element={<BrandProfilePage />} />
               <Route
                 path="/company/agent-instructions"
                 element={<AgentInstructionsPage />}

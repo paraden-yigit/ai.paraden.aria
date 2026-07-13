@@ -4,6 +4,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DataState } from "@/components/DataState"
 import { DescriptionList } from "@/components/DescriptionList"
 import { CompanyProfileForm } from "@/features/company-profile/CompanyProfileForm"
@@ -70,21 +71,38 @@ export function CompanyInfoPage() {
                   submitting={saving}
                 />
               ) : (
-                <DescriptionList
-                  items={[
-                    { label: "Legal name", value: client.legal_business_name },
-                    { label: "Address", value: client.address },
-                    { label: "Country", value: client.country },
-                    { label: "Email", value: client.email },
-                    { label: "Phone", value: client.phone },
-                    { label: "URL", value: client.url },
-                    {
-                      label: "Company reg. number",
-                      value: client.company_registration_number,
-                    },
-                    { label: "VAT reg. number", value: client.vat_registration_number },
-                  ]}
-                />
+                <Tabs defaultValue="details" className="space-y-6">
+                  <TabsList>
+                    <TabsTrigger value="details">Company details</TabsTrigger>
+                    <TabsTrigger value="messaging">Messaging</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="details">
+                    <DescriptionList
+                      items={[
+                        { label: "Name", value: client.name },
+                        { label: "Country", value: client.country },
+                        { label: "URL", value: client.url },
+                      ]}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="messaging">
+                    <DescriptionList
+                      items={[
+                        {
+                          label: "What does your company do?",
+                          value: client.value_proposition,
+                        },
+                        {
+                          label: "Market positioning / USP",
+                          value: client.market_positioning,
+                        },
+                        { label: "Competitors", value: client.competitors },
+                      ]}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
             </CardContent>
           </Card>

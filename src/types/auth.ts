@@ -9,7 +9,7 @@ export interface User {
   email: string
   status: string
   role: string
-  // Per-user email voice (moved here from the brand profile) + HTML signature
+  // Per-user email voice (moved here from company info) + HTML signature
   // appended to every generated email. Edited on the User Profile page.
   email_tone: string | null
   email_signature: string | null

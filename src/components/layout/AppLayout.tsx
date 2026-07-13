@@ -9,7 +9,6 @@ import {
   Mail,
   Megaphone,
   Menu,
-  MessageSquareText,
   Package,
   ShieldCheck,
   UserRound,
@@ -56,11 +55,6 @@ const navSections: {
     title: "Company",
     items: [
       { to: "/company", label: "Company Info", icon: Briefcase },
-      {
-        to: "/company/brand-profile",
-        label: "Brand Profile",
-        icon: MessageSquareText,
-      },
       {
         to: "/company/agent-instructions",
         label: "Agent Instructions",

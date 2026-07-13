@@ -18,7 +18,7 @@ interface ProductICPTabProps {
 
 /**
  * ICP tab for a product: generate the Ideal Customer Profile from the product
- * brief + brand profile, poll while the agent runs, then show it in an editable
+ * brief + company info, poll while the agent runs, then show it in an editable
  * form. The ICP is stored per product and reused by every campaign on it.
  */
 export function ProductICPTab({ productId }: ProductICPTabProps) {
@@ -140,7 +140,7 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             <div>
               <p className="font-medium">Generating ICP…</p>
               <p className="text-sm text-muted-foreground">
-                The agent is analysing your brand profile and product brief. This
+                The agent is analysing your company info and product brief. This
                 usually takes a few seconds.
               </p>
             </div>
@@ -182,7 +182,7 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             <div className="max-w-md space-y-1">
               <p className="font-medium">No ICP generated yet</p>
               <p className="text-sm text-muted-foreground">
-                Generate an Ideal Customer Profile from your brand profile and this
+                Generate an Ideal Customer Profile from your company info and this
                 product's brief. You can edit every field afterwards.
               </p>
             </div>
