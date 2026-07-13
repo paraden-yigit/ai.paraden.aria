@@ -9,10 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { TextField } from "@/components/form/TextField"
 import { MultiComboboxField } from "@/components/form/MultiComboboxField"
 import { INDUSTRIES } from "@/features/companies/industries"
-import {
-  COMPANY_TYPES,
-  REVENUE_RANGES,
-} from "@/features/companies/company-filters"
+import { COMPANY_TYPES } from "@/features/companies/company-filters"
 import { COUNTRIES } from "@/features/companies/countries"
 import { SENIORITY } from "@/features/companies/seniority"
 import {
@@ -34,7 +31,6 @@ const icpSchema = z.object({
   headcount_min: numericString,
   headcount_max: numericString,
   countries: z.array(z.string()),
-  revenue_ranges: z.array(z.string()),
   seniority: z.array(z.string()),
   job_functions: z.array(z.string()),
   job_subfunctions: z.array(z.string()),
@@ -63,7 +59,6 @@ function toDefaults(icp: Icp): ICPFormValues {
     headcount_min: icp.headcount_min != null ? String(icp.headcount_min) : "",
     headcount_max: icp.headcount_max != null ? String(icp.headcount_max) : "",
     countries: icp.countries,
-    revenue_ranges: icp.revenue_ranges,
     seniority: icp.seniority,
     job_functions: icp.job_functions,
     job_subfunctions: icp.job_subfunctions,
@@ -79,7 +74,6 @@ function toPayload(values: ICPFormValues): IcpUpdate {
     headcount_min: numberOrNull(values.headcount_min),
     headcount_max: numberOrNull(values.headcount_max),
     countries: values.countries,
-    revenue_ranges: values.revenue_ranges,
     seniority: values.seniority,
     job_functions: values.job_functions,
     job_subfunctions: values.job_subfunctions,
@@ -183,15 +177,6 @@ export function ICPForm({ icp, onSubmit, submitting }: ICPFormProps) {
             options={COUNTRIES}
             placeholder="Select countries…"
             searchPlaceholder="Search countries…"
-            disabled={submitting}
-          />
-          <MultiComboboxField
-            control={form.control}
-            name="revenue_ranges"
-            label="Revenue ranges"
-            options={REVENUE_RANGES}
-            placeholder="Select revenue ranges…"
-            searchPlaceholder="Search ranges…"
             disabled={submitting}
           />
         </section>

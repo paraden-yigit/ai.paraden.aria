@@ -17,7 +17,6 @@ export interface Icp {
   headcount_min: number | null
   headcount_max: number | null
   countries: string[]
-  revenue_ranges: string[]
 
   // B. Contact attributes
   seniority: string[]
@@ -37,7 +36,6 @@ export interface IcpUpdate {
   headcount_min?: number | null
   headcount_max?: number | null
   countries?: string[]
-  revenue_ranges?: string[]
   seniority?: string[]
   job_functions?: string[]
   job_subfunctions?: string[]
