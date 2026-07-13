@@ -13,8 +13,6 @@ import type { CampaignUploadReview } from "@/types/campaign-upload"
 
 interface StepDiscoveryProps {
   campaignId: number
-  /** The campaign's product (for quick-editing the ICP); null if none. */
-  productId: number | null
   /** `skipped` is true when the user skipped discovery rather than approving. */
   onFinish: (skipped?: boolean) => void
   onBack: () => void
@@ -38,7 +36,6 @@ const IDLE: DiscoverySearch = {
  */
 export function StepDiscovery({
   campaignId,
-  productId,
   onFinish,
   onBack,
 }: StepDiscoveryProps) {
@@ -177,18 +174,16 @@ export function StepDiscovery({
               )}
               . Approve to add them, or repopulate for a different set.
             </p>
-            {productId != null && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIcpOpen(true)}
-                disabled={busy}
-              >
-                <Pencil className="size-4" />
-                Edit ICP
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIcpOpen(true)}
+              disabled={busy}
+            >
+              <Pencil className="size-4" />
+              Edit ICP
+            </Button>
           </div>
         ) : state.target === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
@@ -207,18 +202,16 @@ export function StepDiscovery({
               widen the headcount range, add more industries or countries, or
               relax seniority. Then repopulate.
             </p>
-            {productId != null && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIcpOpen(true)}
-                disabled={busy}
-              >
-                <Pencil className="size-4" />
-                Edit ICP
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIcpOpen(true)}
+              disabled={busy}
+            >
+              <Pencil className="size-4" />
+              Edit ICP
+            </Button>
           </div>
         )}
 
@@ -257,14 +250,12 @@ export function StepDiscovery({
           </div>
         </div>
 
-        {productId != null && (
-          <EditIcpDialog
-            productId={productId}
-            open={icpOpen}
-            onOpenChange={setIcpOpen}
-            onSaved={handleGenerate}
-          />
-        )}
+        <EditIcpDialog
+          campaignId={campaignId}
+          open={icpOpen}
+          onOpenChange={setIcpOpen}
+          onSaved={handleGenerate}
+        />
       </div>
     )
   }
@@ -312,7 +303,7 @@ export function StepDiscovery({
         <Sparkles className="size-6 text-muted-foreground" />
         <p className="text-sm font-medium">Find new contacts?</p>
         <p className="max-w-md text-xs text-muted-foreground">
-          We&apos;ll find companies matching your product&apos;s ICP, plus a
+          We&apos;ll find companies matching your campaign&apos;s ICP, plus a
           couple of contacts at each, to reach your campaign&apos;s target. You
           can review and approve before anything is saved.
         </p>

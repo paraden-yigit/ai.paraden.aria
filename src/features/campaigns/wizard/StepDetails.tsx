@@ -58,8 +58,9 @@ interface StepDetailsProps {
 
 /**
  * Step 1 — campaign name + product. Completing this step creates the campaign
- * (or updates it if the user came back). The ICP is taken from the selected
- * product, so there's nothing ICP-related to configure here.
+ * (or updates it if the user came back). The next step clones the selected
+ * product's ICP onto the campaign for final edits, so nothing ICP-related is
+ * configured here.
  */
 export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
   const { options: productOptions, loading: productsLoading } = useProductOptions()
@@ -125,7 +126,8 @@ export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
           disabled={submitting || productsLoading || productOptions.length === 0}
         />
         <p className="text-sm text-muted-foreground">
-          The campaign uses the ICP defined on the selected product.
+          You&apos;ll review and edit a copy of this product&apos;s ideal
+          customer profile in the next step.
         </p>
 
         <div className="space-y-2">

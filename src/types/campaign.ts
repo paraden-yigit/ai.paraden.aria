@@ -13,7 +13,7 @@ export interface Campaign {
   product_name: string | null
   /** False until the creation wizard is finished. */
   setup_completed: boolean
-  /** The wizard's top-level step last reached (1 = upload … 4 = preview). */
+  /** The wizard's top-level step last reached (1 = ideal customers … 5 = preview). */
   setup_step: number
   /** Outreach sequence config, saved from the sequence step (null until then). */
   sequence_touches: number | null

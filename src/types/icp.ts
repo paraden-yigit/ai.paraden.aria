@@ -4,7 +4,9 @@ export type IcpStatus = "generating" | "ready" | "failed"
 
 export interface Icp {
   id: number
-  product_id: number
+  // Exactly one of these is set: a product ICP (template) or a campaign clone.
+  product_id: number | null
+  campaign_id: number | null
   client_id: number
   status: IcpStatus
   error: string | null

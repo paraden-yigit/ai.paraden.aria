@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -6,6 +7,7 @@ import { Loader2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Form } from "@/components/ui/form"
 import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 import { TextField } from "@/components/form/TextField"
 import { MultiComboboxField } from "@/components/form/MultiComboboxField"
 import { INDUSTRIES } from "@/features/companies/industries"
@@ -84,12 +86,29 @@ interface ICPFormProps {
   icp: Icp
   onSubmit: (payload: IcpUpdate) => void
   submitting?: boolean
+  /** Submit button label (default "Save ICP"). */
+  submitLabel?: string
+  /** Icon shown on the submit button when not submitting (default a save icon). */
+  submitIcon?: ReactNode
+  /** Extra controls rendered on the left of the footer (e.g. Back / Reset). */
+  leftActions?: ReactNode
+  /** Confine the fields to a scrollable container so the footer stays on screen
+   * (used in the wizard, where vertical space is tight). */
+  scrollFields?: boolean
 }
 
 /** Editable ICP form. Predefined attributes reuse the company-search UX
  * (searchable multi-selects); keywords/specialties are comma-separated text and
  * headcount is a numeric min/max. */
-export function ICPForm({ icp, onSubmit, submitting }: ICPFormProps) {
+export function ICPForm({
+  icp,
+  onSubmit,
+  submitting,
+  submitLabel,
+  submitIcon,
+  leftActions,
+  scrollFields,
+}: ICPFormProps) {
   const form = useForm<ICPFormValues>({
     resolver: zodResolver(icpSchema),
     defaultValues: toDefaults(icp),
@@ -114,6 +133,13 @@ export function ICPForm({ icp, onSubmit, submitting }: ICPFormProps) {
         onSubmit={form.handleSubmit((values) => onSubmit(toPayload(values)))}
         className="space-y-6"
       >
+        <div
+          className={cn(
+            "space-y-6",
+            scrollFields &&
+              "max-h-[50vh] overflow-y-auto rounded-lg border p-4",
+          )}
+        >
         <section className="space-y-4">
           <h3 className="text-sm font-semibold text-muted-foreground">
             Company attributes
@@ -215,15 +241,17 @@ export function ICPForm({ icp, onSubmit, submitting }: ICPFormProps) {
             disabled={submitting}
           />
         </section>
+        </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-2">{leftActions}</div>
           <Button type="submit" disabled={submitting}>
             {submitting ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Save className="size-4" />
+              submitIcon ?? <Save className="size-4" />
             )}
-            Save ICP
+            {submitLabel ?? "Save ICP"}
           </Button>
         </div>
       </form>

@@ -10,12 +10,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ICPForm } from "@/features/products/ICPForm"
-import { icpService } from "@/services/icp.service"
+import { campaignIcpService, icpService } from "@/services/icp.service"
 import { ApiError } from "@/services/http"
 import type { Icp, IcpUpdate } from "@/types/icp"
 
 interface EditIcpDialogProps {
-  productId: number
+  /** Edit a product's ICP (the template). */
+  productId?: number
+  /** Edit a campaign's own ICP clone (ensured/cloned on open). */
+  campaignId?: number
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Called after the ICP is successfully saved (e.g. to re-run a search). */
@@ -23,11 +26,14 @@ interface EditIcpDialogProps {
 }
 
 /**
- * Quick-edit modal for a product's ICP. Loads the ICP when opened and saves via
- * PATCH. Reuses the full ICPForm so the fields match the product page.
+ * Quick-edit modal for an ICP. Pass either `productId` (edits the product
+ * template) or `campaignId` (edits the campaign's own clone, cloning it on open
+ * if needed). Loads the ICP when opened and saves via PATCH. Reuses the full
+ * ICPForm so the fields match the product page.
  */
 export function EditIcpDialog({
   productId,
+  campaignId,
   open,
   onOpenChange,
   onSaved,
@@ -42,7 +48,11 @@ export function EditIcpDialog({
     const load = async () => {
       setLoading(true)
       try {
-        const data = await icpService.get(productId)
+        // For a campaign, clone-on-open ensures the ICP exists (idempotent).
+        const data =
+          campaignId != null
+            ? await campaignIcpService.clone(campaignId)
+            : await icpService.get(productId as number)
         if (active) setIcp(data)
       } catch (err) {
         toast.error(
@@ -56,12 +66,16 @@ export function EditIcpDialog({
     return () => {
       active = false
     }
-  }, [open, productId])
+  }, [open, productId, campaignId])
 
   async function handleSubmit(payload: IcpUpdate) {
     setSaving(true)
     try {
-      await icpService.update(productId, payload)
+      if (campaignId != null) {
+        await campaignIcpService.update(campaignId, payload)
+      } else {
+        await icpService.update(productId as number, payload)
+      }
       toast.success("ICP updated.")
       onOpenChange(false)
       onSaved?.()
