@@ -21,18 +21,35 @@ export interface AccordionCompany {
 
 /** A list of companies as expandable rows; expanding one reveals its contacts.
  * Shared by the upload-review and discovery steps. The list scrolls within a
- * bounded height so the wizard always fits the page. */
-export function CompaniesAccordion({ companies }: { companies: AccordionCompany[] }) {
+ * bounded height so the wizard always fits the page. ``showEmail`` hides the
+ * Email column where it isn't meaningful (discovery contacts have no email yet). */
+export function CompaniesAccordion({
+  companies,
+  showEmail = true,
+}: {
+  companies: AccordionCompany[]
+  showEmail?: boolean
+}) {
   return (
     <div className="max-h-[45vh] divide-y overflow-y-auto rounded-lg border">
       {companies.map((company, index) => (
-        <CompanyRow key={`${company.domain ?? company.name ?? "co"}-${index}`} company={company} />
+        <CompanyRow
+          key={`${company.domain ?? company.name ?? "co"}-${index}`}
+          company={company}
+          showEmail={showEmail}
+        />
       ))}
     </div>
   )
 }
 
-function CompanyRow({ company }: { company: AccordionCompany }) {
+function CompanyRow({
+  company,
+  showEmail,
+}: {
+  company: AccordionCompany
+  showEmail: boolean
+}) {
   const [open, setOpen] = useState(false)
   const subtitle = [company.domain, company.industry].filter(Boolean).join(" · ")
 
@@ -64,14 +81,20 @@ function CompanyRow({ company }: { company: AccordionCompany }) {
       </button>
       {open && (
         <div className="border-t bg-muted/20">
-          <ContactsTable contacts={company.contacts} />
+          <ContactsTable contacts={company.contacts} showEmail={showEmail} />
         </div>
       )}
     </div>
   )
 }
 
-export function ContactsTable({ contacts }: { contacts: AccordionContact[] }) {
+export function ContactsTable({
+  contacts,
+  showEmail = true,
+}: {
+  contacts: AccordionContact[]
+  showEmail?: boolean
+}) {
   if (contacts.length === 0) {
     return <p className="p-3 text-xs text-muted-foreground">No contacts.</p>
   }
@@ -82,7 +105,7 @@ export function ContactsTable({ contacts }: { contacts: AccordionContact[] }) {
           <tr className="text-left text-xs text-muted-foreground">
             <th className="px-3 py-2 font-medium">Name</th>
             <th className="px-3 py-2 font-medium">Job title</th>
-            <th className="px-3 py-2 font-medium">Email</th>
+            {showEmail && <th className="px-3 py-2 font-medium">Email</th>}
             <th className="px-3 py-2 font-medium">LinkedIn</th>
           </tr>
         </thead>
@@ -93,9 +116,11 @@ export function ContactsTable({ contacts }: { contacts: AccordionContact[] }) {
               <td className="px-3 py-2 text-muted-foreground">
                 {contact.job_title || "No title"}
               </td>
-              <td className="px-3 py-2 text-muted-foreground">
-                {contact.email || "No email yet"}
-              </td>
+              {showEmail && (
+                <td className="px-3 py-2 text-muted-foreground">
+                  {contact.email || "No email yet"}
+                </td>
+              )}
               <td className="px-3 py-2 text-muted-foreground">
                 {contact.linkedin_url ? (
                   <a

@@ -4,7 +4,6 @@ import {
   Check,
   Info,
   Loader2,
-  Pencil,
   RefreshCw,
   Sparkles,
 } from "lucide-react"
@@ -19,7 +18,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { CompaniesAccordion } from "@/features/campaigns/wizard/CompaniesAccordion"
-import { EditIcpDialog } from "@/features/products/EditIcpDialog"
 import { campaignService } from "@/services/campaign.service"
 import { campaignDiscoveryService } from "@/services/campaign-discovery.service"
 import { campaignUploadService } from "@/services/campaign-upload.service"
@@ -99,7 +97,6 @@ export function StepDiscovery({
   const [savingTarget, setSavingTarget] = useState(false)
   const [approving, setApproving] = useState(false)
   const [skipping, setSkipping] = useState(false)
-  const [icpOpen, setIcpOpen] = useState(false)
   // Contacts already discovered + approved for this campaign (shown on resume).
   const [saved, setSaved] = useState<CampaignUploadReview | null>(null)
   // The two targeting questions asked on this step, prefilled from the campaign.
@@ -262,16 +259,6 @@ export function StepDiscovery({
               )}
               . Approve to add them, or repopulate for a different set.
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIcpOpen(true)}
-              disabled={busy}
-            >
-              <Pencil className="size-4" />
-              Edit ICP
-            </Button>
           </div>
         ) : state.target === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
@@ -290,20 +277,12 @@ export function StepDiscovery({
               widen the headcount range, add more industries or countries, or
               relax seniority. Then repopulate.
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIcpOpen(true)}
-              disabled={busy}
-            >
-              <Pencil className="size-4" />
-              Edit ICP
-            </Button>
           </div>
         )}
 
-        {companies.length > 0 && <CompaniesAccordion companies={companies} />}
+        {companies.length > 0 && (
+          <CompaniesAccordion companies={companies} showEmail={false} />
+        )}
 
         <div className="flex items-center justify-between gap-2">
           <Button type="button" variant="ghost" onClick={onBack} disabled={busy}>
@@ -337,13 +316,6 @@ export function StepDiscovery({
             )}
           </div>
         </div>
-
-        <EditIcpDialog
-          campaignId={campaignId}
-          open={icpOpen}
-          onOpenChange={setIcpOpen}
-          onSaved={handleGenerate}
-        />
       </div>
     )
   }
@@ -364,7 +336,7 @@ export function StepDiscovery({
           </span>
           . Find more, or continue.
         </p>
-        <CompaniesAccordion companies={saved.companies} />
+        <CompaniesAccordion companies={saved.companies} showEmail={false} />
         <div className="flex items-center justify-between gap-2">
           <Button type="button" variant="ghost" onClick={onBack}>
             <ArrowLeft className="size-4" />

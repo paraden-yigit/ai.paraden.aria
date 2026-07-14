@@ -22,6 +22,8 @@ export interface Icp {
 
   // B. Contact attributes
   seniority: string[]
+  // Subset of `seniority` marked Primary (the rest are Acceptable).
+  seniority_primary: string[]
   job_functions: string[]
   job_subfunctions: string[]
 
@@ -39,6 +41,7 @@ export interface IcpUpdate {
   headcount_max?: number | null
   countries?: string[]
   seniority?: string[]
+  seniority_primary?: string[]
   job_functions?: string[]
   job_subfunctions?: string[]
 }

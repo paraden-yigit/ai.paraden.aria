@@ -34,6 +34,7 @@ const icpSchema = z.object({
   headcount_max: numericString,
   countries: z.array(z.string()),
   seniority: z.array(z.string()),
+  seniority_primary: z.array(z.string()),
   job_functions: z.array(z.string()),
   job_subfunctions: z.array(z.string()),
 })
@@ -62,6 +63,7 @@ function toDefaults(icp: Icp): ICPFormValues {
     headcount_max: icp.headcount_max != null ? String(icp.headcount_max) : "",
     countries: icp.countries,
     seniority: icp.seniority,
+    seniority_primary: icp.seniority_primary ?? [],
     job_functions: icp.job_functions,
     job_subfunctions: icp.job_subfunctions,
   }
@@ -77,6 +79,10 @@ function toPayload(values: ICPFormValues): IcpUpdate {
     headcount_max: numberOrNull(values.headcount_max),
     countries: values.countries,
     seniority: values.seniority,
+    // Primary is always a subset of the accepted seniority set.
+    seniority_primary: values.seniority_primary.filter((s) =>
+      values.seniority.includes(s),
+    ),
     job_functions: values.job_functions,
     job_subfunctions: values.job_subfunctions,
   }
@@ -119,6 +125,12 @@ export function ICPForm({
 
   // Fields are disabled while saving or when the form is view-only.
   const fieldsDisabled = submitting || readOnly
+
+  // Primary seniority is chosen from the currently-selected seniority levels.
+  const selectedSeniority = useWatch({
+    control: form.control,
+    name: "seniority",
+  })
 
   // Narrow the subfunction options to the chosen functions (all when none).
   const selectedFunctions = useWatch({
@@ -228,6 +240,21 @@ export function ICPForm({
             searchPlaceholder="Search seniority…"
             disabled={fieldsDisabled}
           />
+          <div className="space-y-1.5">
+            <MultiComboboxField
+              control={form.control}
+              name="seniority_primary"
+              label="Primary seniority"
+              options={selectedSeniority}
+              placeholder="Mark the primary seniority levels…"
+              searchPlaceholder="Search seniority…"
+              disabled={fieldsDisabled || selectedSeniority.length === 0}
+            />
+            <p className="text-xs text-muted-foreground">
+              The highest-priority subset of the seniority levels above. The rest
+              are treated as acceptable (they score lower when ranking contacts).
+            </p>
+          </div>
           <MultiComboboxField
             control={form.control}
             name="job_functions"
