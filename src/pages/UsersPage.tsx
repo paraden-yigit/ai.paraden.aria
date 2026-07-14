@@ -1,13 +1,7 @@
 import { useCallback, useState } from "react"
+import { Pencil } from "lucide-react"
 import { toast } from "sonner"
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -17,18 +11,30 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
+import { EditUserForm } from "@/features/users/EditUserForm"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
+import { useAsync } from "@/hooks/useAsync"
 import { userService } from "@/services/user.service"
+import { teamService } from "@/services/team.service"
 import { ApiError } from "@/services/http"
 import { useAuth } from "@/features/auth/useAuth"
-import { USER_ROLES, roleLabel, type UserRole } from "@/lib/roles"
-import type { User } from "@/types/auth"
+import { roleLabel } from "@/lib/roles"
+import { PERMISSIONS } from "@/lib/permissions"
+import type { ClientUser, UserManageUpdate } from "@/types/user"
 
 export function UsersPage() {
-  const { user: currentUser } = useAuth()
-  const isOwner = currentUser?.role === "owner"
+  const { user: currentUser, hasPermission } = useAuth()
+  const canManage = hasPermission(PERMISSIONS.usersManage)
 
   const fetchUsers = useCallback(
     (params: { skip?: number; limit?: number }) => userService.list(params),
@@ -45,21 +51,34 @@ export function UsersPage() {
     loading,
     error,
     refetch,
-  } = usePaginatedList<User>(fetchUsers)
+  } = usePaginatedList<ClientUser>(fetchUsers)
 
-  const [savingId, setSavingId] = useState<number | null>(null)
+  // Teams populate the edit modal's Team select. Only managers open the modal,
+  // and only they have the "teams" permission, so fetch lazily for them.
+  const { data: teamsResult } = useAsync(
+    () =>
+      canManage
+        ? teamService.list({ limit: 200 })
+        : Promise.resolve({ items: [], total: 0 }),
+    [canManage],
+  )
+  const teams = teamsResult?.items ?? []
 
-  async function handleRoleChange(target: User, role: UserRole) {
-    if (role === target.role) return
-    setSavingId(target.id)
+  const [userToEdit, setUserToEdit] = useState<ClientUser | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave(payload: UserManageUpdate) {
+    if (!userToEdit) return
+    setSaving(true)
     try {
-      await userService.setRole(target.id, role)
-      toast.success(`${target.full_name} is now ${roleLabel(role)}.`)
+      await userService.update(userToEdit.id, payload)
+      toast.success(`${payload.full_name ?? userToEdit.full_name} updated.`)
+      setUserToEdit(null)
       refetch()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to update role.")
+      toast.error(err instanceof ApiError ? err.message : "Failed to update user.")
     } finally {
-      setSavingId(null)
+      setSaving(false)
     }
   }
 
@@ -68,9 +87,9 @@ export function UsersPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
         <p className="text-muted-foreground">
-          {isOwner
-            ? "Manage your team's roles."
-            : "Your team and their roles. Only an owner can change roles."}
+          {canManage
+            ? "Manage your users' names, teams and roles."
+            : "Your team and their roles."}
         </p>
       </div>
 
@@ -87,46 +106,55 @@ export function UsersPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Teams</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-48">Role</TableHead>
+                <TableHead className="w-40">Role</TableHead>
+                {canManage && <TableHead className="w-12" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((u) => {
-                // Owners edit everyone except themselves (guards against
+                // Managers edit everyone except themselves (guards against
                 // accidentally demoting the last owner / self-lockout).
-                const editable = isOwner && u.id !== currentUser?.id
+                const editable = canManage && u.id !== currentUser?.id
                 return (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.full_name}</TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
+                      {u.teams.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {u.teams.map((team) => (
+                            <Badge key={team.id} variant="secondary">
+                              {team.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge variant="secondary">{u.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      {editable ? (
-                        <Select
-                          value={u.role}
-                          onValueChange={(value) =>
-                            handleRoleChange(u, value as UserRole)
-                          }
-                          disabled={savingId === u.id}
-                        >
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {USER_ROLES.map((role) => (
-                              <SelectItem key={role} value={role}>
-                                {roleLabel(role)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="outline">{roleLabel(u.role)}</Badge>
-                      )}
+                      <Badge variant="outline">{roleLabel(u.role)}</Badge>
                     </TableCell>
+                    {canManage && (
+                      <TableCell>
+                        {editable && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            onClick={() => setUserToEdit(u)}
+                          >
+                            <Pencil className="size-4" />
+                            <span className="sr-only">Edit user</span>
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 )
               })}
@@ -143,6 +171,29 @@ export function UsersPage() {
           onNext={() => setPage((p) => p + 1)}
         />
       </DataState>
+
+      <Dialog
+        open={userToEdit !== null}
+        onOpenChange={(open) => !open && setUserToEdit(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit user</DialogTitle>
+            <DialogDescription>
+              Update this user's name, team and role.
+            </DialogDescription>
+          </DialogHeader>
+          {userToEdit && (
+            <EditUserForm
+              user={userToEdit}
+              teams={teams}
+              onSubmit={handleSave}
+              onCancel={() => setUserToEdit(null)}
+              submitting={saving}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

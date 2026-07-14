@@ -9,6 +9,8 @@ export interface User {
   email: string
   status: string
   role: string
+  // Permission keys the user's role grants; used to show/hide gated pages.
+  permissions: string[]
   // Per-user email voice (moved here from company info) + HTML signature
   // appended to every generated email. Edited on the User Profile page.
   email_tone: string | null

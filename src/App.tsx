@@ -2,7 +2,9 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 
 import { AuthProvider } from "@/features/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { RequirePermission } from "@/components/auth/RequirePermission"
 import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute"
+import { PERMISSIONS } from "@/lib/permissions"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/LoginPage"
 import { DashboardPage } from "@/pages/DashboardPage"
@@ -41,7 +43,13 @@ function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/email-settings" element={<EmailSettingsPage />} />
-              <Route path="/exclusions" element={<ExclusionListPage />} />
+              <Route
+                element={
+                  <RequirePermission permission={PERMISSIONS.exclusionLists} />
+                }
+              >
+                <Route path="/exclusions" element={<ExclusionListPage />} />
+              </Route>
               <Route path="/campaigns" element={<CampaignsPage />} />
               <Route path="/campaigns/:id" element={<CampaignLayout />}>
                 <Route index element={<CampaignDashboardPage />} />
@@ -49,14 +57,41 @@ function App() {
               </Route>
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
-              <Route path="/company" element={<CompanyInfoPage />} />
               <Route
-                path="/company/agent-instructions"
-                element={<AgentInstructionsPage />}
-              />
-              <Route path="/company/teams" element={<TeamsPage />} />
-              <Route path="/company/teams/:id" element={<TeamDetailPage />} />
-              <Route path="/company/users" element={<UsersPage />} />
+                element={
+                  <RequirePermission permission={PERMISSIONS.companyInfo} />
+                }
+              >
+                <Route path="/company" element={<CompanyInfoPage />} />
+              </Route>
+              <Route
+                element={
+                  <RequirePermission permission={PERMISSIONS.agentInstructions} />
+                }
+              >
+                <Route
+                  path="/company/agent-instructions"
+                  element={<AgentInstructionsPage />}
+                />
+              </Route>
+              <Route
+                element={<RequirePermission permission={PERMISSIONS.teams} />}
+              >
+                <Route path="/company/teams" element={<TeamsPage />} />
+                <Route path="/company/teams/:id" element={<TeamDetailPage />} />
+              </Route>
+              <Route
+                element={
+                  <RequirePermission
+                    permission={[
+                      PERMISSIONS.usersView,
+                      PERMISSIONS.usersViewAll,
+                    ]}
+                  />
+                }
+              >
+                <Route path="/company/users" element={<UsersPage />} />
+              </Route>
             </Route>
           </Route>
 

@@ -1,25 +1,25 @@
 import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
-import type { User } from "@/types/auth"
-import type { UserRole } from "@/lib/roles"
+import type { ClientUser, UserManageUpdate } from "@/types/user"
 import { apiClient } from "./http"
 import { normalizeList } from "./normalizeList"
 
 /**
- * Users service — the client's own user roster and their roles. The API scopes
- * every call to the session's client. Changing a role is owner-only (enforced
- * server-side). Methods are `this`-free so they can be passed as references.
+ * Users service — the client's own user roster (with teams) and their roles.
+ * The API scopes every call to the session's client. Editing a user is gated on
+ * the "users_manage" permission, enforced server-side. Methods are `this`-free
+ * so they can be passed as references.
  */
 export const userService = {
-  async list(params: PaginationParams = {}): Promise<ListResult<User>> {
+  async list(params: PaginationParams = {}): Promise<ListResult<ClientUser>> {
     const data = await apiClient.get<unknown>(
       `/api/users${buildQuery({ skip: params.skip, limit: params.limit })}`,
     )
-    return normalizeList<User>(data)
+    return normalizeList<ClientUser>(data)
   },
 
-  /** Change a user's role (owner-only). */
-  setRole(id: number, role: UserRole): Promise<User> {
-    return apiClient.patch<User>(`/api/users/${id}/role`, { role })
+  /** Update a user's name, role and/or team (requires "users_manage"). */
+  update(id: number, payload: UserManageUpdate): Promise<ClientUser> {
+    return apiClient.patch<ClientUser>(`/api/users/${id}`, payload)
   },
 }
