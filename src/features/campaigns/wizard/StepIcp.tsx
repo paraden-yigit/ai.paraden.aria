@@ -199,9 +199,8 @@ export function StepIcp({ campaignId, productId, onApprove, onBack }: StepIcpPro
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Ideal customers</h2>
         <p className="text-sm text-muted-foreground">
-          This is a copy of the product's ideal customer profile, just for this
-          campaign. Make any final edits, then approve to find matching contacts.
-          Editing it here won't change the product's ICP.
+          Make any final edits, then approve to find matching contacts. Editing
+          it here won't change the product's ICP.
         </p>
       </div>
       <ICPForm

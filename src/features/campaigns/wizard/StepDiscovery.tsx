@@ -1,21 +1,73 @@
 import { useEffect, useState } from "react"
-import { ArrowLeft, Check, Loader2, Pencil, RefreshCw, Sparkles } from "lucide-react"
+import {
+  ArrowLeft,
+  Check,
+  Info,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { CompaniesAccordion } from "@/features/campaigns/wizard/CompaniesAccordion"
 import { EditIcpDialog } from "@/features/products/EditIcpDialog"
+import { campaignService } from "@/services/campaign.service"
 import { campaignDiscoveryService } from "@/services/campaign-discovery.service"
 import { campaignUploadService } from "@/services/campaign-upload.service"
 import { ApiError } from "@/services/http"
+import type { Campaign } from "@/types/campaign"
 import type { DiscoverySearch } from "@/types/campaign-discovery"
 import type { CampaignUploadReview } from "@/types/campaign-upload"
 
+// Defaults offered the first time the user reaches this step.
+const DEFAULT_TARGET_COMPANIES = 50
+const DEFAULT_LIST_SIZE = 4
+
 interface StepDiscoveryProps {
-  campaignId: number
+  campaign: Campaign
+  /** Lift target edits so the wizard's campaign state stays in sync. */
+  onCampaignChange: (campaign: Campaign) => void
   /** `skipped` is true when the user skipped discovery rather than approving. */
   onFinish: (skipped?: boolean) => void
   onBack: () => void
+}
+
+/** A field label with an info icon that explains the field on hover. */
+function LabelWithHint({
+  htmlFor,
+  label,
+  hint,
+}: {
+  htmlFor: string
+  label: string
+  hint: string
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={hint}
+          >
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">{hint}</TooltipContent>
+      </Tooltip>
+    </div>
+  )
 }
 
 const POLL_MS = 2500
@@ -35,18 +87,32 @@ const IDLE: DiscoverySearch = {
  * staged preview), and lets the user repopulate, approve (save), or skip.
  */
 export function StepDiscovery({
-  campaignId,
+  campaign,
+  onCampaignChange,
   onFinish,
   onBack,
 }: StepDiscoveryProps) {
+  const campaignId = campaign.id
   const [state, setState] = useState<DiscoverySearch | null>(null)
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(false)
+  const [savingTarget, setSavingTarget] = useState(false)
   const [approving, setApproving] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [icpOpen, setIcpOpen] = useState(false)
   // Contacts already discovered + approved for this campaign (shown on resume).
   const [saved, setSaved] = useState<CampaignUploadReview | null>(null)
+  // The two targeting questions asked on this step, prefilled from the campaign.
+  const [targetCompanies, setTargetCompanies] = useState(
+    String(campaign.target_companies ?? DEFAULT_TARGET_COMPANIES),
+  )
+  const [listSize, setListSize] = useState(
+    String(campaign.list_size ?? DEFAULT_LIST_SIZE),
+  )
+  const targetNum = Number(targetCompanies)
+  const listNum = Number(listSize)
+  const targetValid = Number.isInteger(targetNum) && targetNum >= 1
+  const listValid = Number.isInteger(listNum) && listNum >= 1
 
   // Initial state fetch (a run may already be staged from a previous visit).
   useEffect(() => {
@@ -100,6 +166,28 @@ export function StepDiscovery({
     } finally {
       setStarting(false)
     }
+  }
+
+  // Save the two targeting answers, then kick off the search. Used from the
+  // initial prompt, where the user sets the company target + list size.
+  async function handleStart() {
+    if (!targetValid || !listValid) return
+    setSavingTarget(true)
+    try {
+      const updated = await campaignService.update(campaignId, {
+        target_companies: targetNum,
+        list_size: listNum,
+      })
+      onCampaignChange(updated)
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Couldn't save your target.",
+      )
+      setSavingTarget(false)
+      return
+    }
+    setSavingTarget(false)
+    await handleGenerate()
   }
 
   async function handleApprove() {
@@ -296,33 +384,84 @@ export function StepDiscovery({
     )
   }
 
-  // Idle or failed — the prompt.
+  // Idle or failed — the prompt with the two targeting questions.
+  const startBusy = busy || savingTarget || starting
   return (
     <div className="space-y-6">
-      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
-        <Sparkles className="size-6 text-muted-foreground" />
-        <p className="text-sm font-medium">Find new contacts?</p>
-        <p className="max-w-md text-xs text-muted-foreground">
-          We&apos;ll find companies matching your campaign&apos;s ICP, plus a
-          couple of contacts at each, to reach your campaign&apos;s target. You
-          can review and approve before anything is saved.
+      <div className="space-y-5 rounded-lg border p-6">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-5 text-muted-foreground" />
+          <p className="text-sm font-medium">Find new contacts</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          We&apos;ll find companies matching your campaign&apos;s ICP and a few
+          contacts at each. You can review and approve before anything is saved.
         </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <LabelWithHint
+              htmlFor="target-companies"
+              label="What's your target?"
+              hint="How many companies you want to find for this campaign."
+            />
+            <Input
+              id="target-companies"
+              type="number"
+              min={1}
+              value={targetCompanies}
+              onChange={(e) => setTargetCompanies(e.target.value)}
+              disabled={startBusy}
+              aria-invalid={!targetValid}
+            />
+          </div>
+          <div className="space-y-2">
+            <LabelWithHint
+              htmlFor="list-size"
+              label="What's your list size?"
+              hint="How many contacts to find at each company. If a company has fewer, we keep it as-is."
+            />
+            <Input
+              id="list-size"
+              type="number"
+              min={1}
+              value={listSize}
+              onChange={(e) => setListSize(e.target.value)}
+              disabled={startBusy}
+              aria-invalid={!listValid}
+            />
+          </div>
+        </div>
+
         {status === "failed" && state?.error && (
           <p className="text-xs text-destructive">{state.error}</p>
         )}
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <Button type="button" variant="ghost" onClick={onBack} disabled={busy}>
+        <Button type="button" variant="ghost" onClick={onBack} disabled={startBusy}>
           <ArrowLeft className="size-4" />
           Back
         </Button>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={handleSkip} disabled={busy}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSkip}
+            disabled={startBusy}
+          >
             Skip
           </Button>
-          <Button type="button" onClick={handleGenerate} disabled={busy}>
-            <Sparkles className="size-4" />
+          <Button
+            type="button"
+            onClick={handleStart}
+            disabled={startBusy || !targetValid || !listValid}
+          >
+            {savingTarget || starting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Sparkles className="size-4" />
+            )}
             {status === "failed" ? "Try again" : "Find contacts"}
           </Button>
         </div>

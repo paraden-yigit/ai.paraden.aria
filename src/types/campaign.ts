@@ -20,22 +20,17 @@ export interface Campaign {
   sequence_advancer_gap: number | null
   sequence_closer_gap: number | null
   sequence_closer_style: string | null
-  /** How many are needed, set on the wizard's first step. */
-  target_count: number | null
-  /** Whether target_count counts companies or contacts (the user picks one). */
-  target_type: TargetType | null
+  /** How many companies to find, set on the "find contacts" step. */
+  target_companies: number | null
+  /** How many contacts to fetch per company ("list size"). */
+  list_size: number | null
   created_at: string
   updated_at: string
 }
 
-/** What a campaign's target_count counts. The user picks exactly one. */
-export type TargetType = "companies" | "contacts"
-
 export interface CampaignCreate {
   name: string
   product_id: number
-  target_count?: number
-  target_type?: TargetType
 }
 
 export interface CampaignUpdate {
@@ -47,6 +42,6 @@ export interface CampaignUpdate {
   sequence_advancer_gap?: number
   sequence_closer_gap?: number
   sequence_closer_style?: string
-  target_count?: number
-  target_type?: TargetType
+  target_companies?: number
+  list_size?: number
 }

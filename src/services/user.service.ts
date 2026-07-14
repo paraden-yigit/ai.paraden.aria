@@ -1,6 +1,10 @@
 import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
-import type { ClientUser, UserManageUpdate } from "@/types/user"
+import type {
+  ClientUser,
+  UserManageCreate,
+  UserManageUpdate,
+} from "@/types/user"
 import { apiClient } from "./http"
 import { normalizeList } from "./normalizeList"
 
@@ -18,8 +22,18 @@ export const userService = {
     return normalizeList<ClientUser>(data)
   },
 
+  /** Invite a new user to the client (requires "users_manage"). */
+  create(payload: UserManageCreate): Promise<ClientUser> {
+    return apiClient.post<ClientUser>("/api/users/new", payload)
+  },
+
   /** Update a user's name, role and/or team (requires "users_manage"). */
   update(id: number, payload: UserManageUpdate): Promise<ClientUser> {
     return apiClient.patch<ClientUser>(`/api/users/${id}`, payload)
+  },
+
+  /** Soft-delete a user (requires "users_manage"). */
+  remove(id: number): Promise<unknown> {
+    return apiClient.delete(`/api/users/${id}`)
   },
 }

@@ -21,3 +21,11 @@ export interface UserManageUpdate {
   role?: string
   team_id?: number | null
 }
+
+/** Body for POST /api/users/new — an owner inviting a new user to the client. */
+export interface UserManageCreate {
+  full_name: string
+  email: string
+  role: string
+  team_id?: number | null
+}

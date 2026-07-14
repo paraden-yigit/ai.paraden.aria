@@ -194,7 +194,8 @@ export function NewCampaignPage() {
     if (mainStep === 3) {
       return (
         <StepDiscovery
-          campaignId={campaign.id}
+          campaign={campaign}
+          onCampaignChange={setCampaign}
           onFinish={(skipped) => {
             markSkipped(3, Boolean(skipped))
             setMainStep(4)

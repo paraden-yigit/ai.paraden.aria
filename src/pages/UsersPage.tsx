@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react"
-import { Pencil } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -20,8 +20,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DataState } from "@/components/DataState"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { EditUserForm } from "@/features/users/EditUserForm"
+import { CreateUserForm } from "@/features/users/CreateUserForm"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { useAsync } from "@/hooks/useAsync"
 import { userService } from "@/services/user.service"
@@ -30,7 +32,12 @@ import { ApiError } from "@/services/http"
 import { useAuth } from "@/features/auth/useAuth"
 import { roleLabel } from "@/lib/roles"
 import { PERMISSIONS } from "@/lib/permissions"
-import type { ClientUser, UserManageUpdate } from "@/types/user"
+import { notifyUserCreated } from "@/lib/invite"
+import type {
+  ClientUser,
+  UserManageCreate,
+  UserManageUpdate,
+} from "@/types/user"
 
 export function UsersPage() {
   const { user: currentUser, hasPermission } = useAuth()
@@ -64,8 +71,26 @@ export function UsersPage() {
   )
   const teams = teamsResult?.items ?? []
 
+  const [createOpen, setCreateOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [userToEdit, setUserToEdit] = useState<ClientUser | null>(null)
   const [saving, setSaving] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<ClientUser | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleCreate(payload: UserManageCreate) {
+    setCreating(true)
+    try {
+      const created = await userService.create(payload)
+      notifyUserCreated(created)
+      setCreateOpen(false)
+      refetch()
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to create user.")
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function handleSave(payload: UserManageUpdate) {
     if (!userToEdit) return
@@ -82,15 +107,40 @@ export function UsersPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!userToDelete) return
+    setDeleting(true)
+    try {
+      await userService.remove(userToDelete.id)
+      toast.success(`${userToDelete.full_name} deleted.`)
+      setUserToDelete(null)
+      // Close the edit modal too — it was opened for the now-deleted user.
+      setUserToEdit(null)
+      refetch()
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to delete user.")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-        <p className="text-muted-foreground">
-          {canManage
-            ? "Manage your users' names, teams and roles."
-            : "Your team and their roles."}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
+          <p className="text-muted-foreground">
+            {canManage
+              ? "Manage your users' names, teams and roles."
+              : "Your team and their roles."}
+          </p>
+        </div>
+        {canManage && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            New user
+          </Button>
+        )}
       </div>
 
       <DataState
@@ -172,6 +222,24 @@ export function UsersPage() {
         />
       </DataState>
 
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New user</DialogTitle>
+            <DialogDescription>
+              Invite a user to your company. They'll get a link to set their
+              password.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateUserForm
+            teams={teams}
+            onSubmit={handleCreate}
+            onCancel={() => setCreateOpen(false)}
+            submitting={creating}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Dialog
         open={userToEdit !== null}
         onOpenChange={(open) => !open && setUserToEdit(null)}
@@ -189,11 +257,33 @@ export function UsersPage() {
               teams={teams}
               onSubmit={handleSave}
               onCancel={() => setUserToEdit(null)}
+              // Managers can delete anyone but themselves; the edit modal only
+              // ever opens for that case, but guard here too for safety.
+              onDelete={
+                userToEdit.id !== currentUser?.id
+                  ? () => setUserToDelete(userToEdit)
+                  : undefined
+              }
               submitting={saving}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={userToDelete !== null}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+        title="Delete user?"
+        description={
+          userToDelete
+            ? `${userToDelete.full_name} will lose access immediately and be removed from your users. This can't be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

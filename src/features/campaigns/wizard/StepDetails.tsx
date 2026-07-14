@@ -6,21 +6,7 @@ import { ArrowRight, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Form } from "@/components/ui/form"
 import { TextField } from "@/components/form/TextField"
 import { SelectField } from "@/components/form/SelectField"
 import { useProductOptions } from "@/hooks/useProductOptions"
@@ -31,23 +17,9 @@ import type { Campaign } from "@/types/campaign"
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   product_id: z.string().min(1, "Product is required"),
-  // The user targets either companies or contacts — one or the other.
-  target_type: z.enum(["companies", "contacts"]),
-  target_count: z
-    .string()
-    .min(1, "This is required")
-    .refine(
-      (v) => /^\d+$/.test(v) && Number(v) >= 1,
-      "Enter a whole number of at least 1",
-    ),
 })
 
 type Values = z.infer<typeof schema>
-
-const TARGET_TYPE_OPTIONS = [
-  { value: "companies", label: "Companies" },
-  { value: "contacts", label: "Contacts" },
-]
 
 interface StepDetailsProps {
   /** The already-created campaign when returning to this step; undefined on first entry. */
@@ -60,7 +32,8 @@ interface StepDetailsProps {
  * Step 1 — campaign name + product. Completing this step creates the campaign
  * (or updates it if the user came back). The next step clones the selected
  * product's ICP onto the campaign for final edits, so nothing ICP-related is
- * configured here.
+ * configured here; targeting (how many companies + list size) is set later, on
+ * the "find contacts" step.
  */
 export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
   const { options: productOptions, loading: productsLoading } = useProductOptions()
@@ -72,9 +45,6 @@ export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
       name: campaign?.name ?? "",
       product_id:
         campaign?.product_id != null ? String(campaign.product_id) : "",
-      target_type: campaign?.target_type ?? "companies",
-      target_count:
-        campaign?.target_count != null ? String(campaign.target_count) : "50",
     },
   })
 
@@ -82,8 +52,6 @@ export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
     const payload = {
       name: values.name.trim(),
       product_id: Number(values.product_id),
-      target_type: values.target_type,
-      target_count: Number(values.target_count),
     }
     setSubmitting(true)
     try {
@@ -125,63 +93,6 @@ export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
           }
           disabled={submitting || productsLoading || productOptions.length === 0}
         />
-        <p className="text-sm text-muted-foreground">
-          You&apos;ll review and edit a copy of this product&apos;s ideal
-          customer profile in the next step.
-        </p>
-
-        <div className="space-y-2">
-          <span className="text-sm font-medium leading-none">
-            What is your target?
-          </span>
-          <div className="flex items-start gap-2">
-            <FormField
-              control={form.control}
-              name="target_count"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="50"
-                      disabled={submitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="target_type"
-              render={({ field }) => (
-                <FormItem className="w-40">
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={submitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {TARGET_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
 
         <div className="flex justify-end">
           <Button type="submit" disabled={submitting}>
