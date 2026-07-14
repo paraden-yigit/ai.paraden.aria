@@ -17,26 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatDateTime } from "@/lib/format"
+import { campaignStatusMeta } from "@/features/campaigns/status"
 import type { Campaign } from "@/types/campaign"
-
-type BadgeVariant = "default" | "secondary" | "outline"
-
-/** The Status cell blends two things: whether the setup wizard is finished, and
- * (once it is) the campaign's run lifecycle. An unfinished setup always shows
- * "Setup incomplete"; a finished one shows Ready → Running → Completed. */
-function statusBadge(campaign: Campaign): { label: string; variant: BadgeVariant } {
-  if (!campaign.setup_completed) {
-    return { label: "Setup incomplete", variant: "secondary" }
-  }
-  switch (campaign.status) {
-    case "running":
-      return { label: "Running", variant: "default" }
-    case "completed":
-      return { label: "Completed", variant: "outline" }
-    default:
-      return { label: "Ready", variant: "outline" }
-  }
-}
 
 interface CampaignsTableProps {
   campaigns: Campaign[]
@@ -55,6 +37,8 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Product</TableHead>
+            <TableHead>Team</TableHead>
+            <TableHead>Created by</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="w-12" />
           </TableRow>
@@ -79,12 +63,18 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
               </TableCell>
               <TableCell>
                 {(() => {
-                  const { label, variant } = statusBadge(campaign)
+                  const { label, variant } = campaignStatusMeta(campaign)
                   return <Badge variant={variant}>{label}</Badge>
                 })()}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {campaign.product_name ?? "No product"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {campaign.team_name ?? "No team"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {campaign.created_by_name ?? "Unknown"}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDateTime(campaign.created_at)}

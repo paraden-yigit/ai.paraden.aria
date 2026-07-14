@@ -32,6 +32,10 @@ export interface Campaign {
   name: string
   product_id: number | null
   product_name: string | null
+  /** The creating user's name (null if that user was deleted). */
+  created_by_name: string | null
+  /** The creating user's team name (null if they belong to no team). */
+  team_name: string | null
   /** Lifecycle state; drives the Run / Complete actions on the dashboard. */
   status: CampaignStatus
   /** Performance metrics; null until the campaign is first run. */
