@@ -38,4 +38,14 @@ export const campaignService = {
   reset(id: number): Promise<Campaign> {
     return apiClient.post<Campaign>(`/api/campaigns/${id}/reset`)
   },
+
+  /** Launch the campaign: set it running and populate simulated metrics. */
+  run(id: number): Promise<Campaign> {
+    return apiClient.post<Campaign>(`/api/campaigns/${id}/run`)
+  },
+
+  /** Mark the campaign complete and repopulate metrics at 100% completion. */
+  complete(id: number): Promise<Campaign> {
+    return apiClient.post<Campaign>(`/api/campaigns/${id}/complete`)
+  },
 }

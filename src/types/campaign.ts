@@ -5,12 +5,37 @@
  * generation. `product_name` is resolved server-side (null if the product was
  * deleted).
  */
+/** A campaign's lifecycle state. */
+export type CampaignStatus = "draft" | "running" | "completed"
+
+/**
+ * Simulated performance metrics for a running/completed campaign — raw counts
+ * plus the seed sequence-completion rate (0-100). The dashboard derives the
+ * display percentages (open %, click %, …) from these counts. Null on the
+ * campaign until it's first run.
+ */
+export interface CampaignMetrics {
+  sequence_completion_rate: number
+  sent: number
+  bounces: number
+  opens: number
+  clicks: number
+  replies: number
+  unsubscribes: number
+  qualified_leads: number
+  meetings_booked: number
+}
+
 export interface Campaign {
   id: number
   client_id: number
   name: string
   product_id: number | null
   product_name: string | null
+  /** Lifecycle state; drives the Run / Complete actions on the dashboard. */
+  status: CampaignStatus
+  /** Performance metrics; null until the campaign is first run. */
+  metrics: CampaignMetrics | null
   /** False until the creation wizard is finished. */
   setup_completed: boolean
   /** The wizard's top-level step last reached (1 = ideal customers … 5 = preview). */
