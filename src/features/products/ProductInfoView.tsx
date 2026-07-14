@@ -42,14 +42,21 @@ interface ProductInfoViewProps {
   product: Product
   /** Persist a single-field change. Should reject if the save fails. */
   onSave: (payload: ProductUpdate) => Promise<void>
+  /** Hide the Edit affordances and show values only (non-owners). */
+  readOnly?: boolean
 }
 
 /**
  * Read-only view of the product info, with an Edit button beside each item.
  * Editing one item swaps it for an inline editor (Save / Cancel); saving one
- * field at a time via a partial update.
+ * field at a time via a partial update. When ``readOnly`` the Edit buttons are
+ * hidden and only the values are shown.
  */
-export function ProductInfoView({ product, onSave }: ProductInfoViewProps) {
+export function ProductInfoView({
+  product,
+  onSave,
+  readOnly = false,
+}: ProductInfoViewProps) {
   const [editingKey, setEditingKey] = useState<FieldKey | null>(null)
   const [draft, setDraft] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -96,7 +103,7 @@ export function ProductInfoView({ product, onSave }: ProductInfoViewProps) {
               <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {field.label}
               </dt>
-              {!editing && (
+              {!editing && !readOnly && (
                 <Button
                   variant="ghost"
                   size="sm"

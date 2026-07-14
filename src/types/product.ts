@@ -29,6 +29,17 @@ export interface ProductCreate {
 
 export type ProductUpdate = Partial<ProductCreate>
 
+/**
+ * A product's access list — the teams and individual users it is assigned to.
+ * Mirrors the API's ProductAssignmentsRead. Everyone on an assigned team, each
+ * assigned user, and those users' team leaders can see and use the product.
+ * Empty on both sides means the product is owner-only. Owner-managed.
+ */
+export interface ProductAssignments {
+  team_ids: number[]
+  user_ids: number[]
+}
+
 /** Extraction lifecycle of a supporting file, driven by the background task. */
 export type ExtractionStatus =
   | "queued"

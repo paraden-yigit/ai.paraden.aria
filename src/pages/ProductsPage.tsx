@@ -15,12 +15,19 @@ import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { ProductsTable } from "@/features/products/ProductsTable"
 import { ProductForm } from "@/features/products/ProductForm"
+import { useAuth } from "@/features/auth/useAuth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { productService } from "@/services/product.service"
 import { ApiError } from "@/services/http"
 import type { Product, ProductCreate } from "@/types/product"
 
 export function ProductsPage() {
+  // Managing products (create/edit/delete) needs the "products_manage"
+  // permission; without it the list is read-only.
+  const { hasPermission } = useAuth()
+  const canManage = hasPermission(PERMISSIONS.productsManage)
+
   const fetchProducts = useCallback(
     (params: { skip?: number; limit?: number }) => productService.list(params),
     [],
@@ -77,28 +84,43 @@ export function ProductsPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
-          <p className="text-muted-foreground">Manage your products.</p>
+          <p className="text-muted-foreground">
+            {canManage
+              ? "Manage your products."
+              : "Products you have access to."}
+          </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          New product
-        </Button>
+        {canManage && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            New product
+          </Button>
+        )}
       </div>
 
       <DataState
         loading={loading}
         error={error}
         isEmpty={products.length === 0}
-        emptyMessage="No products yet. Products teach ARIA what you sell, and every campaign starts from one."
+        emptyMessage={
+          canManage
+            ? "No products yet. Products teach ARIA what you sell, and every campaign starts from one."
+            : "No products yet. You'll see products here once an owner gives you access."
+        }
         emptyAction={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
-            Create your first product
-          </Button>
+          canManage ? (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              Create your first product
+            </Button>
+          ) : undefined
         }
         onRetry={refetch}
       >
-        <ProductsTable products={products} onDelete={setProductToDelete} />
+        <ProductsTable
+          products={products}
+          onDelete={canManage ? setProductToDelete : undefined}
+        />
         <PaginationFooter
           page={page}
           skip={skip}

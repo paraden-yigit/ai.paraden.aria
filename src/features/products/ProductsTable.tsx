@@ -22,7 +22,8 @@ import type { Product } from "@/types/product"
 
 interface ProductsTableProps {
   products: Product[]
-  onDelete: (product: Product) => void
+  /** Delete a product. Omit to hide the delete action (read-only viewers). */
+  onDelete?: (product: Product) => void
 }
 
 // The product-brief answers, used for the completeness hint. A fuller
@@ -108,13 +109,15 @@ export function ProductsTable({ products, onDelete }: ProductsTableProps) {
                       <Eye className="size-4" />
                       View
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => onDelete(product)}
-                    >
-                      <Trash2 className="size-4" />
-                      Delete
-                    </DropdownMenuItem>
+                    {onDelete && (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => onDelete(product)}
+                      >
+                        <Trash2 className="size-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

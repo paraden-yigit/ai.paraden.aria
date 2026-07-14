@@ -2,6 +2,7 @@ import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
 import type {
   Product,
+  ProductAssignments,
   ProductCreate,
   ProductFile,
   ProductUpdate,
@@ -60,5 +61,25 @@ export const productService = {
 
   removeFile(productId: number, fileId: number): Promise<unknown> {
     return apiClient.delete(`/api/products/${productId}/files/${fileId}`)
+  },
+
+  // --- Access assignments (owners only) ---
+
+  /** The teams and users this product is assigned to. */
+  getAssignments(productId: number): Promise<ProductAssignments> {
+    return apiClient.get<ProductAssignments>(
+      `/api/products/${productId}/assignments`,
+    )
+  },
+
+  /** Replace the product's access list wholesale (empty = owner-only). */
+  setAssignments(
+    productId: number,
+    payload: ProductAssignments,
+  ): Promise<ProductAssignments> {
+    return apiClient.put<ProductAssignments>(
+      `/api/products/${productId}/assignments`,
+      payload,
+    )
   },
 }

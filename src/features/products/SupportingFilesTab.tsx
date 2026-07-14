@@ -101,9 +101,14 @@ function StatusBadge({
 
 interface SupportingFilesTabProps {
   productId: number
+  /** Hide upload / delete controls and disable drag-drop (non-owners). */
+  readOnly?: boolean
 }
 
-export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
+export function SupportingFilesTab({
+  productId,
+  readOnly = false,
+}: SupportingFilesTabProps) {
   const {
     data: files,
     loading,
@@ -153,6 +158,7 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
   }
 
   function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    if (readOnly) return
     event.preventDefault()
     setDragging(false)
     if (uploading) return
@@ -162,6 +168,7 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
 
   function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
     // Only react to file drags, and keep the drop effect while hovering.
+    if (readOnly) return
     if (!Array.from(event.dataTransfer.types).includes("Files")) return
     event.preventDefault()
     if (!dragging) setDragging(true)
@@ -208,40 +215,45 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
             Supporting files
           </h2>
           <p className="text-muted-foreground">
-            Upload documents (PDF, Word, Excel, text, RTF, or images). We extract
-            their text content automatically.
+            {readOnly
+              ? "Documents attached to this product. Their text content feeds outreach generation."
+              : "Upload documents (PDF, Word, Excel, text, RTF, or images). We extract their text content automatically."}
           </p>
         </div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPT}
-          className="hidden"
-          onChange={handleUpload}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button disabled={uploading}>
-              {uploading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-              Add Supporting File
-              <ChevronDown className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => inputRef.current?.click()}>
-              <Upload className="size-4" />
-              Upload file
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setUrlDialogOpen(true)}>
-              <Link2 className="size-4" />
-              From URL
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {!readOnly && (
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              accept={ACCEPT}
+              className="hidden"
+              onChange={handleUpload}
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button disabled={uploading}>
+                  {uploading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Plus className="size-4" />
+                  )}
+                  Add Supporting File
+                  <ChevronDown className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => inputRef.current?.click()}>
+                  <Upload className="size-4" />
+                  Upload file
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setUrlDialogOpen(true)}>
+                  <Link2 className="size-4" />
+                  From URL
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
       </div>
 
       <DataState
@@ -259,7 +271,7 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
                 <TableHead>Size</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Uploaded</TableHead>
-                <TableHead className="w-12" />
+                {!readOnly && <TableHead className="w-12" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -278,17 +290,19 @@ export function SupportingFilesTab({ productId }: SupportingFilesTabProps) {
                   <TableCell className="text-muted-foreground">
                     {formatDateTime(file.created_at)}
                   </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-destructive hover:text-destructive"
-                      onClick={() => setFileToDelete(file)}
-                    >
-                      <Trash2 className="size-4" />
-                      <span className="sr-only">Delete file</span>
-                    </Button>
-                  </TableCell>
+                  {!readOnly && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive"
+                        onClick={() => setFileToDelete(file)}
+                      >
+                        <Trash2 className="size-4" />
+                        <span className="sr-only">Delete file</span>
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

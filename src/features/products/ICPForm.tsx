@@ -95,6 +95,8 @@ interface ICPFormProps {
   /** Confine the fields to a scrollable container so the footer stays on screen
    * (used in the wizard, where vertical space is tight). */
   scrollFields?: boolean
+  /** Render every field disabled and hide the submit button (view-only). */
+  readOnly?: boolean
 }
 
 /** Editable ICP form. Predefined attributes reuse the company-search UX
@@ -108,11 +110,15 @@ export function ICPForm({
   submitIcon,
   leftActions,
   scrollFields,
+  readOnly = false,
 }: ICPFormProps) {
   const form = useForm<ICPFormValues>({
     resolver: zodResolver(icpSchema),
     defaultValues: toDefaults(icp),
   })
+
+  // Fields are disabled while saving or when the form is view-only.
+  const fieldsDisabled = submitting || readOnly
 
   // Narrow the subfunction options to the chosen functions (all when none).
   const selectedFunctions = useWatch({
@@ -150,7 +156,7 @@ export function ICPForm({
             label="Keywords"
             placeholder="artificial intelligence, fintech"
             description="Comma-separated keywords describing the target companies."
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
           <TextField
             control={form.control}
@@ -158,7 +164,7 @@ export function ICPForm({
             label="Specialties"
             placeholder="machine learning, payments"
             description="Comma-separated specialties."
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
           <MultiComboboxField
             control={form.control}
@@ -167,7 +173,7 @@ export function ICPForm({
             options={INDUSTRIES}
             placeholder="Select industries…"
             searchPlaceholder="Search industries…"
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
           <MultiComboboxField
             control={form.control}
@@ -176,7 +182,7 @@ export function ICPForm({
             options={COMPANY_TYPES}
             placeholder="Select company types…"
             searchPlaceholder="Search company types…"
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
           <div className="grid grid-cols-2 gap-4">
             <TextField
@@ -185,7 +191,7 @@ export function ICPForm({
               label="Headcount (min)"
               type="number"
               placeholder="50"
-              disabled={submitting}
+              disabled={fieldsDisabled}
             />
             <TextField
               control={form.control}
@@ -193,7 +199,7 @@ export function ICPForm({
               label="Headcount (max)"
               type="number"
               placeholder="500"
-              disabled={submitting}
+              disabled={fieldsDisabled}
             />
           </div>
           <MultiComboboxField
@@ -203,7 +209,7 @@ export function ICPForm({
             options={COUNTRIES}
             placeholder="Select countries…"
             searchPlaceholder="Search countries…"
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
         </section>
 
@@ -220,7 +226,7 @@ export function ICPForm({
             options={SENIORITY}
             placeholder="Select seniority levels…"
             searchPlaceholder="Search seniority…"
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
           <MultiComboboxField
             control={form.control}
@@ -229,7 +235,7 @@ export function ICPForm({
             options={JOB_FUNCTIONS}
             placeholder="Select job functions…"
             searchPlaceholder="Search functions…"
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
           <MultiComboboxField
             control={form.control}
@@ -238,22 +244,26 @@ export function ICPForm({
             options={subfunctionOptions}
             placeholder="Select job subfunctions…"
             searchPlaceholder="Search subfunctions…"
-            disabled={submitting}
+            disabled={fieldsDisabled}
           />
         </section>
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-2">{leftActions}</div>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              submitIcon ?? <Save className="size-4" />
+        {(!readOnly || leftActions) && (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-2">{leftActions}</div>
+            {!readOnly && (
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  submitIcon ?? <Save className="size-4" />
+                )}
+                {submitLabel ?? "Save ICP"}
+              </Button>
             )}
-            {submitLabel ?? "Save ICP"}
-          </Button>
-        </div>
+          </div>
+        )}
       </form>
     </Form>
   )

@@ -12,6 +12,7 @@ export const PERMISSIONS = {
   usersView: "users_view",
   usersViewAll: "users_view_all",
   usersManage: "users_manage",
+  productsManage: "products_manage",
 } as const
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]

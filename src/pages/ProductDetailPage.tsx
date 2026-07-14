@@ -16,7 +16,10 @@ import { DataState } from "@/components/DataState"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { ProductInfoView } from "@/features/products/ProductInfoView"
 import { ProductICPTab } from "@/features/products/ProductICPTab"
+import { ProductAccessTab } from "@/features/products/ProductAccessTab"
 import { SupportingFilesTab } from "@/features/products/SupportingFilesTab"
+import { useAuth } from "@/features/auth/useAuth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { useAsync } from "@/hooks/useAsync"
 import { productService } from "@/services/product.service"
 import { ApiError } from "@/services/http"
@@ -27,11 +30,22 @@ export function ProductDetailPage() {
   const productId = Number(id)
   const navigate = useNavigate()
 
+  // Managing the product (editing fields/files/ICP and its access list) needs
+  // the "products_manage" permission; without it the page is read-only and the
+  // Access tab is hidden (trigger and ?tab=access deep-link both gated).
+  const { hasPermission } = useAuth()
+  const canManage = hasPermission(PERMISSIONS.productsManage)
+
   // The active tab is reflected in ?tab= so it can be deep-linked (e.g. the
   // campaign Contacts page sends users straight to the ICP tab).
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get("tab")
-  const activeTab = tabParam === "icp" || tabParam === "files" ? tabParam : "info"
+  const activeTab =
+    tabParam === "icp" || tabParam === "files"
+      ? tabParam
+      : tabParam === "access" && canManage
+        ? "access"
+        : "info"
 
   const fetcher = useCallback(() => productService.get(productId), [productId])
   const { data: product, loading, error, refetch } = useAsync(fetcher, [productId])
@@ -99,6 +113,7 @@ export function ProductDetailPage() {
                 <TabsTrigger value="info">Product Info</TabsTrigger>
                 <TabsTrigger value="files">Supporting Files</TabsTrigger>
                 <TabsTrigger value="icp">ICP</TabsTrigger>
+                {canManage && <TabsTrigger value="access">Access</TabsTrigger>}
               </TabsList>
 
               <TabsContent value="info" className="mt-4 space-y-6">
@@ -111,39 +126,51 @@ export function ProductDetailPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ProductInfoView product={product} onSave={handleSave} />
+                    <ProductInfoView
+                      product={product}
+                      onSave={handleSave}
+                      readOnly={!canManage}
+                    />
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Delete product</CardTitle>
-                    <CardDescription>
-                      Permanently remove this product and all its data (including
-                      uploaded files). This action cannot be undone.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setConfirmDelete(true)}
-                    >
-                      <Trash2 className="size-4" />
-                      Delete product
-                    </Button>
-                  </CardContent>
-                </Card>
+                {canManage && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Delete product</CardTitle>
+                      <CardDescription>
+                        Permanently remove this product and all its data
+                        (including uploaded files). This action cannot be undone.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setConfirmDelete(true)}
+                      >
+                        <Trash2 className="size-4" />
+                        Delete product
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="icp" className="mt-4">
-                <ProductICPTab productId={productId} />
+                <ProductICPTab productId={productId} readOnly={!canManage} />
               </TabsContent>
 
               <TabsContent value="files" className="mt-4">
-                <SupportingFilesTab productId={productId} />
+                <SupportingFilesTab productId={productId} readOnly={!canManage} />
               </TabsContent>
+
+              {canManage && (
+                <TabsContent value="access" className="mt-4">
+                  <ProductAccessTab productId={productId} />
+                </TabsContent>
+              )}
             </Tabs>
           </>
         )}

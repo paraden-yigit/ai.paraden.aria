@@ -14,6 +14,8 @@ const POLL_INTERVAL_MS = 2000
 
 interface ProductICPTabProps {
   productId: number
+  /** Hide generate / regenerate / save controls and show the ICP read-only. */
+  readOnly?: boolean
 }
 
 /**
@@ -21,7 +23,10 @@ interface ProductICPTabProps {
  * brief + company info, poll while the agent runs, then show it in an editable
  * form. The ICP is stored per product and reused by every campaign on it.
  */
-export function ProductICPTab({ productId }: ProductICPTabProps) {
+export function ProductICPTab({
+  productId,
+  readOnly = false,
+}: ProductICPTabProps) {
   const [icp, setIcp] = useState<Icp | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -100,7 +105,7 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             The kind of company and contact this product's campaigns should target.
           </p>
         </div>
-        {icp?.status === "ready" && (
+        {icp?.status === "ready" && !readOnly && (
           <Button
             variant="outline"
             size="sm"
@@ -156,14 +161,16 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
                 {icp.error ?? "Something went wrong while generating the ICP."}
               </p>
             </div>
-            <Button onClick={handleGenerate} disabled={starting}>
-              {starting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4" />
-              )}
-              Try again
-            </Button>
+            {!readOnly && (
+              <Button onClick={handleGenerate} disabled={starting}>
+                {starting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+                Try again
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : icp?.status === "ready" ? (
@@ -172,7 +179,12 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             <CardTitle>Targeting profile</CardTitle>
           </CardHeader>
           <CardContent>
-            <ICPForm icp={icp} onSubmit={handleSave} submitting={saving} />
+            <ICPForm
+              icp={icp}
+              onSubmit={handleSave}
+              submitting={saving}
+              readOnly={readOnly}
+            />
           </CardContent>
         </Card>
       ) : (
@@ -182,18 +194,21 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             <div className="max-w-md space-y-1">
               <p className="font-medium">No ICP generated yet</p>
               <p className="text-sm text-muted-foreground">
-                Generate an Ideal Customer Profile from your company info and this
-                product's brief. You can edit every field afterwards.
+                {readOnly
+                  ? "This product doesn't have an Ideal Customer Profile yet. An owner can generate one."
+                  : "Generate an Ideal Customer Profile from your company info and this product's brief. You can edit every field afterwards."}
               </p>
             </div>
-            <Button onClick={handleGenerate} disabled={starting}>
-              {starting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Sparkles className="size-4" />
-              )}
-              Generate ICP
-            </Button>
+            {!readOnly && (
+              <Button onClick={handleGenerate} disabled={starting}>
+                {starting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="size-4" />
+                )}
+                Generate ICP
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
