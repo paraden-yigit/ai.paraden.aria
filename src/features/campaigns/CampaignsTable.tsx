@@ -19,6 +19,25 @@ import {
 import { formatDateTime } from "@/lib/format"
 import type { Campaign } from "@/types/campaign"
 
+type BadgeVariant = "default" | "secondary" | "outline"
+
+/** The Status cell blends two things: whether the setup wizard is finished, and
+ * (once it is) the campaign's run lifecycle. An unfinished setup always shows
+ * "Setup incomplete"; a finished one shows Ready → Running → Completed. */
+function statusBadge(campaign: Campaign): { label: string; variant: BadgeVariant } {
+  if (!campaign.setup_completed) {
+    return { label: "Setup incomplete", variant: "secondary" }
+  }
+  switch (campaign.status) {
+    case "running":
+      return { label: "Running", variant: "default" }
+    case "completed":
+      return { label: "Completed", variant: "outline" }
+    default:
+      return { label: "Ready", variant: "outline" }
+  }
+}
+
 interface CampaignsTableProps {
   campaigns: Campaign[]
   /** Opening a completed campaign goes to its detail; an incomplete one prompts
@@ -59,11 +78,10 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
                 </span>
               </TableCell>
               <TableCell>
-                {campaign.setup_completed ? (
-                  <Badge variant="outline">Ready</Badge>
-                ) : (
-                  <Badge variant="secondary">Setup incomplete</Badge>
-                )}
+                {(() => {
+                  const { label, variant } = statusBadge(campaign)
+                  return <Badge variant={variant}>{label}</Badge>
+                })()}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {campaign.product_name ?? "No product"}
