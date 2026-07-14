@@ -40,6 +40,23 @@ export interface ProductAssignments {
   user_ids: number[]
 }
 
+/**
+ * A product persona — an exact job title/role the client wants to reach.
+ * Mirrors the API's ProductPersonaRead. Deliberately not tied to the FullEnrich
+ * taxonomy: these exact titles take priority when picking company contacts. A
+ * product keeps between 2 and 5.
+ */
+export interface ProductPersona {
+  id: number
+  product_id: number
+  title: string
+  created_at: string
+}
+
+/** How many personas a product may have (min is a UI nudge, max is enforced). */
+export const PERSONA_MIN = 2
+export const PERSONA_MAX = 5
+
 /** Extraction lifecycle of a supporting file, driven by the background task. */
 export type ExtractionStatus =
   | "queued"

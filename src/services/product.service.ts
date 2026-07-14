@@ -5,6 +5,7 @@ import type {
   ProductAssignments,
   ProductCreate,
   ProductFile,
+  ProductPersona,
   ProductUpdate,
 } from "@/types/product"
 import { apiClient } from "./http"
@@ -61,6 +62,27 @@ export const productService = {
 
   removeFile(productId: number, fileId: number): Promise<unknown> {
     return apiClient.delete(`/api/products/${productId}/files/${fileId}`)
+  },
+
+  // --- Personas (target job titles/roles) ---
+
+  listPersonas(productId: number): Promise<ProductPersona[]> {
+    return apiClient.get<ProductPersona[]>(
+      `/api/products/${productId}/personas`,
+    )
+  },
+
+  addPersona(productId: number, title: string): Promise<ProductPersona> {
+    return apiClient.post<ProductPersona>(
+      `/api/products/${productId}/personas`,
+      { title },
+    )
+  },
+
+  removePersona(productId: number, personaId: number): Promise<unknown> {
+    return apiClient.delete(
+      `/api/products/${productId}/personas/${personaId}`,
+    )
   },
 
   // --- Access assignments (owners only) ---

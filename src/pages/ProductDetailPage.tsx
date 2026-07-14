@@ -16,6 +16,7 @@ import { DataState } from "@/components/DataState"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { ProductInfoView } from "@/features/products/ProductInfoView"
 import { ProductICPTab } from "@/features/products/ProductICPTab"
+import { PersonasTab } from "@/features/products/PersonasTab"
 import { ProductAccessTab } from "@/features/products/ProductAccessTab"
 import { SupportingFilesTab } from "@/features/products/SupportingFilesTab"
 import { useAuth } from "@/features/auth/useAuth"
@@ -41,7 +42,7 @@ export function ProductDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get("tab")
   const activeTab =
-    tabParam === "icp" || tabParam === "files"
+    tabParam === "icp" || tabParam === "files" || tabParam === "personas"
       ? tabParam
       : tabParam === "access" && canManage
         ? "access"
@@ -113,6 +114,7 @@ export function ProductDetailPage() {
                 <TabsTrigger value="info">Product Info</TabsTrigger>
                 <TabsTrigger value="files">Supporting Files</TabsTrigger>
                 <TabsTrigger value="icp">ICP</TabsTrigger>
+                <TabsTrigger value="personas">Personas</TabsTrigger>
                 {canManage && <TabsTrigger value="access">Access</TabsTrigger>}
               </TabsList>
 
@@ -164,6 +166,10 @@ export function ProductDetailPage() {
 
               <TabsContent value="files" className="mt-4">
                 <SupportingFilesTab productId={productId} readOnly={!canManage} />
+              </TabsContent>
+
+              <TabsContent value="personas" className="mt-4">
+                <PersonasTab productId={productId} readOnly={!canManage} />
               </TabsContent>
 
               {canManage && (
