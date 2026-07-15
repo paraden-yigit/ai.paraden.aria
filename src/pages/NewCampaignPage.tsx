@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { campaignService } from "@/services/campaign.service"
 import { WizardStepper, type WizardStep } from "@/features/campaigns/wizard/WizardStepper"
 import { StepDetails } from "@/features/campaigns/wizard/StepDetails"
+import { StepIcp } from "@/features/campaigns/wizard/StepIcp"
 import { StepUpload } from "@/features/campaigns/wizard/StepUpload"
 import { StepMapping } from "@/features/campaigns/wizard/StepMapping"
 import { StepReview } from "@/features/campaigns/wizard/StepReview"
@@ -27,14 +28,18 @@ import type { EmailSelection } from "@/types/campaign-email"
 // the stepper).
 const STEPS: WizardStep[] = [
   { title: "Details" },
+  { title: "Ideal customers" },
   { title: "Upload contacts" },
   { title: "Find contacts" },
   { title: "Sequence" },
   { title: "Preview" },
 ]
 
-type MainStep = 0 | 1 | 2 | 3 | 4
+type MainStep = 0 | 1 | 2 | 3 | 4 | 5
 type SubStep = "upload" | "mapping" | "review"
+
+// The last top-level step index (Preview), used to clamp a resumed setup_step.
+const LAST_STEP: MainStep = 5
 
 /**
  * Full-page campaign creation wizard (no app chrome — only a close button back to
@@ -81,7 +86,9 @@ export function NewCampaignPage() {
           })
         }
         const step =
-          resumeMode === "restart" ? 1 : Math.min(4, Math.max(1, c.setup_step))
+          resumeMode === "restart"
+            ? 1
+            : Math.min(LAST_STEP, Math.max(1, c.setup_step))
         setMainStep(step as MainStep)
       } catch {
         toast.error("Couldn't open that campaign.")
@@ -167,31 +174,47 @@ export function NewCampaignPage() {
       )
     }
 
-    // Step 3 — find contacts (discovery).
-    if (mainStep === 2) {
+    // Step 2 — ideal customers: clone the product's ICP to the campaign, make
+    // final edits, and approve. Discovery then targets this campaign copy.
+    if (mainStep === 1) {
       return (
-        <StepDiscovery
+        <StepIcp
           campaignId={campaign.id}
           productId={campaign.product_id}
+          onApprove={() => {
+            setSubStep("upload")
+            setMainStep(2)
+          }}
+          onBack={() => setMainStep(0)}
+        />
+      )
+    }
+
+    // Step 4 — find contacts (discovery).
+    if (mainStep === 3) {
+      return (
+        <StepDiscovery
+          campaign={campaign}
+          onCampaignChange={setCampaign}
           onFinish={(skipped) => {
-            markSkipped(2, Boolean(skipped))
-            setMainStep(3)
+            markSkipped(3, Boolean(skipped))
+            setMainStep(4)
           }}
           onBack={() => {
             setSubStep(parsed ? "review" : "upload")
-            setMainStep(1)
+            setMainStep(2)
           }}
         />
       )
     }
 
-    // Step 4 — sequence setup.
-    if (mainStep === 3) {
+    // Step 5 — sequence setup.
+    if (mainStep === 4) {
       return (
         <SequenceBuilder
           initialTouches={sequenceConfig?.touches}
           initialGaps={sequenceConfig?.gaps}
-          onBack={() => setMainStep(2)}
+          onBack={() => setMainStep(3)}
           onPreview={async (config) => {
             setSequenceConfig(config)
             if (campaign) {
@@ -207,27 +230,27 @@ export function NewCampaignPage() {
                 toast.error("Couldn't save the sequence.")
               }
             }
-            setMainStep(4)
+            setMainStep(5)
           }}
         />
       )
     }
 
-    // Step 5 — preview the sequence against a sample prospect.
-    if (mainStep === 4) {
+    // Step 6 — preview the sequence against a sample prospect.
+    if (mainStep === 5) {
       return (
         <SequencePreview
           campaignId={campaign.id}
           shape={sequenceConfig?.touches ?? 3}
           advancerGap={sequenceConfig?.gaps.advancer ?? 6}
           closerGap={sequenceConfig?.gaps.closer ?? 17}
-          onBack={() => setMainStep(3)}
+          onBack={() => setMainStep(4)}
           onCreate={complete}
         />
       )
     }
 
-    // Step 2 — upload contacts (upload → mapping → review sub-steps).
+    // Step 3 — upload contacts (upload → mapping → review sub-steps).
     switch (subStep) {
       case "upload":
         return (
@@ -244,16 +267,16 @@ export function NewCampaignPage() {
               setFileName(null)
             }}
             onContinue={() => {
-              markSkipped(1, false)
+              markSkipped(2, false)
               setSubStep("mapping")
             }}
             onSkip={() => {
               setParsed(null)
               setFileName(null)
-              markSkipped(1, true)
-              setMainStep(2)
+              markSkipped(2, true)
+              setMainStep(3)
             }}
-            onBack={() => setMainStep(0)}
+            onBack={() => setMainStep(1)}
           />
         )
       case "mapping":
@@ -269,7 +292,7 @@ export function NewCampaignPage() {
         return (
           <StepReview
             campaignId={campaign.id}
-            onContinue={() => setMainStep(2)}
+            onContinue={() => setMainStep(3)}
           />
         )
       default:

@@ -9,7 +9,6 @@ import {
   Mail,
   Megaphone,
   Menu,
-  MessageSquareText,
   Package,
   ShieldCheck,
   UserRound,
@@ -30,44 +29,67 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/useAuth"
+import { PERMISSIONS } from "@/lib/permissions"
 
 // Sidebar nav grouped into sections. A null title renders the items with no
-// heading (Dashboard sits on its own).
-const navSections: {
-  title: string | null
-  items: { to: string; label: string; icon: typeof LayoutDashboard }[]
-}[] = [
+// heading (Dashboard sits on its own). An item with a `permission` is only
+// shown when the user's role grants it (permission-driven, not role-based); an
+// array means "any of these".
+type NavItem = {
+  to: string
+  label: string
+  icon: typeof LayoutDashboard
+  permission?: string | string[]
+}
+
+const navSections: { title: string | null; items: NavItem[] }[] = [
   {
     title: null,
     items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: "CRM",
-    items: [{ to: "/exclusions", label: "Exclusion List", icon: Ban }],
-  },
-  {
     title: "Campaign",
-    items: [
-      { to: "/campaigns", label: "Campaigns", icon: Megaphone },
-      { to: "/products", label: "Products", icon: Package },
-    ],
+    items: [{ to: "/campaigns", label: "Campaigns", icon: Megaphone }],
   },
   {
     title: "Company",
     items: [
-      { to: "/company", label: "Company Info", icon: Briefcase },
       {
-        to: "/company/brand-profile",
-        label: "Brand Profile",
-        icon: MessageSquareText,
+        to: "/company",
+        label: "Company Info",
+        icon: Briefcase,
+        permission: PERMISSIONS.companyInfo,
       },
+      { to: "/products", label: "Products", icon: Package },
       {
         to: "/company/agent-instructions",
         label: "Agent Instructions",
         icon: Bot,
+        permission: PERMISSIONS.agentInstructions,
       },
-      { to: "/company/teams", label: "Teams", icon: UsersRound },
-      { to: "/company/users", label: "Users", icon: ShieldCheck },
+      {
+        to: "/exclusions",
+        label: "Exclusion List",
+        icon: Ban,
+        permission: PERMISSIONS.exclusionLists,
+      },
+    ],
+  },
+  {
+    title: "Team",
+    items: [
+      {
+        to: "/company/teams",
+        label: "Teams",
+        icon: UsersRound,
+        permission: PERMISSIONS.teams,
+      },
+      {
+        to: "/company/users",
+        label: "Users",
+        icon: ShieldCheck,
+        permission: [PERMISSIONS.usersView, PERMISSIONS.usersViewAll],
+      },
     ],
   },
 ]
@@ -86,10 +108,25 @@ function initialsOf(name: string | undefined): string {
 
 /** Authenticated dashboard shell: left sidebar nav + top bar + content outlet. */
 export function AppLayout() {
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Hide items the user's role can't access, then drop any section left empty.
+  const canSee = (item: NavItem) => {
+    if (!item.permission) return true
+    const keys = Array.isArray(item.permission)
+      ? item.permission
+      : [item.permission]
+    return keys.some(hasPermission)
+  }
+  const visibleSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(canSee),
+    }))
+    .filter((section) => section.items.length > 0)
 
   async function handleLogout() {
     try {
@@ -112,7 +149,7 @@ export function AppLayout() {
         <div className="flex h-14 items-center px-4 font-semibold">Paraden ARIA</div>
         <Separator />
         <nav className="space-y-4 p-2">
-          {navSections.map((section, i) => (
+          {visibleSections.map((section, i) => (
             <div key={section.title ?? `section-${i}`} className="space-y-1">
               {section.title && (
                 <p className="px-3 pt-1 pb-0.5 text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase">

@@ -5,14 +5,12 @@
 export interface Client {
   id: number
   name: string
-  legal_business_name: string | null
-  address: string | null
   country: string | null
-  email: string | null
-  phone: string | null
   url: string | null
-  company_registration_number: string | null
-  vat_registration_number: string | null
+  // Company messaging (used when generating outreach).
+  value_proposition: string | null
+  market_positioning: string | null
+  competitors: string | null
   created_at: string
   updated_at: string
 }
@@ -20,12 +18,9 @@ export interface Client {
 /** Body for `PATCH /api/company`. All fields optional. */
 export interface ClientUpdate {
   name?: string | null
-  legal_business_name?: string | null
-  address?: string | null
   country?: string | null
-  email?: string | null
-  phone?: string | null
   url?: string | null
-  company_registration_number?: string | null
-  vat_registration_number?: string | null
+  value_proposition?: string | null
+  market_positioning?: string | null
+  competitors?: string | null
 }

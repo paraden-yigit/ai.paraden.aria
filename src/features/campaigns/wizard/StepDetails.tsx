@@ -30,8 +30,10 @@ interface StepDetailsProps {
 
 /**
  * Step 1 — campaign name + product. Completing this step creates the campaign
- * (or updates it if the user came back). The ICP is taken from the selected
- * product, so there's nothing ICP-related to configure here.
+ * (or updates it if the user came back). The next step clones the selected
+ * product's ICP onto the campaign for final edits, so nothing ICP-related is
+ * configured here; targeting (how many companies + list size) is set later, on
+ * the "find contacts" step.
  */
 export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
   const { options: productOptions, loading: productsLoading } = useProductOptions()
@@ -47,7 +49,10 @@ export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
   })
 
   async function onSubmit(values: Values) {
-    const payload = { name: values.name.trim(), product_id: Number(values.product_id) }
+    const payload = {
+      name: values.name.trim(),
+      product_id: Number(values.product_id),
+    }
     setSubmitting(true)
     try {
       const saved = campaign
@@ -88,9 +93,6 @@ export function StepDetails({ campaign, onSaved }: StepDetailsProps) {
           }
           disabled={submitting || productsLoading || productOptions.length === 0}
         />
-        <p className="text-sm text-muted-foreground">
-          The campaign uses the ICP defined on the selected product.
-        </p>
 
         <div className="flex justify-end">
           <Button type="submit" disabled={submitting}>

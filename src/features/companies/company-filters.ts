@@ -1,6 +1,6 @@
 // Shared company-filter option lists, used by the product ICP editor
 // (src/features/products/ICPForm.tsx). These mirror the backend
-// app/icp_taxonomy.py (COMPANY_TYPES, REVENUE_RANGES).
+// app/icp_taxonomy.py (COMPANY_TYPES).
 
 // Multi-select option list, matching the company create form's dropdown.
 export const COMPANY_TYPES: string[] = [
@@ -27,16 +27,3 @@ export const HEADCOUNT_RANGES: { label: string; min: number; max?: number }[] = 
 ]
 
 export const HEADCOUNT_RANGE_LABELS = HEADCOUNT_RANGES.map((r) => r.label)
-
-// Revenue brackets, passed through to FullEnrich's `revenue_ranges` filter.
-export const REVENUE_RANGES: string[] = [
-  "<$1M",
-  "$1M-$2M",
-  "$2M-$5M",
-  "$5M-$10M",
-  "$10M-$50M",
-  "$50M-$100M",
-  "$100M-$500M",
-  "$500M-$1B",
-  ">$1B",
-]

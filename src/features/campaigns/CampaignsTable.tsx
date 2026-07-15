@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatDateTime } from "@/lib/format"
+import { campaignStatusMeta } from "@/features/campaigns/status"
 import type { Campaign } from "@/types/campaign"
 
 interface CampaignsTableProps {
@@ -36,6 +37,8 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Product</TableHead>
+            <TableHead>Team</TableHead>
+            <TableHead>Created by</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="w-12" />
           </TableRow>
@@ -59,14 +62,19 @@ export function CampaignsTable({ campaigns, onOpen, onDelete }: CampaignsTablePr
                 </span>
               </TableCell>
               <TableCell>
-                {campaign.setup_completed ? (
-                  <Badge variant="outline">Ready</Badge>
-                ) : (
-                  <Badge variant="secondary">Setup incomplete</Badge>
-                )}
+                {(() => {
+                  const { label, variant } = campaignStatusMeta(campaign)
+                  return <Badge variant={variant}>{label}</Badge>
+                })()}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {campaign.product_name ?? "No product"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {campaign.team_name ?? "No team"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {campaign.created_by_name ?? "Unknown"}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDateTime(campaign.created_at)}
