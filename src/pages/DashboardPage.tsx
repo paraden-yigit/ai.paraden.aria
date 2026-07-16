@@ -14,6 +14,7 @@ import { DataState } from "@/components/DataState"
 import { CampaignCards } from "@/features/campaigns/CampaignCards"
 import { CampaignSpotlight } from "@/features/dashboard/CampaignSpotlight"
 import { KnowledgeMeter } from "@/features/dashboard/KnowledgeMeter"
+import { PerformanceStrip } from "@/features/dashboard/PerformanceStrip"
 import { SampleCharts } from "@/features/dashboard/SampleCharts"
 import { SetupChecklist } from "@/features/onboarding/SetupChecklist"
 import { useSetupState } from "@/features/onboarding/useSetupState"
@@ -116,6 +117,11 @@ export function DashboardPage() {
       {setup.allDone ? (
         <div className="grid gap-6 xl:grid-cols-3">
           <div className="space-y-6 xl:col-span-2">
+            {/* The results band leads (funnel totals, then the two trend
+                charts), followed by the actionable spotlight, then the
+                campaign sections. */}
+            <PerformanceStrip campaigns={campaigns} />
+            <SampleCharts />
             <CampaignSpotlight />
             <DataState
               loading={loading}
@@ -132,7 +138,6 @@ export function DashboardPage() {
             >
               <CampaignCards campaigns={campaigns} onOpen={handleOpen} grouped />
             </DataState>
-            <SampleCharts />
           </div>
           <div className="space-y-6">
             <QuickActionsCard />

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import {
   AtSign,
+  Ban,
   Building2,
   ChevronDown,
   ChevronRight,
@@ -31,6 +32,8 @@ export interface AccordionCompany {
   name: string | null
   domain: string | null
   industry: string | null
+  /** Company LinkedIn URL, when the caller has one (used by exclusion). */
+  linkedin_url?: string | null
   contacts: AccordionContact[]
 }
 
@@ -59,10 +62,15 @@ export function CompaniesAccordion({
   companies,
   className,
   showEmail = true,
+  onExcludeCompany,
 }: {
   companies: AccordionCompany[]
   className?: string
   showEmail?: boolean
+  /** When given, the contact panel offers "Exclude this company" (the caller
+   * owns the confirm + the API call). Needs a domain or LinkedIn URL to match
+   * by, so the action only shows for companies carrying one. */
+  onExcludeCompany?: (company: AccordionCompany) => void
 }) {
   const [selected, setSelected] = useState<SelectedContact | null>(null)
 
@@ -88,6 +96,13 @@ export function CompaniesAccordion({
         onOpenChange={(open) => {
           if (!open) setSelected(null)
         }}
+        onExcludeCompany={
+          onExcludeCompany &&
+          ((company) => {
+            setSelected(null)
+            onExcludeCompany(company)
+          })
+        }
       />
     </>
   )
@@ -218,12 +233,18 @@ export function ContactsTable({
 function ContactSheet({
   selected,
   onOpenChange,
+  onExcludeCompany,
 }: {
   selected: SelectedContact | null
   onOpenChange: (open: boolean) => void
+  onExcludeCompany?: (company: AccordionCompany) => void
 }) {
   const contact = selected?.contact
   const company = selected?.company
+  // Exclusion matches by domain or LinkedIn URL; without either the API cannot
+  // identify the company, so the action stays hidden.
+  const excludable =
+    company != null && (company.domain != null || company.linkedin_url != null)
 
   return (
     <Sheet open={selected !== null} onOpenChange={onOpenChange}>
@@ -290,6 +311,17 @@ function ContactSheet({
                     <p className="text-sm text-muted-foreground">
                       {company.industry}
                     </p>
+                  )}
+                  {onExcludeCompany && excludable && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => onExcludeCompany(company)}
+                    >
+                      <Ban className="size-4" />
+                      Exclude this company
+                    </Button>
                   )}
                 </section>
               )}
