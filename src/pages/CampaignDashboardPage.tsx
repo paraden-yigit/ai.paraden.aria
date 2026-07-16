@@ -3,13 +3,23 @@ import { Link, useLocation } from "react-router-dom"
 import {
   AtSign,
   Building2,
+  CalendarCheck,
   CalendarRange,
   CheckCircle2,
+  ListChecks,
   Loader2,
+  MailOpen,
+  MailX,
+  MousePointerClick,
   Package,
   PartyPopper,
   Play,
+  Reply,
+  Send,
+  Target,
+  UserMinus,
   Users,
+  type LucideIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -23,6 +33,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { DataState } from "@/components/DataState"
+import { MetricTile } from "@/components/MetricTile"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
 import { loadContactStats } from "@/features/campaigns/contactStats"
 import { useAsync } from "@/hooks/useAsync"
@@ -65,89 +76,93 @@ function rate(num: number, denom: number): string {
   return `${((num / denom) * 100).toFixed(1)}%`
 }
 
-/** One metric stat tile: a headline count with a derived-rate caption. The
- * North Star metric (replies) is emphasised with a primary ring. */
-function StatTile({
+/** One quiet diagnostic in the secondary bar: icon, label, value, rate. */
+function Diagnostic({
+  icon: Icon,
   label,
   value,
-  caption,
-  emphasis = false,
+  detail,
 }: {
+  icon: LucideIcon
   label: string
   value: string
-  caption: string
-  emphasis?: boolean
+  detail?: string
 }) {
   return (
-    <Card className={emphasis ? "border-primary/60 bg-primary/5" : undefined}>
-      <CardContent className="space-y-1 p-4">
-        <div className="text-xs font-medium text-muted-foreground">{label}</div>
-        <div className="text-2xl font-semibold tabular-nums tracking-tight">
-          {value}
-        </div>
-        <div className="text-xs text-muted-foreground">{caption}</div>
-      </CardContent>
-    </Card>
+    <span className="flex items-center gap-1.5">
+      <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+      {label}
+      <span className="font-medium tabular-nums text-foreground">{value}</span>
+      {detail && <span>({detail})</span>}
+    </span>
   )
 }
 
-/** The nine campaign metrics as a stat-tile grid. Counts are stored; the
- * percentage rates are derived here from their funnel denominators. */
+/** The campaign's funnel with a hierarchy instead of nine equal boxes: five
+ * headline tiles (replies is the North Star), then the health diagnostics in
+ * one slim bar. Counts are stored; the percentage rates are derived here from
+ * their funnel denominators. */
 function MetricsGrid({ metrics }: { metrics: CampaignMetrics }) {
-  const tiles = [
-    {
-      label: "Sent",
-      value: formatCount(metrics.sent),
-      caption: "Emails delivered",
-    },
-    {
-      label: "Opens",
-      value: formatCount(metrics.opens),
-      caption: `${rate(metrics.opens, metrics.sent)} of sent`,
-    },
-    {
-      label: "Clicks",
-      value: formatCount(metrics.clicks),
-      caption: `${rate(metrics.clicks, metrics.opens)} of opens`,
-    },
-    {
-      label: "Replies",
-      value: formatCount(metrics.replies),
-      caption: `${rate(metrics.replies, metrics.opens)} of opens`,
-      emphasis: true,
-    },
-    {
-      label: "Bounces",
-      value: formatCount(metrics.bounces),
-      caption: `${rate(metrics.bounces, metrics.sent)} of sent`,
-    },
-    {
-      label: "Unsubscribes",
-      value: formatCount(metrics.unsubscribes),
-      caption: `${rate(metrics.unsubscribes, metrics.opens)} of opens`,
-    },
-    {
-      label: "Sequence completion",
-      value: `${metrics.sequence_completion_rate}%`,
-      caption: "Completed the full sequence",
-    },
-    {
-      label: "Qualified leads",
-      value: formatCount(metrics.qualified_leads),
-      caption: `${rate(metrics.qualified_leads, metrics.replies)} of replies`,
-    },
-    {
-      label: "Meetings booked",
-      value: formatCount(metrics.meetings_booked),
-      caption: `${rate(metrics.meetings_booked, metrics.qualified_leads)} of leads`,
-    },
-  ]
-
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {tiles.map((tile) => (
-        <StatTile key={tile.label} {...tile} />
-      ))}
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <MetricTile
+          icon={Send}
+          label="Sent"
+          value={formatCount(metrics.sent)}
+          caption="Emails delivered"
+        />
+        <MetricTile
+          icon={MailOpen}
+          label="Opens"
+          value={formatCount(metrics.opens)}
+          caption={`${rate(metrics.opens, metrics.sent)} of sent`}
+        />
+        <MetricTile
+          icon={Reply}
+          label="Replies"
+          value={formatCount(metrics.replies)}
+          caption={`${rate(metrics.replies, metrics.opens)} of opens`}
+          emphasis
+        />
+        <MetricTile
+          icon={Target}
+          label="Qualified leads"
+          value={formatCount(metrics.qualified_leads)}
+          caption={`${rate(metrics.qualified_leads, metrics.replies)} of replies`}
+        />
+        <MetricTile
+          icon={CalendarCheck}
+          label="Meetings booked"
+          value={formatCount(metrics.meetings_booked)}
+          caption={`${rate(metrics.meetings_booked, metrics.qualified_leads)} of leads`}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <Diagnostic
+          icon={MousePointerClick}
+          label="Clicks"
+          value={formatCount(metrics.clicks)}
+          detail={`${rate(metrics.clicks, metrics.opens)} of opens`}
+        />
+        <Diagnostic
+          icon={MailX}
+          label="Bounces"
+          value={formatCount(metrics.bounces)}
+          detail={`${rate(metrics.bounces, metrics.sent)} of sent`}
+        />
+        <Diagnostic
+          icon={UserMinus}
+          label="Unsubscribes"
+          value={formatCount(metrics.unsubscribes)}
+          detail={`${rate(metrics.unsubscribes, metrics.opens)} of opens`}
+        />
+        <Diagnostic
+          icon={ListChecks}
+          label="Sequence completion"
+          value={`${metrics.sequence_completion_rate}%`}
+        />
+      </div>
     </div>
   )
 }
