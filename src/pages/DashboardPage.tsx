@@ -117,9 +117,11 @@ export function DashboardPage() {
       {setup.allDone ? (
         <div className="grid gap-6 xl:grid-cols-3">
           <div className="space-y-6 xl:col-span-2">
-            {/* Results first (once any campaign has run), then the actionable
-                spotlight, then the campaign sections. */}
+            {/* The results band leads (funnel totals, then the two trend
+                charts), followed by the actionable spotlight, then the
+                campaign sections. */}
             <PerformanceStrip campaigns={campaigns} />
+            <SampleCharts />
             <CampaignSpotlight />
             <DataState
               loading={loading}
@@ -136,7 +138,6 @@ export function DashboardPage() {
             >
               <CampaignCards campaigns={campaigns} onOpen={handleOpen} grouped />
             </DataState>
-            <SampleCharts />
           </div>
           <div className="space-y-6">
             <QuickActionsCard />
