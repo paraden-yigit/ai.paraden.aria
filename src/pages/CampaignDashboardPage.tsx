@@ -90,7 +90,7 @@ function Diagnostic({
 }) {
   return (
     <span className="flex items-center gap-1.5">
-      <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
       {label}
       <span className="font-medium tabular-nums text-foreground">{value}</span>
       {detail && <span>({detail})</span>}
@@ -138,7 +138,7 @@ function MetricsGrid({ metrics }: { metrics: CampaignMetrics }) {
           caption={`${rate(metrics.meetings_booked, metrics.qualified_leads)} of leads`}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
         <Diagnostic
           icon={MousePointerClick}
           label="Clicks"
