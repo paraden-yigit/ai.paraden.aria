@@ -42,13 +42,13 @@ export function SetupChecklist({ state }: { state: SetupState }) {
   const steps: StepDef[] = [
     {
       title: "Tell ARIA about your company",
-      blurb: "How you sound and what you stand for. It shapes every email.",
-      to: "/company/brand-profile",
-      done: state.brandProfileDone,
+      blurb: "What you do, your positioning, your competitors. It shapes every email.",
+      to: "/company",
+      done: state.messagingDone,
     },
     {
       title: "Add a product",
-      blurb: "What you sell, in nine short answers. Supporting files help too.",
+      blurb: "What you sell, in a few short answers. Supporting files help too.",
       to: "/products",
       done: state.productDone,
     },

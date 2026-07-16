@@ -88,11 +88,6 @@ export function IcpOverview({ icp }: { icp: Icp }) {
               values={icp.countries}
             />
             <OverviewGroup
-              label="Yearly revenue"
-              hint="Roughly how much they make."
-              values={icp.revenue_ranges}
-            />
-            <OverviewGroup
               label="Company types"
               hint="Ownership style, like privately held or public."
               values={icp.company_types}
@@ -110,6 +105,13 @@ export function IcpOverview({ icp }: { icp: Icp }) {
               hint="How senior they are."
               values={icp.seniority}
             />
+            {(icp.seniority_primary?.length ?? 0) > 0 && (
+              <OverviewGroup
+                label="Primary seniority"
+                hint="The ideal targets among those levels."
+                values={icp.seniority_primary}
+              />
+            )}
             <OverviewGroup
               label="Departments"
               hint="Where in the company they work."

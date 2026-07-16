@@ -22,14 +22,19 @@ const POLL_INTERVAL_MS = 2000
 
 interface ProductICPTabProps {
   productId: number
+  /** Hide generate / regenerate / save controls and show the ICP read-only. */
+  readOnly?: boolean
 }
 
 /**
  * ICP tab for a product: generate the Ideal Customer Profile from the product
- * brief + brand profile, poll while the agent runs, then show it in an editable
+ * brief + company info, poll while the agent runs, then show it in an editable
  * form. The ICP is stored per product and reused by every campaign on it.
  */
-export function ProductICPTab({ productId }: ProductICPTabProps) {
+export function ProductICPTab({
+  productId,
+  readOnly = false,
+}: ProductICPTabProps) {
   const [icp, setIcp] = useState<Icp | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -118,7 +123,7 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             campaign runs a search.
           </p>
         </div>
-        {icp?.status === "ready" && (
+        {icp?.status === "ready" && !readOnly && (
           <div className="flex shrink-0 gap-2">
             {mode === "overview" && (
               <Button variant="outline" size="sm" onClick={() => setMode("edit")}>
@@ -147,7 +152,7 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
         open={confirmRegenerate}
         onOpenChange={setConfirmRegenerate}
         title="Regenerate this profile?"
-        description="ARIA will write a fresh profile from your brand profile, product brief and supporting files. It replaces everything here, including any changes you have made yourself."
+        description="ARIA will write a fresh profile from your company info, product brief and supporting files. It replaces everything here, including any changes you have made yourself."
         confirmLabel="Regenerate"
         onConfirm={handleGenerate}
         loading={starting}
@@ -177,7 +182,7 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             <div>
               <p className="font-medium">Writing your targeting profile…</p>
               <p className="text-sm text-muted-foreground">
-                ARIA is reading your brand profile, product brief and
+                ARIA is reading your company info, product brief and
                 supporting files. This usually takes a few seconds, and you
                 can edit everything it writes.
               </p>
@@ -194,18 +199,20 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
                 Nothing was lost. Trying again usually resolves this.
               </p>
             </div>
-            <Button onClick={handleGenerate} disabled={starting}>
-              {starting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4" />
-              )}
-              Try again
-            </Button>
+            {!readOnly && (
+              <Button onClick={handleGenerate} disabled={starting}>
+                {starting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+                Try again
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : icp?.status === "ready" ? (
-        mode === "overview" ? (
+        mode === "overview" || readOnly ? (
           <IcpOverview icp={icp} />
         ) : (
           <Card>
@@ -229,20 +236,21 @@ export function ProductICPTab({ productId }: ProductICPTabProps) {
             <div className="max-w-md space-y-1">
               <p className="font-medium">No targeting profile yet</p>
               <p className="text-sm text-muted-foreground">
-                ARIA reads your brand profile, this product's brief and any
-                supporting files you have uploaded, then writes a profile of
-                the companies and people worth contacting. You can edit
-                everything afterwards, so nothing you do here is final.
+                {readOnly
+                  ? "This product has no targeting profile yet. Someone who manages products can generate one."
+                  : "ARIA reads your company info, this product's brief and any supporting files you have uploaded, then writes a profile of the companies and people worth contacting. You can edit everything afterwards, so nothing you do here is final."}
               </p>
             </div>
-            <Button onClick={handleGenerate} disabled={starting}>
-              {starting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Sparkles className="size-4" />
-              )}
-              Generate the profile
-            </Button>
+            {!readOnly && (
+              <Button onClick={handleGenerate} disabled={starting}>
+                {starting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="size-4" />
+                )}
+                Generate the profile
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

@@ -52,13 +52,17 @@ function initialsOf(name: string | null): string {
 /** A list of companies as expandable rows; expanding one reveals its contacts,
  * and clicking a contact opens a detail panel. The list scrolls within a
  * bounded height by default (the wizard needs to fit the page); pass a
- * `max-h-*` class via className to change or lift the bound. */
+ * `max-h-*` class via className to change or lift the bound. ``showEmail``
+ * hides the email line where it isn't meaningful (discovered contacts have no
+ * email yet). */
 export function CompaniesAccordion({
   companies,
   className,
+  showEmail = true,
 }: {
   companies: AccordionCompany[]
   className?: string
+  showEmail?: boolean
 }) {
   const [selected, setSelected] = useState<SelectedContact | null>(null)
 
@@ -74,6 +78,7 @@ export function CompaniesAccordion({
           <CompanyRow
             key={`${company.domain ?? company.name ?? "co"}-${index}`}
             company={company}
+            showEmail={showEmail}
             onSelect={(contact) => setSelected({ contact, company })}
           />
         ))}
@@ -90,9 +95,11 @@ export function CompaniesAccordion({
 
 function CompanyRow({
   company,
+  showEmail,
   onSelect,
 }: {
   company: AccordionCompany
+  showEmail: boolean
   onSelect: (contact: AccordionContact) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -131,7 +138,11 @@ function CompanyRow({
       </button>
       {open && (
         <div className="border-t bg-muted/20">
-          <ContactsTable contacts={company.contacts} onSelect={onSelect} />
+          <ContactsTable
+            contacts={company.contacts}
+            showEmail={showEmail}
+            onSelect={onSelect}
+          />
         </div>
       )}
     </div>
@@ -139,12 +150,15 @@ function CompanyRow({
 }
 
 /** Contact rows: monogram, name and title, email state. With `onSelect` each
- * row is clickable and opens the caller's detail panel. */
+ * row is clickable and opens the caller's detail panel; ``showEmail`` hides
+ * the email line (discovered contacts arrive without one). */
 export function ContactsTable({
   contacts,
+  showEmail = true,
   onSelect,
 }: {
   contacts: AccordionContact[]
+  showEmail?: boolean
   onSelect?: (contact: AccordionContact) => void
 }) {
   if (contacts.length === 0) {
@@ -169,10 +183,12 @@ export function ContactsTable({
                 {contact.job_title || "No title"}
               </span>
             </span>
-            <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
-              <AtSign className="size-3.5" />
-              {contact.email || "No email yet"}
-            </span>
+            {showEmail && (
+              <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+                <AtSign className="size-3.5" />
+                {contact.email || "No email yet"}
+              </span>
+            )}
             {onSelect && (
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             )}

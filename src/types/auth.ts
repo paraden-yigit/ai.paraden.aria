@@ -9,6 +9,22 @@ export interface User {
   email: string
   status: string
   role: string
+  // Permission keys the user's role grants; used to show/hide gated pages.
+  permissions: string[]
+  // Set only while a user is pending (invited, no password yet); used to build
+  // the invitation link. Cleared once they accept.
+  invitation_token?: string | null
+  // Per-user email voice (moved here from company info) + HTML signature
+  // appended to every generated email. Edited on the User Profile page.
+  email_tone: string | null
+  email_signature: string | null
   created_at: string
   updated_at: string
+}
+
+/** Body for PATCH /api/auth/me — the current user's self-serve profile edit. */
+export interface UserProfileUpdate {
+  full_name?: string | null
+  email_tone?: string | null
+  email_signature?: string | null
 }

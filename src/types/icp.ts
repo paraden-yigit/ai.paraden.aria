@@ -4,7 +4,9 @@ export type IcpStatus = "generating" | "ready" | "failed"
 
 export interface Icp {
   id: number
-  product_id: number
+  // Exactly one of these is set: a product ICP (template) or a campaign clone.
+  product_id: number | null
+  campaign_id: number | null
   client_id: number
   status: IcpStatus
   error: string | null
@@ -17,10 +19,11 @@ export interface Icp {
   headcount_min: number | null
   headcount_max: number | null
   countries: string[]
-  revenue_ranges: string[]
 
   // B. Contact attributes
   seniority: string[]
+  // Subset of `seniority` marked Primary (the rest are Acceptable).
+  seniority_primary: string[]
   job_functions: string[]
   job_subfunctions: string[]
 
@@ -37,8 +40,8 @@ export interface IcpUpdate {
   headcount_min?: number | null
   headcount_max?: number | null
   countries?: string[]
-  revenue_ranges?: string[]
   seniority?: string[]
+  seniority_primary?: string[]
   job_functions?: string[]
   job_subfunctions?: string[]
 }

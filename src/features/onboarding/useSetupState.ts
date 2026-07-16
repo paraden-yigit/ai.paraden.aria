@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
-import { brandProfileService } from "@/services/brand-profile.service"
 import { campaignService } from "@/services/campaign.service"
+import { clientService } from "@/services/client.service"
 import { icpService } from "@/services/icp.service"
 import { productService } from "@/services/product.service"
 
@@ -11,7 +11,7 @@ const MAX_ICP_PROBES = 5
 
 export interface SetupState {
   loading: boolean
-  brandProfileDone: boolean
+  messagingDone: boolean
   productDone: boolean
   targetingDone: boolean
   campaignDone: boolean
@@ -24,7 +24,7 @@ export interface SetupState {
 export function useSetupState(): SetupState {
   const [state, setState] = useState<SetupState>({
     loading: true,
-    brandProfileDone: false,
+    messagingDone: false,
     productDone: false,
     targetingDone: false,
     campaignDone: false,
@@ -35,23 +35,20 @@ export function useSetupState(): SetupState {
   useEffect(() => {
     let active = true
     const load = async () => {
-      const [brand, products, campaigns] = await Promise.allSettled([
-        brandProfileService.get(),
+      const [company, products, campaigns] = await Promise.allSettled([
+        clientService.get(),
         productService.list({ limit: MAX_ICP_PROBES }),
         campaignService.list({ limit: 1 }),
       ])
 
-      const brandProfileDone =
-        brand.status === "fulfilled" &&
+      // Company messaging lives on the client since the brand profile merged
+      // into Company Info: any of the three answers counts as started.
+      const messagingDone =
+        company.status === "fulfilled" &&
         [
-          brand.value.value_proposition,
-          brand.value.market_positioning,
-          brand.value.email_tone,
-          brand.value.email_opening,
-          brand.value.email_closing,
-          brand.value.closing_question,
-          brand.value.dos_and_donts,
-          brand.value.competitors,
+          company.value.value_proposition,
+          company.value.market_positioning,
+          company.value.competitors,
         ].some((v) => !!v?.trim())
 
       const productItems =
@@ -74,12 +71,12 @@ export function useSetupState(): SetupState {
       if (!active) return
       setState({
         loading: false,
-        brandProfileDone,
+        messagingDone,
         productDone,
         targetingDone,
         campaignDone,
         firstProductId,
-        allDone: brandProfileDone && productDone && targetingDone && campaignDone,
+        allDone: messagingDone && productDone && targetingDone && campaignDone,
       })
     }
     void load()

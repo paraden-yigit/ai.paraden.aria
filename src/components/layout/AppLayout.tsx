@@ -6,13 +6,14 @@ import {
   Briefcase,
   LayoutDashboard,
   LogOut,
+  Mail,
   Megaphone,
   Menu,
-  MessageSquareText,
   Moon,
   Package,
   ShieldCheck,
   Sun,
+  UserRound,
   UsersRound,
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -31,14 +32,21 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/useAuth"
+import { PERMISSIONS } from "@/lib/permissions"
 
 // Sidebar nav grouped into sections, ordered by workflow: teach ARIA about
 // the business first, run campaigns second, housekeeping last. A null title
-// renders the items with no heading (Dashboard sits on its own).
-const navSections: {
-  title: string | null
-  items: { to: string; label: string; icon: typeof LayoutDashboard }[]
-}[] = [
+// renders the items with no heading (Dashboard sits on its own). An item with
+// a `permission` is only shown when the user's role grants it
+// (permission-driven, not role-based); an array means "any of these".
+type NavItem = {
+  to: string
+  label: string
+  icon: typeof LayoutDashboard
+  permission?: string | string[]
+}
+
+const navSections: { title: string | null; items: NavItem[] }[] = [
   {
     title: null,
     items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
@@ -47,15 +55,17 @@ const navSections: {
     title: "Teach ARIA",
     items: [
       {
-        to: "/company/brand-profile",
-        label: "Brand Profile",
-        icon: MessageSquareText,
+        to: "/company",
+        label: "Company Info",
+        icon: Briefcase,
+        permission: PERMISSIONS.companyInfo,
       },
       { to: "/products", label: "Products", icon: Package },
       {
         to: "/company/agent-instructions",
         label: "Agent Instructions",
         icon: Bot,
+        permission: PERMISSIONS.agentInstructions,
       },
     ],
   },
@@ -63,15 +73,29 @@ const navSections: {
     title: "Campaigns",
     items: [
       { to: "/campaigns", label: "Campaigns", icon: Megaphone },
-      { to: "/exclusions", label: "Exclusion List", icon: Ban },
+      {
+        to: "/exclusions",
+        label: "Exclusion List",
+        icon: Ban,
+        permission: PERMISSIONS.exclusionLists,
+      },
     ],
   },
   {
     title: "Your company",
     items: [
-      { to: "/company", label: "Company Info", icon: Briefcase },
-      { to: "/company/teams", label: "Teams", icon: UsersRound },
-      { to: "/company/users", label: "Users", icon: ShieldCheck },
+      {
+        to: "/company/teams",
+        label: "Teams",
+        icon: UsersRound,
+        permission: PERMISSIONS.teams,
+      },
+      {
+        to: "/company/users",
+        label: "Users",
+        icon: ShieldCheck,
+        permission: [PERMISSIONS.usersView, PERMISSIONS.usersViewAll],
+      },
     ],
   },
 ]
@@ -90,12 +114,27 @@ function initialsOf(name: string | undefined): string {
 
 /** Authenticated dashboard shell: left sidebar nav + top bar + content outlet. */
 export function AppLayout() {
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const isDark = resolvedTheme === "dark"
+
+  // Hide items the user's role can't access, then drop any section left empty.
+  const canSee = (item: NavItem) => {
+    if (!item.permission) return true
+    const keys = Array.isArray(item.permission)
+      ? item.permission
+      : [item.permission]
+    return keys.some(hasPermission)
+  }
+  const visibleSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(canSee),
+    }))
+    .filter((section) => section.items.length > 0)
 
   async function handleLogout() {
     try {
@@ -126,7 +165,7 @@ export function AppLayout() {
         </div>
         <Separator />
         <nav className="space-y-4 p-2">
-          {navSections.map((section, i) => (
+          {visibleSections.map((section, i) => (
             <div key={section.title ?? `section-${i}`} className="space-y-1">
               {section.title && (
                 <p className="px-3 pt-1 pb-0.5 font-mono text-[11px] tracking-widest text-muted-foreground/70 uppercase">
@@ -205,6 +244,18 @@ export function AppLayout() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{user?.full_name ?? "My account"}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/profile">
+                  <UserRound className="size-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/email-settings">
+                  <Mail className="size-4" />
+                  Email settings
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="size-4" />
                 Log out

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { Product, ProductUpdate } from "@/types/product"
 
-// The product name plus the nine brief answers, in display order. `name` is a
+// The product name plus the brief answers, in display order. `name` is a
 // single-line required field; the rest are optional free-text areas.
 type FieldKey = keyof Pick<
   Product,
@@ -17,9 +17,6 @@ type FieldKey = keyof Pick<
   | "buyer_challenges"
   | "proof_points"
   | "buyer_outcome"
-  | "winning_emails"
-  | "supporting_data"
-  | "email_approver"
 >
 
 interface FieldConfig {
@@ -39,23 +36,27 @@ const FIELDS: FieldConfig[] = [
   { key: "buyer_challenges", label: "4. What are the biggest challenges the buyer faces?", multiline: true, rows: 4, placeholder: "The pains and obstacles the buyer is dealing with." },
   { key: "proof_points", label: "5. Key facts, stats, proof points", multiline: true, rows: 4 },
   { key: "buyer_outcome", label: "6. What does the buyer get?", multiline: true, rows: 3 },
-  { key: "winning_emails", label: "7. Past emails that worked (gold standard)", multiline: true, rows: 6, placeholder: "Paste any emails that have worked well. These become the gold-standard reference." },
-  { key: "supporting_data", label: "8. Supporting data", multiline: true, rows: 4, placeholder: "Success metrics and any analytical data relevant to the product." },
-  { key: "email_approver", label: "9. Who signs off the email?", multiline: true, rows: 2 },
 ]
 
 interface ProductInfoViewProps {
   product: Product
   /** Persist a single-field change. Should reject if the save fails. */
   onSave: (payload: ProductUpdate) => Promise<void>
+  /** Hide the Edit affordances and show values only (non-owners). */
+  readOnly?: boolean
 }
 
 /**
  * Read-only view of the product info, with an Edit button beside each item.
  * Editing one item swaps it for an inline editor (Save / Cancel); saving one
- * field at a time via a partial update.
+ * field at a time via a partial update. When ``readOnly`` the Edit buttons are
+ * hidden and only the values are shown.
  */
-export function ProductInfoView({ product, onSave }: ProductInfoViewProps) {
+export function ProductInfoView({
+  product,
+  onSave,
+  readOnly = false,
+}: ProductInfoViewProps) {
   const [editingKey, setEditingKey] = useState<FieldKey | null>(null)
   const [draft, setDraft] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -102,7 +103,7 @@ export function ProductInfoView({ product, onSave }: ProductInfoViewProps) {
               <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {field.label}
               </dt>
-              {!editing && (
+              {!editing && !readOnly && (
                 <Button
                   variant="ghost"
                   size="sm"

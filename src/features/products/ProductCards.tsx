@@ -19,10 +19,11 @@ import type { Product } from "@/types/product"
 
 interface ProductCardsProps {
   products: Product[]
-  onDelete: (product: Product) => void
+  /** Delete a product. Omit to hide the delete action (read-only viewers). */
+  onDelete?: (product: Product) => void
 }
 
-// The nine product-brief answers, used for the completeness hint. A fuller
+// The product-brief answers, used for the completeness hint. A fuller
 // brief means sharper ICP generation and better outreach drafts.
 const BRIEF_KEYS = [
   "offering",
@@ -31,9 +32,6 @@ const BRIEF_KEYS = [
   "buyer_challenges",
   "proof_points",
   "buyer_outcome",
-  "winning_emails",
-  "supporting_data",
-  "email_approver",
 ] as const
 
 function answeredCount(product: Product): number {
@@ -84,13 +82,15 @@ export function ProductCards({ products, onDelete }: ProductCardsProps) {
                       <Eye className="size-4" />
                       View
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => onDelete(product)}
-                    >
-                      <Trash2 className="size-4" />
-                      Delete
-                    </DropdownMenuItem>
+                    {onDelete && (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => onDelete(product)}
+                      >
+                        <Trash2 className="size-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </span>

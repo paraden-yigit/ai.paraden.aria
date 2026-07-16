@@ -1,4 +1,4 @@
-import type { User } from "@/types/auth"
+import type { User, UserProfileUpdate } from "@/types/auth"
 import { apiClient } from "./http"
 
 /**
@@ -17,6 +17,11 @@ export const authService = {
   /** Resolve the current session's user, or throw 401 if there is none. */
   async me(): Promise<User> {
     return apiClient.get<User>("/api/auth/me")
+  },
+
+  /** Update the current user's own profile (email voice + HTML signature). */
+  async updateProfile(payload: UserProfileUpdate): Promise<User> {
+    return apiClient.patch<User>("/api/auth/me", payload)
   },
 
   /** Revoke the refresh token server-side and clear the session cookies. */

@@ -17,6 +17,9 @@ export interface DiscoveryContact {
   country: string | null
   email: string | null
   phone: string | null
+  /** Scoring (staging preview only). `score_tier` is the winning cascade rule. */
+  persona_score: number | null
+  score_tier: string | null
 }
 
 export interface DiscoveryCompany {

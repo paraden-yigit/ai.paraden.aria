@@ -37,10 +37,10 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
 
   const signals = [
     {
-      label: "Brand profile",
-      hint: "How your company sounds.",
-      to: "/company/brand-profile",
-      done: setup.brandProfileDone,
+      label: "Company messaging",
+      hint: "What you do and how you stand out.",
+      to: "/company",
+      done: setup.messagingDone,
     },
     {
       label: "Product brief",
