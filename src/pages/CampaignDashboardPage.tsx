@@ -183,7 +183,9 @@ export function CampaignDashboardPage() {
     try {
       await campaignService[action](campaign.id)
       toast.success(
-        action === "run" ? "Campaign is now running." : "Campaign completed.",
+        action === "run"
+          ? "Campaign marked as running. Sending is not live yet."
+          : "Campaign completed.",
       )
       refetch()
     } catch (err) {
@@ -228,14 +230,21 @@ export function CampaignDashboardPage() {
 
         {/* Draft → Run; Running → Complete; Completed → no action. */}
         {campaign.status === "draft" && campaign.setup_completed && (
-          <Button onClick={() => act("run")} disabled={busy}>
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Play className="size-4" />
-            )}
-            Run campaign
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button onClick={() => act("run")} disabled={busy}>
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Play className="size-4" />
+              )}
+              Run campaign
+            </Button>
+            {/* Sending is not built yet (run/complete only moves the status and
+                fills preview figures); drop this note when the sending layer lands. */}
+            <p className="text-xs text-muted-foreground">
+              Preview for now: nothing is emailed yet.
+            </p>
+          </div>
         )}
         {campaign.status === "running" && (
           <Button
@@ -255,9 +264,16 @@ export function CampaignDashboardPage() {
 
       {campaign.metrics && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Performance
-          </h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Performance
+            </h3>
+            <Badge variant="secondary">Sample data</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Nothing has been sent: these figures preview how results will read
+            once sending is live.
+          </p>
           <MetricsGrid metrics={campaign.metrics} />
         </div>
       )}
