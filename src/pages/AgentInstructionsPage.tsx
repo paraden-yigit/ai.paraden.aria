@@ -78,9 +78,9 @@ export function AgentInstructionsPage() {
           Agent Instructions
         </h1>
         <p className="text-muted-foreground">
-          Custom rules the AI follows when writing your outreach emails: banned
-          words, phrasings to avoid, tone preferences, and anything else it
-          should always or never do.
+          Custom rules for ARIA to follow when writing your outreach emails:
+          banned words, phrasings to avoid, tone preferences, and anything else
+          it should always or never do.
         </p>
       </div>
 
@@ -112,6 +112,15 @@ export function AgentInstructionsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Honesty note: email generation currently reads only the
+                  admin-side app-wide instructions (campaign_email_service),
+                  never this client-scoped page. Remove this line when the
+                  backend wires client instructions into the prompt. */}
+              <p className="text-sm text-muted-foreground">
+                Preview build: ARIA does not read these rules yet. Your list is
+                saved for the whole company and takes effect once this page is
+                wired up.
+              </p>
               <Textarea
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
@@ -151,7 +160,7 @@ export function AgentInstructionsPage() {
                 <div>
                   <CardTitle>What works well</CardTitle>
                   <CardDescription>
-                    Rules like these keep every email on track.
+                    Rules like these will keep every email on track.
                   </CardDescription>
                 </div>
               </div>
