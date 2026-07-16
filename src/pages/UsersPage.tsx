@@ -197,7 +197,7 @@ export function UsersPage() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">None</span>
                       )}
                     </TableCell>
                     <TableCell>

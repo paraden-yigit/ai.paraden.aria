@@ -56,14 +56,14 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     items: [
       {
         to: "/company",
-        label: "Company Info",
+        label: "Company info",
         icon: Briefcase,
         permission: PERMISSIONS.companyInfo,
       },
       { to: "/products", label: "Products", icon: Package },
       {
         to: "/company/agent-instructions",
-        label: "Agent Instructions",
+        label: "Agent instructions",
         icon: Bot,
         permission: PERMISSIONS.agentInstructions,
       },
@@ -75,7 +75,7 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
       { to: "/campaigns", label: "Campaigns", icon: Megaphone },
       {
         to: "/exclusions",
-        label: "Exclusion List",
+        label: "Exclusion list",
         icon: Ban,
         permission: PERMISSIONS.exclusionLists,
       },

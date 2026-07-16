@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Loader2, Plus, Trash2, UserRound } from "lucide-react"
 import { toast } from "sonner"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DataState } from "@/components/DataState"
@@ -81,7 +82,14 @@ export function PersonasTab({ productId, readOnly = false }: PersonasTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">Personas</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">Personas</h2>
+          {count > 0 && (
+            <Badge variant="secondary">
+              {count} of {PERSONA_MAX}
+            </Badge>
+          )}
+        </div>
         <p className="text-muted-foreground">
           The exact job titles or roles you want to reach (e.g. "Regional
           Marketing Director"). These take priority over generic matches when
@@ -131,7 +139,7 @@ export function PersonasTab({ productId, readOnly = false }: PersonasTabProps) {
       >
         <div className="space-y-3">
           {!readOnly && belowMin && count > 0 && (
-            <p className="text-sm text-amber-600 dark:text-amber-500">
+            <p className="text-sm text-muted-foreground">
               Add at least {PERSONA_MIN} personas ({count} of {PERSONA_MIN}).
             </p>
           )}
@@ -141,7 +149,12 @@ export function PersonasTab({ productId, readOnly = false }: PersonasTabProps) {
                 key={persona.id}
                 className="flex items-center gap-3 px-4 py-3"
               >
-                <UserRound className="size-4 shrink-0 text-muted-foreground" />
+                <span
+                  aria-hidden="true"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+                >
+                  <UserRound className="size-4" />
+                </span>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {persona.title}
                 </span>

@@ -106,7 +106,13 @@ export function TeamsPage() {
         loading={loading}
         error={error}
         isEmpty={teams.length === 0}
-        emptyMessage="No teams yet."
+        emptyMessage="No teams yet. Teams group your people, so products and campaigns can be shared with the right group."
+        emptyAction={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Create your first team
+          </Button>
+        }
         onRetry={refetch}
       >
         <TeamsTable teams={teams} onEdit={setTeamToEdit} onDelete={setTeamToDelete} />

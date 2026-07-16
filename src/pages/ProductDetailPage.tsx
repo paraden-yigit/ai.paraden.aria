@@ -125,8 +125,8 @@ export function ProductDetailPage() {
               }
             >
               <TabsList>
-                <TabsTrigger value="info">Product Info</TabsTrigger>
-                <TabsTrigger value="files">Supporting Files</TabsTrigger>
+                <TabsTrigger value="info">Product info</TabsTrigger>
+                <TabsTrigger value="files">Supporting files</TabsTrigger>
                 <TabsTrigger value="icp">Targeting</TabsTrigger>
                 <TabsTrigger value="personas">Personas</TabsTrigger>
                 {canManage && <TabsTrigger value="access">Access</TabsTrigger>}
