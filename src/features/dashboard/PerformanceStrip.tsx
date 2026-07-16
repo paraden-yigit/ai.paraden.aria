@@ -1,5 +1,7 @@
+import { CalendarCheck, MailOpen, Reply, Send, Target } from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { MetricTile } from "@/components/MetricTile"
 import type { Campaign, CampaignMetrics } from "@/types/campaign"
 
 /** A whole-number count, thousands-separated. */
@@ -22,30 +24,6 @@ function total(
   return campaigns.reduce(
     (sum, c) => sum + (c.metrics ? pick(c.metrics) : 0),
     0,
-  )
-}
-
-function StripTile({
-  label,
-  value,
-  caption,
-  emphasis = false,
-}: {
-  label: string
-  value: string
-  caption: string
-  emphasis?: boolean
-}) {
-  return (
-    <Card className={emphasis ? "border-primary/60 bg-primary/5" : undefined}>
-      <CardContent className="space-y-1 p-4">
-        <div className="text-xs font-medium text-muted-foreground">{label}</div>
-        <div className="text-2xl font-semibold tabular-nums tracking-tight">
-          {value}
-        </div>
-        <div className="text-xs text-muted-foreground">{caption}</div>
-      </CardContent>
-    </Card>
   )
 }
 
@@ -79,29 +57,34 @@ export function PerformanceStrip({ campaigns }: { campaigns: Campaign[] }) {
         {ran.length === 1 ? "campaign" : "campaigns"}. Nothing has been sent:
         these figures preview how results will read once sending is live.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <StripTile
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <MetricTile
+          icon={Send}
           label="Sent"
           value={formatCount(sent)}
           caption="Emails delivered"
         />
-        <StripTile
+        <MetricTile
+          icon={MailOpen}
           label="Opens"
           value={formatCount(opens)}
           caption={`${rate(opens, sent)} of sent`}
         />
-        <StripTile
+        <MetricTile
+          icon={Reply}
           label="Replies"
           value={formatCount(replies)}
           caption={`${rate(replies, opens)} of opens`}
           emphasis
         />
-        <StripTile
+        <MetricTile
+          icon={Target}
           label="Qualified leads"
           value={formatCount(leads)}
           caption={`${rate(leads, replies)} of replies`}
         />
-        <StripTile
+        <MetricTile
+          icon={CalendarCheck}
           label="Meetings booked"
           value={formatCount(meetings)}
           caption={`${rate(meetings, leads)} of leads`}
