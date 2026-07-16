@@ -58,10 +58,10 @@ function formatCount(value: number): string {
   return value.toLocaleString()
 }
 
-/** A derived rate ``num / denom`` as a percent string (one decimal), or "—"
+/** A derived rate ``num / denom`` as a percent string (one decimal), or "n/a"
  * when the denominator is zero. */
 function rate(num: number, denom: number): string {
-  if (denom <= 0) return "—"
+  if (denom <= 0) return "n/a"
   return `${((num / denom) * 100).toFixed(1)}%`
 }
 

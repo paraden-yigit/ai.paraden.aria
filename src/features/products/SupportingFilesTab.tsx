@@ -237,7 +237,7 @@ export function SupportingFilesTab({
                   ) : (
                     <Plus className="size-4" />
                   )}
-                  Add Supporting File
+                  Add supporting file
                   <ChevronDown className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
