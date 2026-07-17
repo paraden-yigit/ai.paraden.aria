@@ -40,6 +40,7 @@ export function AddFileFromUrlDialog({
 
   // Clear the field whenever the dialog is (re)opened.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) setUrl("")
   }, [open])
 

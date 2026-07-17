@@ -30,7 +30,7 @@ import { userService } from "@/services/user.service"
 import { teamService } from "@/services/team.service"
 import { ApiError } from "@/services/http"
 import { useAuth } from "@/features/auth/useAuth"
-import { roleLabel } from "@/lib/roles"
+import { roleLabel, statusLabel } from "@/lib/roles"
 import { PERMISSIONS } from "@/lib/permissions"
 import { notifyUserCreated } from "@/lib/invite"
 import type {
@@ -167,9 +167,25 @@ export function UsersPage() {
                 // Managers edit everyone except themselves (guards against
                 // accidentally demoting the last owner / self-lockout).
                 const editable = canManage && u.id !== currentUser?.id
+                const initials = u.full_name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((part) => part[0]!.toUpperCase())
+                  .join("")
                 return (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+                        >
+                          {initials || "?"}
+                        </span>
+                        <span className="font-medium">{u.full_name}</span>
+                      </span>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
                       {u.teams.length > 0 ? (
@@ -181,11 +197,25 @@ export function UsersPage() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">None</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{u.status}</Badge>
+                      {u.status === "active" ? (
+                        <Badge variant="outline" className="gap-1.5">
+                          <span
+                            aria-hidden="true"
+                            className="size-1.5 rounded-full bg-primary"
+                          />
+                          {statusLabel(u.status)}
+                        </Badge>
+                      ) : u.status === "pending" ? (
+                        <Badge variant="secondary">{statusLabel(u.status)}</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          {statusLabel(u.status)}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{roleLabel(u.role)}</Badge>

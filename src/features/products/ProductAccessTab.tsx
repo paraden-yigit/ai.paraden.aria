@@ -184,8 +184,8 @@ export function ProductAccessTab({ productId }: ProductAccessTabProps) {
             People
           </CardTitle>
           <CardDescription>
-            Each assigned person — and the team leaders of their team — can use
-            this product.
+            Each assigned person can use this product; so can the leaders of
+            their team.
           </CardDescription>
         </CardHeader>
         <CardContent>

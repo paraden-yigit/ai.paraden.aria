@@ -216,8 +216,8 @@ export function SupportingFilesTab({
           </h2>
           <p className="text-muted-foreground">
             {readOnly
-              ? "Documents attached to this product. Their text content feeds outreach generation."
-              : "Upload documents (PDF, Word, Excel, text, RTF, or images). We extract their text content automatically."}
+              ? "Documents attached to this product. ARIA reads these when writing this product's targeting profile and emails."
+              : "Brochures, case studies, spec sheets: ARIA reads these when writing this product's targeting profile and emails. Upload PDF, Word, Excel, text, RTF or images up to 25 MB each, or add a page from a URL."}
           </p>
         </div>
         {!readOnly && (
@@ -237,7 +237,7 @@ export function SupportingFilesTab({
                   ) : (
                     <Plus className="size-4" />
                   )}
-                  Add Supporting File
+                  Add supporting file
                   <ChevronDown className="size-4" />
                 </Button>
               </DropdownMenuTrigger>

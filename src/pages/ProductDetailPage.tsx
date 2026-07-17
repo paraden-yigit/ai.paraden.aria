@@ -38,7 +38,7 @@ export function ProductDetailPage() {
   const canManage = hasPermission(PERMISSIONS.productsManage)
 
   // The active tab is reflected in ?tab= so it can be deep-linked (e.g. the
-  // campaign Contacts page sends users straight to the ICP tab).
+  // campaign Contacts page sends users straight to the targeting tab).
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get("tab")
   const activeTab =
@@ -78,8 +78,22 @@ export function ProductDetailPage() {
     }
   }
 
+  // The six brief answers, for the completeness hint. Empty answers degrade
+  // targeting and email quality, so the surface says how far along it is.
+  const briefFields = product
+    ? [
+        product.offering,
+        product.audience,
+        product.problem_solved,
+        product.buyer_challenges,
+        product.proof_points,
+        product.buyer_outcome,
+      ]
+    : []
+  const answered = briefFields.filter((v) => !!v?.trim()).length
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link to="/products">
           <ArrowLeft className="size-4" />
@@ -111,9 +125,9 @@ export function ProductDetailPage() {
               }
             >
               <TabsList>
-                <TabsTrigger value="info">Product Info</TabsTrigger>
-                <TabsTrigger value="files">Supporting Files</TabsTrigger>
-                <TabsTrigger value="icp">ICP</TabsTrigger>
+                <TabsTrigger value="info">Product info</TabsTrigger>
+                <TabsTrigger value="files">Supporting files</TabsTrigger>
+                <TabsTrigger value="icp">Targeting</TabsTrigger>
                 <TabsTrigger value="personas">Personas</TabsTrigger>
                 {canManage && <TabsTrigger value="access">Access</TabsTrigger>}
               </TabsList>
@@ -121,10 +135,11 @@ export function ProductDetailPage() {
               <TabsContent value="info" className="mt-4 space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Product information</CardTitle>
+                    <CardTitle>Teach ARIA about this product</CardTitle>
                     <CardDescription>
-                      The product name and brief. These answers are used to
-                      generate this product's outreach.
+                      {answered} of {briefFields.length} questions answered.
+                      Everything here feeds the targeting profile and the
+                      outreach emails: the more you answer, the better both get.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

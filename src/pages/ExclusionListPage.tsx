@@ -110,7 +110,7 @@ export function ExclusionListPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Exclusion List</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Exclusion list</h1>
         <p className="text-muted-foreground">
           Companies to exclude from your outreach.
         </p>
@@ -145,7 +145,15 @@ export function ExclusionListPage() {
         emptyMessage={
           debouncedQuery
             ? `No excluded companies match “${debouncedQuery}”.`
-            : "No companies on the exclusion list yet."
+            : "No companies on the exclusion list yet. Anyone you add here is left out of every campaign, always."
+        }
+        emptyAction={
+          debouncedQuery ? undefined : (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              Add a company
+            </Button>
+          )
         }
         onRetry={refetch}
       >

@@ -4,6 +4,7 @@ import { Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { campaignService } from "@/services/campaign.service"
 import { WizardStepper, type WizardStep } from "@/features/campaigns/wizard/WizardStepper"
 import { StepDetails } from "@/features/campaigns/wizard/StepDetails"
@@ -124,7 +125,13 @@ export function NewCampaignPage() {
   }
 
   function finish() {
-    navigate(campaign ? `/campaigns/${campaign.id}` : "/campaigns")
+    // justCompleted lets the campaign dashboard greet the user with its
+    // completion moment instead of a cold landing.
+    if (campaign) {
+      navigate(`/campaigns/${campaign.id}`, { state: { justCompleted: true } })
+    } else {
+      navigate("/campaigns")
+    }
   }
 
   async function complete(selections: EmailSelection[]) {
@@ -300,10 +307,13 @@ export function NewCampaignPage() {
     }
   }
 
+  // Focused form steps read best narrow; list-heavy steps use the width.
+  const narrowStep = mainStep === 0 || (mainStep === 1 && subStep === "upload")
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <h1 className="text-lg font-semibold tracking-tight">New campaign</h1>
           <Button
             variant="ghost"
@@ -316,11 +326,18 @@ export function NewCampaignPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8">
-        <div className="mb-8">
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mx-auto mb-8 max-w-3xl">
           <WizardStepper steps={STEPS} current={mainStep} skipped={skippedSteps} />
         </div>
-        <div className="rounded-xl border bg-card p-6">{renderContent()}</div>
+        <div
+          className={cn(
+            "rounded-xl border bg-card p-6",
+            narrowStep && "mx-auto max-w-2xl",
+          )}
+        >
+          {renderContent()}
+        </div>
       </main>
     </div>
   )

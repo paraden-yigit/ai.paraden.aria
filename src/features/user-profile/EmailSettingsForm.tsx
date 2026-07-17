@@ -140,7 +140,7 @@ export function EmailSettingsForm({
           <TextareaField
             control={form.control}
             name="email_signature"
-            label="Email signature (HTML)"
+            label="Email signature"
             placeholder={
               '<p>Best regards,<br />Jane Doe<br /><a href="https://example.com">example.com</a></p>'
             }
@@ -148,8 +148,9 @@ export function EmailSettingsForm({
             disabled={submitting}
           />
           <p className="text-sm text-muted-foreground">
-            Paste raw HTML. This is appended to the end of every email generated
-            from campaigns you create.
+            This goes at the end of every email ARIA writes for your campaigns.
+            HTML works here, so links and simple formatting are fine; start from
+            the example shown and check the preview below.
           </p>
           {signature.trim() !== "" && (
             <div className="space-y-1">

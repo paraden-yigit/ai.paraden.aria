@@ -237,7 +237,7 @@ export function StepDiscovery({
     )
   }
 
-  // Ready — show the staged preview.
+  // Ready — show the staged preview beside the targeting summary.
   if (status === "ready" && state) {
     const companies = state.companies
     return (
@@ -366,8 +366,9 @@ export function StepDiscovery({
           <p className="text-sm font-medium">Find new contacts</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          We&apos;ll find companies matching your campaign&apos;s ICP and a few
-          contacts at each. You can review and approve before anything is saved.
+          ARIA finds companies matching this campaign&apos;s targeting profile
+          and a few contacts at each. You review and approve before anything is
+          saved.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">

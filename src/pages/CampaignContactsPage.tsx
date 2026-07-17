@@ -1,18 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { Loader2, RefreshCw, Sparkles, TriangleAlert, Users } from "lucide-react"
+import {
+  Loader2,
+  RefreshCw,
+  Search,
+  Sparkles,
+  TriangleAlert,
+  Users,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import {
   CompaniesAccordion,
   type AccordionCompany,
 } from "@/features/campaigns/wizard/CompaniesAccordion"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
+import { useAuth } from "@/features/auth/useAuth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { icpService } from "@/services/icp.service"
 import { campaignContactService } from "@/services/campaign-contact.service"
+import { excludedCompanyService } from "@/services/excluded-company.service"
 import { ApiError } from "@/services/http"
 import type { Icp } from "@/types/icp"
 import type {
@@ -41,6 +53,7 @@ function groupByCompany(contacts: CampaignContact[]): AccordionCompany[] {
         name: c.company_name,
         domain: c.company_domain,
         industry: c.company_industry,
+        linkedin_url: c.company_linkedin_url,
         contacts: [],
       }
       byKey.set(key, group)
@@ -61,6 +74,9 @@ export function CampaignContactsPage() {
   const campaignId = campaign.id
   // The ICP now lives on the campaign's linked product; contacts are gated on it.
   const productId = campaign.product_id
+  // Excluding a company needs the exclusion-list permission.
+  const { hasPermission } = useAuth()
+  const canExclude = hasPermission(PERMISSIONS.exclusionLists)
 
   const [icp, setIcp] = useState<Icp | null>(null)
   const [search, setSearch] = useState<CampaignContactSearch | null>(null)
@@ -175,8 +191,58 @@ export function CampaignContactsPage() {
     void loadContacts()
   }, [loadContacts, search?.updated_at])
 
-  const companies = useMemo(() => groupByCompany(contacts), [contacts])
-  const hasContacts = companies.length > 0
+  // Client-side search over the full loaded list (name, title, email, company).
+  const [query, setQuery] = useState("")
+  const filteredContacts = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return contacts
+    return contacts.filter((c) =>
+      [
+        c.full_name,
+        c.job_title,
+        c.email,
+        c.company_name,
+        c.company_domain,
+      ].some((field) => field?.toLowerCase().includes(q)),
+    )
+  }, [contacts, query])
+
+  const companies = useMemo(
+    () => groupByCompany(filteredContacts),
+    [filteredContacts],
+  )
+  const hasContacts = contacts.length > 0
+
+  // Exclude-company flow: confirm, create the exclusion (the API sweeps the
+  // company's people out of every campaign), then reload the list.
+  const [companyToExclude, setCompanyToExclude] =
+    useState<AccordionCompany | null>(null)
+  const [excluding, setExcluding] = useState(false)
+
+  async function handleExclude() {
+    const company = companyToExclude
+    if (!company) return
+    const label = company.name || company.domain || "this company"
+    setExcluding(true)
+    try {
+      await excludedCompanyService.create({
+        name: company.name ?? company.domain ?? "Unnamed company",
+        domain: company.domain,
+        linkedin_url: company.linkedin_url ?? null,
+      })
+      toast.success(`${label} added to the exclusion list.`)
+      setCompanyToExclude(null)
+      void loadContacts()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : `Could not add ${label} to the exclusion list. Nothing was changed.`,
+      )
+    } finally {
+      setExcluding(false)
+    }
+  }
 
   async function handleGenerate() {
     setStarting(true)
@@ -198,8 +264,8 @@ export function CampaignContactsPage() {
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Contacts</h2>
           <p className="text-muted-foreground">
-            People at companies that match the linked product's ICP, found via
-            FullEnrich.
+            Everyone in this campaign: contacts you uploaded, plus people ARIA
+            found to match the product's targeting profile.
           </p>
         </div>
         {icpReady && hasContacts && !running && (
@@ -252,16 +318,62 @@ export function CampaignContactsPage() {
         // The campaign has contacts (uploaded and/or discovered) — show them
         // grouped by company, regardless of any FullEnrich search state.
         <div className="space-y-4">
+          <div className="relative max-w-md">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name, title, email or company…"
+              aria-label="Search contacts"
+              className="pl-9"
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{contacts.length}</span>{" "}
-            {contacts.length === 1 ? "contact" : "contacts"} across{" "}
-            <span className="font-medium text-foreground">
-              {companies.length}
-            </span>{" "}
-            {companies.length === 1 ? "company" : "companies"}. Expand a company to
-            see its people.
+            {query.trim() ? (
+              <>
+                <span className="font-medium text-foreground">
+                  {filteredContacts.length}
+                </span>{" "}
+                of {contacts.length}{" "}
+                {contacts.length === 1 ? "contact" : "contacts"} match, across{" "}
+                <span className="font-medium text-foreground">
+                  {companies.length}
+                </span>{" "}
+                {companies.length === 1 ? "company" : "companies"}.
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-foreground">
+                  {contacts.length}
+                </span>{" "}
+                {contacts.length === 1 ? "contact" : "contacts"} across{" "}
+                <span className="font-medium text-foreground">
+                  {companies.length}
+                </span>{" "}
+                {companies.length === 1 ? "company" : "companies"}. Expand a
+                company to see its people, and click a person for their details.
+              </>
+            )}
           </p>
-          <CompaniesAccordion companies={companies} />
+          {companies.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center">
+              <Search className="size-6 text-muted-foreground" />
+              <p className="text-sm font-medium">No one matches your search</p>
+              <p className="text-xs text-muted-foreground">
+                Try a shorter name, or clear the search to see everyone.
+              </p>
+            </div>
+          ) : (
+            /* No height cap here (unlike the wizard): the list gets the page. */
+            <CompaniesAccordion
+              companies={companies}
+              className="max-h-none"
+              onExcludeCompany={canExclude ? setCompanyToExclude : undefined}
+            />
+          )}
         </div>
       ) : contactsLoading ? (
         <div className="space-y-3">
@@ -352,6 +464,19 @@ export function CampaignContactsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={companyToExclude !== null}
+        onOpenChange={(open) => {
+          if (!open && !excluding) setCompanyToExclude(null)
+        }}
+        title={`Exclude ${companyToExclude?.name ?? companyToExclude?.domain ?? "this company"}?`}
+        description="Everyone at this company comes off your campaigns, and ARIA never contacts them again. You can take the company off the Exclusion list later, but people already removed stay removed."
+        confirmLabel="Exclude company"
+        destructive
+        loading={excluding}
+        onConfirm={handleExclude}
+      />
     </div>
   )
 }

@@ -9,11 +9,14 @@ import {
   Mail,
   Megaphone,
   Menu,
+  Moon,
   Package,
   ShieldCheck,
+  Sun,
   UserRound,
   UsersRound,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -31,10 +34,11 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/useAuth"
 import { PERMISSIONS } from "@/lib/permissions"
 
-// Sidebar nav grouped into sections. A null title renders the items with no
-// heading (Dashboard sits on its own). An item with a `permission` is only
-// shown when the user's role grants it (permission-driven, not role-based); an
-// array means "any of these".
+// Sidebar nav grouped into sections, ordered by workflow: teach ARIA about
+// the business first, run campaigns second, housekeeping last. A null title
+// renders the items with no heading (Dashboard sits on its own). An item with
+// a `permission` is only shown when the user's role grants it
+// (permission-driven, not role-based); an array means "any of these".
 type NavItem = {
   to: string
   label: string
@@ -48,35 +52,37 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: "Campaign",
-    items: [{ to: "/campaigns", label: "Campaigns", icon: Megaphone }],
-  },
-  {
-    title: "Company",
+    title: "Teach ARIA",
     items: [
       {
         to: "/company",
-        label: "Company Info",
+        label: "Company info",
         icon: Briefcase,
         permission: PERMISSIONS.companyInfo,
       },
       { to: "/products", label: "Products", icon: Package },
       {
         to: "/company/agent-instructions",
-        label: "Agent Instructions",
+        label: "Agent instructions",
         icon: Bot,
         permission: PERMISSIONS.agentInstructions,
       },
+    ],
+  },
+  {
+    title: "Campaigns",
+    items: [
+      { to: "/campaigns", label: "Campaigns", icon: Megaphone },
       {
         to: "/exclusions",
-        label: "Exclusion List",
+        label: "Exclusion list",
         icon: Ban,
         permission: PERMISSIONS.exclusionLists,
       },
     ],
   },
   {
-    title: "Team",
+    title: "Your company",
     items: [
       {
         to: "/company/teams",
@@ -109,9 +115,11 @@ function initialsOf(name: string | undefined): string {
 /** Authenticated dashboard shell: left sidebar nav + top bar + content outlet. */
 export function AppLayout() {
   const { user, logout, hasPermission } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const isDark = resolvedTheme === "dark"
 
   // Hide items the user's role can't access, then drop any section left empty.
   const canSee = (item: NavItem) => {
@@ -146,13 +154,21 @@ export function AppLayout() {
           sidebarOpen && "translate-x-0",
         )}
       >
-        <div className="flex h-14 items-center px-4 font-semibold">Paraden ARIA</div>
+        <div className="flex h-14 items-center px-4">
+          <Link to="/" onClick={() => setSidebarOpen(false)} aria-label="Paraden ARIA home">
+            <img
+              src={isDark ? "/paraden-aria-no-box-dark.svg" : "/paraden-aria-no-box.svg"}
+              alt="Paraden ARIA"
+              className="h-7 w-auto"
+            />
+          </Link>
+        </div>
         <Separator />
         <nav className="space-y-4 p-2">
           {visibleSections.map((section, i) => (
             <div key={section.title ?? `section-${i}`} className="space-y-1">
               {section.title && (
-                <p className="px-3 pt-1 pb-0.5 text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase">
+                <p className="px-3 pt-1 pb-0.5 font-mono text-[11px] tracking-widest text-muted-foreground/70 uppercase">
                   {section.title}
                 </p>
               )}
@@ -208,6 +224,15 @@ export function AppLayout() {
             <Menu className="size-5" />
           </Button>
           <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+            title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+          >
+            {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">

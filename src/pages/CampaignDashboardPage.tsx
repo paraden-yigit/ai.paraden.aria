@@ -1,6 +1,26 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { CheckCircle2, Loader2, Package, Play } from "lucide-react"
+import { useCallback, useState } from "react"
+import { Link, useLocation } from "react-router-dom"
+import {
+  AtSign,
+  Building2,
+  CalendarCheck,
+  CalendarRange,
+  CheckCircle2,
+  ListChecks,
+  Loader2,
+  MailOpen,
+  MailX,
+  MousePointerClick,
+  Package,
+  PartyPopper,
+  Play,
+  Reply,
+  Send,
+  Target,
+  UserMinus,
+  Users,
+  type LucideIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -12,11 +32,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { DataState } from "@/components/DataState"
+import { MetricTile } from "@/components/MetricTile"
+import { SavedSequence } from "@/features/campaigns/SavedSequence"
+import { loadContactStats } from "@/features/campaigns/contactStats"
+import { useAsync } from "@/hooks/useAsync"
 import { formatDateTime } from "@/lib/format"
 import { ApiError } from "@/services/http"
 import { campaignService } from "@/services/campaign.service"
 import type { CampaignMetrics, CampaignStatus } from "@/types/campaign"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
+import { campaignEmailService } from "@/services/campaign-email.service"
+
+/** Total span of the sequence in working days (sum of the configured gaps). */
+function sequenceSpanDays(gaps: (number | null)[]): number {
+  return gaps.reduce<number>((sum, gap) => sum + (gap ?? 0), 0)
+}
 
 const STATUS_LABEL: Record<CampaignStatus, string> = {
   draft: "Draft",
@@ -38,110 +69,138 @@ function formatCount(value: number): string {
   return value.toLocaleString()
 }
 
-/** A derived rate ``num / denom`` as a percent string (one decimal), or "—"
+/** A derived rate ``num / denom`` as a percent string (one decimal), or "n/a"
  * when the denominator is zero. */
 function rate(num: number, denom: number): string {
-  if (denom <= 0) return "—"
+  if (denom <= 0) return "n/a"
   return `${((num / denom) * 100).toFixed(1)}%`
 }
 
-/** One metric stat tile: a headline count with a derived-rate caption. The
- * North Star metric (replies) is emphasised with a primary ring. */
-function StatTile({
+/** One quiet diagnostic in the secondary bar: icon, label, value, rate. */
+function Diagnostic({
+  icon: Icon,
   label,
   value,
-  caption,
-  emphasis = false,
+  detail,
 }: {
+  icon: LucideIcon
   label: string
   value: string
-  caption: string
-  emphasis?: boolean
+  detail?: string
 }) {
   return (
-    <Card className={emphasis ? "border-primary/60 bg-primary/5" : undefined}>
-      <CardContent className="space-y-1 p-4">
-        <div className="text-xs font-medium text-muted-foreground">{label}</div>
-        <div className="text-2xl font-semibold tabular-nums tracking-tight">
-          {value}
-        </div>
-        <div className="text-xs text-muted-foreground">{caption}</div>
-      </CardContent>
-    </Card>
+    <span className="flex items-center gap-1.5">
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
+      {label}
+      <span className="font-medium tabular-nums text-foreground">{value}</span>
+      {detail && <span>({detail})</span>}
+    </span>
   )
 }
 
-/** The nine campaign metrics as a stat-tile grid. Counts are stored; the
- * percentage rates are derived here from their funnel denominators. */
+/** The campaign's funnel with a hierarchy instead of nine equal boxes: five
+ * headline tiles (replies is the North Star), then the health diagnostics in
+ * one slim bar. Counts are stored; the percentage rates are derived here from
+ * their funnel denominators. */
 function MetricsGrid({ metrics }: { metrics: CampaignMetrics }) {
-  const tiles = [
-    {
-      label: "Sent",
-      value: formatCount(metrics.sent),
-      caption: "Emails delivered",
-    },
-    {
-      label: "Opens",
-      value: formatCount(metrics.opens),
-      caption: `${rate(metrics.opens, metrics.sent)} of sent`,
-    },
-    {
-      label: "Clicks",
-      value: formatCount(metrics.clicks),
-      caption: `${rate(metrics.clicks, metrics.opens)} of opens`,
-    },
-    {
-      label: "Replies",
-      value: formatCount(metrics.replies),
-      caption: `${rate(metrics.replies, metrics.opens)} of opens`,
-      emphasis: true,
-    },
-    {
-      label: "Bounces",
-      value: formatCount(metrics.bounces),
-      caption: `${rate(metrics.bounces, metrics.sent)} of sent`,
-    },
-    {
-      label: "Unsubscribes",
-      value: formatCount(metrics.unsubscribes),
-      caption: `${rate(metrics.unsubscribes, metrics.opens)} of opens`,
-    },
-    {
-      label: "Sequence completion",
-      value: `${metrics.sequence_completion_rate}%`,
-      caption: "Completed the full sequence",
-    },
-    {
-      label: "Qualified leads",
-      value: formatCount(metrics.qualified_leads),
-      caption: `${rate(metrics.qualified_leads, metrics.replies)} of replies`,
-    },
-    {
-      label: "Meetings booked",
-      value: formatCount(metrics.meetings_booked),
-      caption: `${rate(metrics.meetings_booked, metrics.qualified_leads)} of leads`,
-    },
-  ]
-
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {tiles.map((tile) => (
-        <StatTile key={tile.label} {...tile} />
-      ))}
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <MetricTile
+          icon={Send}
+          label="Sent"
+          value={formatCount(metrics.sent)}
+          caption="Emails delivered"
+        />
+        <MetricTile
+          icon={MailOpen}
+          label="Opens"
+          value={formatCount(metrics.opens)}
+          caption={`${rate(metrics.opens, metrics.sent)} of sent`}
+        />
+        <MetricTile
+          icon={Reply}
+          label="Replies"
+          value={formatCount(metrics.replies)}
+          caption={`${rate(metrics.replies, metrics.opens)} of opens`}
+          emphasis
+        />
+        <MetricTile
+          icon={Target}
+          label="Qualified leads"
+          value={formatCount(metrics.qualified_leads)}
+          caption={`${rate(metrics.qualified_leads, metrics.replies)} of replies`}
+        />
+        <MetricTile
+          icon={CalendarCheck}
+          label="Meetings booked"
+          value={formatCount(metrics.meetings_booked)}
+          caption={`${rate(metrics.meetings_booked, metrics.qualified_leads)} of leads`}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
+        <Diagnostic
+          icon={MousePointerClick}
+          label="Clicks"
+          value={formatCount(metrics.clicks)}
+          detail={`${rate(metrics.clicks, metrics.opens)} of opens`}
+        />
+        <Diagnostic
+          icon={MailX}
+          label="Bounces"
+          value={formatCount(metrics.bounces)}
+          detail={`${rate(metrics.bounces, metrics.sent)} of sent`}
+        />
+        <Diagnostic
+          icon={UserMinus}
+          label="Unsubscribes"
+          value={formatCount(metrics.unsubscribes)}
+          detail={`${rate(metrics.unsubscribes, metrics.opens)} of opens`}
+        />
+        <Diagnostic
+          icon={ListChecks}
+          label="Sequence completion"
+          value={`${metrics.sequence_completion_rate}%`}
+        />
+      </div>
     </div>
   )
 }
 
 export function CampaignDashboardPage() {
   const { campaign, refetch } = useCampaignContext()
+  const location = useLocation()
+  const justCompleted = Boolean(
+    (location.state as { justCompleted?: boolean } | null)?.justCompleted,
+  )
   const [busy, setBusy] = useState(false)
+
+  const statsFetcher = useCallback(
+    () => loadContactStats(campaign.id),
+    [campaign.id],
+  )
+  const emailsFetcher = useCallback(
+    () => campaignEmailService.saved(campaign.id),
+    [campaign.id],
+  )
+  const stats = useAsync(statsFetcher, [campaign.id])
+  const emails = useAsync(emailsFetcher, [campaign.id])
+
+  const touches = campaign.sequence_touches ?? emails.data?.length ?? 0
+  const spanDays = sequenceSpanDays([
+    campaign.sequence_advancer_gap,
+    campaign.sequence_closer_gap,
+  ])
+  const spanWeeks = Math.max(1, Math.round(spanDays / 5))
 
   const act = async (action: "run" | "complete") => {
     setBusy(true)
     try {
       await campaignService[action](campaign.id)
       toast.success(
-        action === "run" ? "Campaign is now running." : "Campaign completed.",
+        action === "run"
+          ? "Campaign marked as running. Sending is not live yet."
+          : "Campaign completed.",
       )
       refetch()
     } catch (err) {
@@ -155,6 +214,22 @@ export function CampaignDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {justCompleted && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PartyPopper className="size-5" />
+              Your campaign is ready.
+            </CardTitle>
+            <CardDescription>
+              ARIA has researched your prospects and drafted your outreach.
+              Everything below is yours to review and refine: nothing is final
+              until you decide it is.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -163,19 +238,28 @@ export function CampaignDashboardPage() {
               {STATUS_LABEL[campaign.status]}
             </Badge>
           </div>
-          <p className="text-muted-foreground">An overview of this campaign.</p>
+          <p className="text-muted-foreground">
+            Everything this campaign has prepared, in one place.
+          </p>
         </div>
 
         {/* Draft → Run; Running → Complete; Completed → no action. */}
-        {campaign.status === "draft" && (
-          <Button onClick={() => act("run")} disabled={busy}>
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Play className="size-4" />
-            )}
-            Run campaign
-          </Button>
+        {campaign.status === "draft" && campaign.setup_completed && (
+          <div className="flex flex-col items-end gap-1">
+            <Button onClick={() => act("run")} disabled={busy}>
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Play className="size-4" />
+              )}
+              Run campaign
+            </Button>
+            {/* Sending is not built yet (run/complete only moves the status and
+                fills preview figures); drop this note when the sending layer lands. */}
+            <p className="text-xs text-muted-foreground">
+              Preview for now: nothing is emailed yet.
+            </p>
+          </div>
         )}
         {campaign.status === "running" && (
           <Button
@@ -195,54 +279,201 @@ export function CampaignDashboardPage() {
 
       {campaign.metrics && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Performance
-          </h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Performance
+            </h3>
+            <Badge variant="secondary">Sample data</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Nothing has been sent: these figures preview how results will read
+            once sending is live.
+          </p>
           <MetricsGrid metrics={campaign.metrics} />
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
+      <DataState
+        loading={stats.loading}
+        error={stats.error}
+        isEmpty={false}
+        emptyMessage="No contact data yet."
+        onRetry={stats.refetch}
+        skeletonRows={2}
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <Building2 className="size-4" />
+                Companies
+              </CardDescription>
+              <CardTitle className="text-3xl">
+                {stats.data?.companies ?? 0}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              That your prospects work at.
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <Users className="size-4" />
+                People
+              </CardDescription>
+              <CardTitle className="text-3xl">
+                {stats.data?.people ?? 0}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Prospects across those companies.
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <AtSign className="size-4" />
+                Ready to email
+              </CardDescription>
+              <CardTitle className="text-3xl">
+                {stats.data?.reachable ?? 0}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              {stats.data && stats.data.reachable === 0
+                ? "Prospects found by discovery arrive without email addresses. Contacts you upload include theirs."
+                : "Prospects with an email address on file."}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <CalendarRange className="size-4" />
+                Sequence
+              </CardDescription>
+              <CardTitle className="text-3xl">
+                {touches > 0 ? `${touches} emails` : "Not set"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              {touches > 0
+                ? `Spread over about ${spanWeeks} ${spanWeeks === 1 ? "week" : "weeks"}.`
+                : "Finish setup to configure the sequence."}
+            </CardContent>
+          </Card>
+        </div>
+      </DataState>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
-            <CardDescription>Campaign details</CardDescription>
+            <CardTitle>Your outreach sequence</CardTitle>
+            <CardDescription>
+              The emails ARIA drafted and you approved, in sending order.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-1 text-sm text-muted-foreground">
-            <div>Created {formatDateTime(campaign.created_at)}</div>
-            <div>Updated {formatDateTime(campaign.updated_at)}</div>
+          <CardContent>
+            <DataState
+              loading={emails.loading}
+              error={emails.error}
+              isEmpty={(emails.data?.length ?? 0) === 0}
+              emptyMessage={
+                campaign.setup_completed
+                  ? "No emails are saved for this campaign."
+                  : "No emails saved yet. Finish this campaign's setup from the campaigns list to draft and approve them."
+              }
+              onRetry={emails.refetch}
+              skeletonRows={3}
+            >
+              {emails.data && (
+                <SavedSequence campaign={campaign} emails={emails.data} />
+              )}
+            </DataState>
           </CardContent>
         </Card>
 
-        {campaign.product_id != null ? (
-          <Link to={`/products/${campaign.product_id}`} className="block">
-            <Card className="h-full transition-colors hover:bg-accent/40">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="size-4" />
-                  Product
-                </CardTitle>
-                <CardDescription>The product this campaign promotes</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm font-medium text-foreground">
-                {campaign.product_name ?? "—"}
-              </CardContent>
-            </Card>
-          </Link>
-        ) : (
-          <Card className="h-full">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>What happens next</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <p>
+                <Link
+                  to={`/campaigns/${campaign.id}/contacts`}
+                  className="font-medium underline underline-offset-4"
+                >
+                  Review your prospect list
+                </Link>
+                <span className="text-muted-foreground">
+                  {" "}
+                  and remove anyone who does not fit.
+                </span>
+              </p>
+              {campaign.product_id != null && (
+                <p>
+                  <Link
+                    to={`/products/${campaign.product_id}?tab=icp`}
+                    className="font-medium underline underline-offset-4"
+                  >
+                    Tighten your targeting
+                  </Link>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    if the companies found are not quite right.
+                  </span>
+                </p>
+              )}
+              <p>
+                <Link
+                  to="/exclusions"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Keep your do-not-contact list current
+                </Link>
+                <span className="text-muted-foreground">
+                  {" "}
+                  so nobody you exclude is ever approached.
+                </span>
+              </p>
+              <p className="border-t pt-3 text-muted-foreground">
+                Your sequence and prospect list stay saved here, ready whenever
+                you need them.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="size-4" />
-                Product
+                Details
               </CardTitle>
-              <CardDescription>The product this campaign promotes</CardDescription>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              No product linked.
+            <CardContent className="space-y-2 text-sm">
+              {campaign.product_id != null ? (
+                <p>
+                  <span className="text-muted-foreground">Product: </span>
+                  <Link
+                    to={`/products/${campaign.product_id}`}
+                    className="font-medium underline underline-offset-4"
+                  >
+                    {campaign.product_name ?? "View product"}
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-muted-foreground">No product linked.</p>
+              )}
+              <p className="text-muted-foreground">
+                Created {formatDateTime(campaign.created_at)}
+              </p>
+              <p className="text-muted-foreground">
+                Updated {formatDateTime(campaign.updated_at)}
+              </p>
             </CardContent>
           </Card>
-        )}
+        </div>
       </div>
     </div>
   )

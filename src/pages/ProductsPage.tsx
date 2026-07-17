@@ -13,7 +13,7 @@ import {
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
-import { ProductsTable } from "@/features/products/ProductsTable"
+import { ProductCards } from "@/features/products/ProductCards"
 import { ProductForm } from "@/features/products/ProductForm"
 import { useAuth } from "@/features/auth/useAuth"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -117,7 +117,7 @@ export function ProductsPage() {
         }
         onRetry={refetch}
       >
-        <ProductsTable
+        <ProductCards
           products={products}
           onDelete={canManage ? setProductToDelete : undefined}
         />
