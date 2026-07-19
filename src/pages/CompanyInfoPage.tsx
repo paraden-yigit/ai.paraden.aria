@@ -4,7 +4,6 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DataState } from "@/components/DataState"
 import { DescriptionList } from "@/components/DescriptionList"
 import { CompanyLogoCard } from "@/features/company-profile/CompanyLogoCard"
@@ -73,38 +72,26 @@ export function CompanyInfoPage() {
                     submitting={saving}
                   />
                 ) : (
-                  <Tabs defaultValue="details" className="space-y-6">
-                    <TabsList>
-                      <TabsTrigger value="details">Company details</TabsTrigger>
-                      <TabsTrigger value="messaging">Messaging</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="details">
-                      <DescriptionList
-                        items={[
-                          { label: "Name", value: client.name },
-                          { label: "Country", value: client.country },
-                          { label: "URL", value: client.url },
-                        ]}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="messaging">
-                      <DescriptionList
-                        items={[
-                          {
-                            label: "What does your company do?",
-                            value: client.value_proposition,
-                          },
-                          {
-                            label: "Market positioning / USP",
-                            value: client.market_positioning,
-                          },
-                          { label: "Competitors", value: client.competitors },
-                        ]}
-                      />
-                    </TabsContent>
-                  </Tabs>
+                  <DescriptionList
+                    singleColumn
+                    items={[
+                      { label: "Company name", value: client.name },
+                      { label: "Industry", value: client.industry },
+                      { label: "Website URL", value: client.url },
+                      { label: "LinkedIn URL", value: client.linkedin_url },
+                      {
+                        label: "City & Country",
+                        value:
+                          [client.city, client.country]
+                            .filter(Boolean)
+                            .join(", ") || null,
+                      },
+                      {
+                        label: "What does your company do?",
+                        value: client.value_proposition,
+                      },
+                    ]}
+                  />
                 )}
               </CardContent>
             </Card>

@@ -11,6 +11,9 @@ export interface User {
   role: string
   // Permission keys the user's role grants; used to show/hide gated pages.
   permissions: string[]
+  // Whether the client's first-login onboarding wizard has been completed. Drives
+  // the onboarding route guard (owner runs the wizard; others wait).
+  client_onboarding_completed: boolean
   // Set only while a user is pending (invited, no password yet); used to build
   // the invitation link. Cleared once they accept.
   invitation_token?: string | null
