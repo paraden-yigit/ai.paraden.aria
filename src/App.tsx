@@ -20,6 +20,7 @@ import { CampaignLayout } from "@/components/layout/CampaignLayout"
 import { CampaignDashboardPage } from "@/pages/CampaignDashboardPage"
 import { CampaignContactsPage } from "@/pages/CampaignContactsPage"
 import { ProductsPage } from "@/pages/ProductsPage"
+import { NewProductPage } from "@/pages/NewProductPage"
 import { ProductDetailPage } from "@/pages/ProductDetailPage"
 import { CompanyInfoPage } from "@/pages/CompanyInfoPage"
 import { AgentInstructionsPage } from "@/pages/AgentInstructionsPage"
@@ -54,6 +55,9 @@ function App() {
               {/* Full-page campaign wizard — deliberately outside AppLayout so it
                   has no sidebar or header, only its own close button. */}
               <Route path="/campaigns/new" element={<NewCampaignPage />} />
+              {/* Full-page product creation wizard — outside AppLayout, same as
+                  the campaign wizard (its own minimal chrome, no app shell). */}
+              <Route path="/products/new" element={<NewProductPage />} />
               {/* Everything under the app shell first passes the onboarding gate:
                   unonboarded owners go to the wizard, other users wait. */}
               <Route element={<OnboardingGate />}>

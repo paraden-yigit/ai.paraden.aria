@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { AddFileFromUrlDialog } from "@/features/products/AddFileFromUrlDialog"
+import { FileCategoryModal } from "@/features/products/wizard/FileCategoryModal"
 import {
   Table,
   TableBody,
@@ -39,7 +40,11 @@ import { formatDateTime } from "@/lib/format"
 import { useAsync } from "@/hooks/useAsync"
 import { productService } from "@/services/product.service"
 import { ApiError } from "@/services/http"
-import type { ExtractionStatus, ProductFile } from "@/types/product"
+import {
+  fileCategoryLabel,
+  type ExtractionStatus,
+  type ProductFile,
+} from "@/types/product"
 
 // Accepted upload types (kept in sync with the API's allowed list).
 const ACCEPT =
@@ -125,6 +130,8 @@ export function SupportingFilesTab({
   const [dragging, setDragging] = useState(false)
   const [fileToDelete, setFileToDelete] = useState<ProductFile | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // A file selected/dropped awaits a category in the modal before it's uploaded.
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
 
   // Poll while any file is still being extracted so the status badge advances.
   const hasPending = (files ?? []).some(
@@ -136,10 +143,10 @@ export function SupportingFilesTab({
     return () => clearInterval(id)
   }, [hasPending, refetch])
 
-  async function uploadFile(file: File) {
+  async function uploadFile(file: File, category: string) {
     setUploading(true)
     try {
-      await productService.uploadFile(productId, file)
+      await productService.uploadFile(productId, file, category)
       toast.success(`"${file.name}" uploaded.`)
       refetch()
     } catch (err) {
@@ -154,7 +161,8 @@ export function SupportingFilesTab({
     // Reset the input so the same file can be re-selected later.
     event.target.value = ""
     if (!file) return
-    void uploadFile(file)
+    // Tag the file before uploading it.
+    setPendingFile(file)
   }
 
   function handleDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -163,7 +171,7 @@ export function SupportingFilesTab({
     setDragging(false)
     if (uploading) return
     const file = event.dataTransfer.files?.[0]
-    if (file) void uploadFile(file)
+    if (file) setPendingFile(file)
   }
 
   function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
@@ -268,6 +276,7 @@ export function SupportingFilesTab({
             <TableHeader>
               <TableRow>
                 <TableHead>File</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Uploaded</TableHead>
@@ -278,6 +287,15 @@ export function SupportingFilesTab({
               {(files ?? []).map((file) => (
                 <TableRow key={file.id}>
                   <TableCell className="font-medium">{file.filename}</TableCell>
+                  <TableCell>
+                    {file.category ? (
+                      <Badge variant="secondary" className="font-normal">
+                        {fileCategoryLabel(file.category)}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatBytes(file.size_bytes)}
                   </TableCell>
@@ -309,6 +327,19 @@ export function SupportingFilesTab({
           </Table>
         </div>
       </DataState>
+
+      <FileCategoryModal
+        open={pendingFile !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingFile(null)
+        }}
+        fileName={pendingFile?.name ?? null}
+        onConfirm={(category) => {
+          if (pendingFile) void uploadFile(pendingFile, category)
+          setPendingFile(null)
+        }}
+        onCancel={() => setPendingFile(null)}
+      />
 
       <AddFileFromUrlDialog
         productId={productId}

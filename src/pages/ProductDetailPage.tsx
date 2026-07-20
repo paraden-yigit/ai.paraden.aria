@@ -1,5 +1,11 @@
 import { useCallback, useState } from "react"
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom"
 import { ArrowLeft, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -15,6 +21,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DataState } from "@/components/DataState"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { ProductInfoView } from "@/features/products/ProductInfoView"
+import { PainPointsSection } from "@/features/products/PainPointsSection"
+import { IcpApprovalDialog } from "@/features/products/IcpApprovalDialog"
 import { ProductICPTab } from "@/features/products/ProductICPTab"
 import { PersonasTab } from "@/features/products/PersonasTab"
 import { ProductAccessTab } from "@/features/products/ProductAccessTab"
@@ -30,6 +38,14 @@ export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const productId = Number(id)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Arriving from the creation wizard (navigate with { generateIcp: true }) opens
+  // the "Here's who we'll target" approval modal, which generates the ICP. Read
+  // once from history state so a tab change / refresh doesn't reopen it.
+  const [icpApprovalOpen, setIcpApprovalOpen] = useState(
+    () => Boolean((location.state as { generateIcp?: boolean } | null)?.generateIcp),
+  )
 
   // Managing the product (editing fields/files/ICP and its access list) needs
   // the "products_manage" permission; without it the page is read-only and the
@@ -42,7 +58,10 @@ export function ProductDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get("tab")
   const activeTab =
-    tabParam === "icp" || tabParam === "files" || tabParam === "personas"
+    tabParam === "icp" ||
+    tabParam === "files" ||
+    tabParam === "personas" ||
+    tabParam === "pain"
       ? tabParam
       : tabParam === "access" && canManage
         ? "access"
@@ -78,17 +97,10 @@ export function ProductDetailPage() {
     }
   }
 
-  // The six brief answers, for the completeness hint. Empty answers degrade
+  // The brief answers, for the completeness hint. Empty answers degrade
   // targeting and email quality, so the surface says how far along it is.
   const briefFields = product
-    ? [
-        product.offering,
-        product.audience,
-        product.problem_solved,
-        product.buyer_challenges,
-        product.proof_points,
-        product.buyer_outcome,
-      ]
+    ? [product.value_proposition, product.usp, product.demonstrable_roi]
     : []
   const answered = briefFields.filter((v) => !!v?.trim()).length
 
@@ -126,9 +138,10 @@ export function ProductDetailPage() {
             >
               <TabsList>
                 <TabsTrigger value="info">Product info</TabsTrigger>
+                <TabsTrigger value="pain">Pain points</TabsTrigger>
                 <TabsTrigger value="files">Supporting files</TabsTrigger>
-                <TabsTrigger value="icp">Targeting</TabsTrigger>
                 <TabsTrigger value="personas">Personas</TabsTrigger>
+                <TabsTrigger value="icp">Targeting</TabsTrigger>
                 {canManage && <TabsTrigger value="access">Access</TabsTrigger>}
               </TabsList>
 
@@ -175,6 +188,13 @@ export function ProductDetailPage() {
                 )}
               </TabsContent>
 
+              <TabsContent value="pain" className="mt-4">
+                <PainPointsSection
+                  productId={productId}
+                  readOnly={!canManage}
+                />
+              </TabsContent>
+
               <TabsContent value="icp" className="mt-4">
                 <ProductICPTab productId={productId} readOnly={!canManage} />
               </TabsContent>
@@ -196,6 +216,14 @@ export function ProductDetailPage() {
           </>
         )}
       </DataState>
+
+      {canManage && (
+        <IcpApprovalDialog
+          productId={productId}
+          open={icpApprovalOpen}
+          onOpenChange={setIcpApprovalOpen}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmDelete}

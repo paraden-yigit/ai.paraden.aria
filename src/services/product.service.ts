@@ -1,10 +1,12 @@
 import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
 import type {
+  PainPointInput,
   Product,
   ProductAssignments,
   ProductCreate,
   ProductFile,
+  ProductPainPoint,
   ProductPersona,
   ProductUpdate,
 } from "@/types/product"
@@ -47,9 +49,14 @@ export const productService = {
     return apiClient.get<ProductFile[]>(`/api/products/${productId}/files`)
   },
 
-  uploadFile(productId: number, file: File): Promise<ProductFile> {
+  uploadFile(
+    productId: number,
+    file: File,
+    category?: string | null,
+  ): Promise<ProductFile> {
     const body = new FormData()
     body.append("file", file)
+    if (category) body.append("category", category)
     return apiClient.post<ProductFile>(`/api/products/${productId}/files`, body)
   },
 
@@ -82,6 +89,33 @@ export const productService = {
   removePersona(productId: number, personaId: number): Promise<unknown> {
     return apiClient.delete(
       `/api/products/${productId}/personas/${personaId}`,
+    )
+  },
+
+  // --- Pain points (structured: challenge / why it matters / how it helps) ---
+
+  listPainPoints(productId: number): Promise<ProductPainPoint[]> {
+    return apiClient.get<ProductPainPoint[]>(
+      `/api/products/${productId}/pain-points`,
+    )
+  },
+
+  addPainPoint(
+    productId: number,
+    payload: PainPointInput,
+  ): Promise<ProductPainPoint> {
+    return apiClient.post<ProductPainPoint>(
+      `/api/products/${productId}/pain-points`,
+      payload,
+    )
+  },
+
+  removePainPoint(
+    productId: number,
+    painPointId: number,
+  ): Promise<unknown> {
+    return apiClient.delete(
+      `/api/products/${productId}/pain-points/${painPointId}`,
     )
   },
 

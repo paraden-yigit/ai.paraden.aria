@@ -12,10 +12,19 @@ import { apiClient } from "./http"
  * so they can be passed as references.
  */
 export const campaignEmailService = {
-  /** Start (or re-run) email generation in the background. Returns the state. */
-  generate(campaignId: number): Promise<EmailGeneration> {
+  /** Start (or re-run) email generation in the background. Returns the state.
+   * Pass ``excludeContactId`` for "Try another prospect" — the drafts are
+   * re-run against a different contact than the one given. */
+  generate(
+    campaignId: number,
+    opts?: { excludeContactId?: number | null },
+  ): Promise<EmailGeneration> {
+    const query =
+      opts?.excludeContactId != null
+        ? `?exclude_contact_id=${opts.excludeContactId}`
+        : ""
     return apiClient.post<EmailGeneration>(
-      `/api/campaigns/${campaignId}/emails/generate`,
+      `/api/campaigns/${campaignId}/emails/generate${query}`,
     )
   },
 
