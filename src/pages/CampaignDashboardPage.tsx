@@ -51,16 +51,20 @@ function sequenceSpanDays(gaps: (number | null)[]): number {
 
 const STATUS_LABEL: Record<CampaignStatus, string> = {
   draft: "Draft",
+  enriching_contacts: "Enriching contacts",
   running: "Running",
+  enrichment_failed: "Enrichment failed",
   completed: "Completed",
 }
 
 const STATUS_VARIANT: Record<
   CampaignStatus,
-  "secondary" | "default" | "outline"
+  "secondary" | "default" | "outline" | "destructive"
 > = {
   draft: "secondary",
+  enriching_contacts: "secondary",
   running: "default",
+  enrichment_failed: "destructive",
   completed: "outline",
 }
 
@@ -199,7 +203,7 @@ export function CampaignDashboardPage() {
       await campaignService[action](campaign.id)
       toast.success(
         action === "run"
-          ? "Campaign marked as running. Sending is not live yet."
+          ? "Finding contact work emails… this can take a few minutes. Refresh to see progress."
           : "Campaign completed.",
       )
       refetch()
@@ -241,25 +245,41 @@ export function CampaignDashboardPage() {
           <p className="text-muted-foreground">
             Everything this campaign has prepared, in one place.
           </p>
+          {campaign.status === "enrichment_failed" && (
+            <p className="mt-1 text-sm text-destructive">
+              {campaign.enrichment_error ??
+                "Contact enrichment failed. Try running the campaign again."}
+            </p>
+          )}
         </div>
 
-        {/* Draft → Run; Running → Complete; Completed → no action. */}
-        {campaign.status === "draft" && campaign.setup_completed && (
-          <div className="flex flex-col items-end gap-1">
-            <Button onClick={() => act("run")} disabled={busy}>
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Play className="size-4" />
-              )}
-              Run campaign
-            </Button>
-            {/* Sending is not built yet (run/complete only moves the status and
-                fills preview figures); drop this note when the sending layer lands. */}
-            <p className="text-xs text-muted-foreground">
-              Preview for now: nothing is emailed yet.
-            </p>
-          </div>
+        {/* Draft / failed → Run; enriching → wait; Running → Complete; Completed → none. */}
+        {(campaign.status === "draft" ||
+          campaign.status === "enrichment_failed") &&
+          campaign.setup_completed && (
+            <div className="flex flex-col items-end gap-1">
+              <Button onClick={() => act("run")} disabled={busy}>
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Play className="size-4" />
+                )}
+                {campaign.status === "enrichment_failed"
+                  ? "Retry enrichment"
+                  : "Run campaign"}
+              </Button>
+              {/* Sending is not built yet (run/complete only moves the status and
+                  fills preview figures); drop this note when the sending layer lands. */}
+              <p className="text-xs text-muted-foreground">
+                Preview for now: nothing is emailed yet.
+              </p>
+            </div>
+          )}
+        {campaign.status === "enriching_contacts" && (
+          <Button variant="outline" disabled>
+            <Loader2 className="size-4 animate-spin" />
+            Enriching contacts…
+          </Button>
         )}
         {campaign.status === "running" && (
           <Button

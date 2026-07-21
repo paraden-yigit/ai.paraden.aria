@@ -5,8 +5,15 @@
  * generation. `product_name` is resolved server-side (null if the product was
  * deleted).
  */
-/** A campaign's lifecycle state. */
-export type CampaignStatus = "draft" | "running" | "completed"
+/** A campaign's lifecycle state. `enriching_contacts` is transitional: Run has
+ * been pressed and a background task is finding contacts' work emails; it flips
+ * to `running` on success or `enrichment_failed` (re-runnable) on error. */
+export type CampaignStatus =
+  | "draft"
+  | "enriching_contacts"
+  | "running"
+  | "enrichment_failed"
+  | "completed"
 
 /**
  * Simulated performance metrics for a running/completed campaign — raw counts
@@ -38,6 +45,10 @@ export interface Campaign {
   team_name: string | null
   /** Lifecycle state; drives the Run / Complete actions on the dashboard. */
   status: CampaignStatus
+  /** True once the Run action's work-email enrichment has finished. */
+  enrichment_complete: boolean
+  /** Failure reason while `status` is `enrichment_failed` (null otherwise). */
+  enrichment_error: string | null
   /** Performance metrics; null until the campaign is first run. */
   metrics: CampaignMetrics | null
   /** False until the creation wizard is finished. */
