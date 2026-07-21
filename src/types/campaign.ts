@@ -15,6 +15,13 @@ export type CampaignStatus =
   | "enrichment_failed"
   | "completed"
 
+/** Per-prospect email generation state on a launched campaign. */
+export type EmailGenerationStatus =
+  | "pending"
+  | "generating"
+  | "ready"
+  | "failed"
+
 /**
  * Simulated performance metrics for a running/completed campaign — raw counts
  * plus the seed sequence-completion rate (0-100). The dashboard derives the
@@ -49,6 +56,11 @@ export interface Campaign {
   enrichment_complete: boolean
   /** Failure reason while `status` is `enrichment_failed` (null otherwise). */
   enrichment_error: string | null
+  /** Per-prospect email generation (kicked off after launch): "pending",
+   * "generating", "ready", or "failed". */
+  email_generation_status: EmailGenerationStatus
+  /** Failure reason while `email_generation_status` is "failed" (null otherwise). */
+  email_generation_error: string | null
   /** Performance metrics; null until the campaign is first run. */
   metrics: CampaignMetrics | null
   /** False until the creation wizard is finished. */

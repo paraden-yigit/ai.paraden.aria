@@ -19,6 +19,7 @@ import { OnboardingPage } from "@/pages/OnboardingPage"
 import { CampaignLayout } from "@/components/layout/CampaignLayout"
 import { CampaignDashboardPage } from "@/pages/CampaignDashboardPage"
 import { CampaignContactsPage } from "@/pages/CampaignContactsPage"
+import { CampaignEmailsPage } from "@/pages/CampaignEmailsPage"
 import { ProductsPage } from "@/pages/ProductsPage"
 import { NewProductPage } from "@/pages/NewProductPage"
 import { ProductDetailPage } from "@/pages/ProductDetailPage"
@@ -76,6 +77,7 @@ function App() {
                 <Route path="/campaigns/:id" element={<CampaignLayout />}>
                   <Route index element={<CampaignDashboardPage />} />
                   <Route path="contacts" element={<CampaignContactsPage />} />
+                  <Route path="emails" element={<CampaignEmailsPage />} />
                 </Route>
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />

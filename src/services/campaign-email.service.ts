@@ -1,4 +1,5 @@
 import type {
+  CampaignContactEmail,
   EmailGeneration,
   EmailSelection,
   SavedCampaignEmail,
@@ -48,6 +49,16 @@ export const campaignEmailService = {
   saved(campaignId: number): Promise<SavedCampaignEmail[]> {
     return apiClient.get<SavedCampaignEmail[]>(
       `/api/campaigns/${campaignId}/emails/saved`,
+    )
+  },
+
+  /** One prospect's generated outreach emails (Emails tab), in sending order. */
+  forContact(
+    campaignId: number,
+    contactId: number,
+  ): Promise<CampaignContactEmail[]> {
+    return apiClient.get<CampaignContactEmail[]>(
+      `/api/campaigns/${campaignId}/emails/by-contact/${contactId}`,
     )
   },
 }

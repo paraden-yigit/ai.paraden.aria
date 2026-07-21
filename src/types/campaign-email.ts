@@ -86,3 +86,21 @@ export interface SavedCampaignEmail {
   created_at: string
   updated_at: string
 }
+
+/**
+ * A generated outreach email for ONE prospect at one sequence step, written by
+ * the per-prospect generation job after launch. Mirrors the API's
+ * CampaignContactEmailRead. Shares the saved-email shape (so it renders with
+ * `SavedSequence`) plus the owning `campaign_contact_id`.
+ */
+export interface CampaignContactEmail {
+  id: number
+  campaign_contact_id: number
+  step_index: number
+  step_kind: string
+  approach: string | null
+  subject: string | null
+  body: string | null
+  created_at: string
+  updated_at: string
+}

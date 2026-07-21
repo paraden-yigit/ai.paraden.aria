@@ -303,11 +303,10 @@ export function CampaignDashboardPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Performance
             </h3>
-            <Badge variant="secondary">Sample data</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Nothing has been sent: these figures preview how results will read
-            once sending is live.
+            Nothing has been sent yet, so every figure starts at zero. They will
+            fill in once the sending layer is live.
           </p>
           <MetricsGrid metrics={campaign.metrics} />
         </div>

@@ -14,6 +14,7 @@ import type { CampaignContext } from "@/features/campaigns/useCampaignContext"
 const TABS: { to: string; label: string; end?: boolean }[] = [
   { to: "", label: "Dashboard", end: true },
   { to: "contacts", label: "Contacts" },
+  { to: "emails", label: "Emails" },
 ]
 
 /** Shell for a single campaign: back link, title, tab nav, and the active
