@@ -41,14 +41,12 @@ export function useSetupState(): SetupState {
         campaignService.list({ limit: 1 }),
       ])
 
-      // Company messaging lives on the client since the brand profile merged
-      // into Company Info: any of the three answers counts as started.
+      // Company messaging lives on the client: any core answer counts as started.
       const messagingDone =
         company.status === "fulfilled" &&
         [
           company.value.value_proposition,
-          company.value.market_positioning,
-          company.value.competitors,
+          company.value.industry,
         ].some((v) => !!v?.trim())
 
       const productItems =

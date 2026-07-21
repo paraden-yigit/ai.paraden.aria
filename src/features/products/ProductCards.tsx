@@ -26,20 +26,17 @@ interface ProductCardsProps {
 // The product-brief answers, used for the completeness hint. A fuller
 // brief means sharper ICP generation and better outreach drafts.
 const BRIEF_KEYS = [
-  "offering",
-  "audience",
-  "problem_solved",
-  "buyer_challenges",
-  "proof_points",
-  "buyer_outcome",
+  "value_proposition",
+  "usp",
+  "demonstrable_roi",
 ] as const
 
 function answeredCount(product: Product): number {
   return BRIEF_KEYS.filter((key) => product[key]?.trim()).length
 }
 
-/** Products as a card grid: monogram, offering, brief completeness. The whole
- * card opens the product; row actions sit above the stretched link. */
+/** Products as a card grid: monogram, value proposition, brief completeness. The
+ * whole card opens the product; row actions sit above the stretched link. */
 export function ProductCards({ products, onDelete }: ProductCardsProps) {
   const navigate = useNavigate()
 
@@ -97,7 +94,7 @@ export function ProductCards({ products, onDelete }: ProductCardsProps) {
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-4">
               <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">
-                {product.offering ?? "No offering described yet."}
+                {product.value_proposition ?? "No value proposition yet."}
               </p>
               <div className="mt-auto flex items-center justify-between gap-2">
                 {answered === BRIEF_KEYS.length ? (

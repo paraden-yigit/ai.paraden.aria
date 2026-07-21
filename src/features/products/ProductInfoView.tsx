@@ -6,17 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { Product, ProductUpdate } from "@/types/product"
 
-// The product name plus the brief answers, in display order. `name` is a
+// The product name plus the wizard answers, in display order. `name` is a
 // single-line required field; the rest are optional free-text areas.
 type FieldKey = keyof Pick<
   Product,
-  | "name"
-  | "offering"
-  | "audience"
-  | "problem_solved"
-  | "buyer_challenges"
-  | "proof_points"
-  | "buyer_outcome"
+  "name" | "value_proposition" | "usp" | "demonstrable_roi"
 >
 
 interface FieldConfig {
@@ -30,12 +24,9 @@ interface FieldConfig {
 
 const FIELDS: FieldConfig[] = [
   { key: "name", label: "Product name", multiline: false, placeholder: "Acme Widget", required: true },
-  { key: "offering", label: "1. What is this offering?", multiline: true, rows: 3, placeholder: "The product or service this is about." },
-  { key: "audience", label: "2. Who is it for?", multiline: true, rows: 3, placeholder: "Target buyer: job titles, seniority, country." },
-  { key: "problem_solved", label: "3. What problem does it solve for the buyer?", multiline: true, rows: 3 },
-  { key: "buyer_challenges", label: "4. What are the biggest challenges the buyer faces?", multiline: true, rows: 4, placeholder: "The pains and obstacles the buyer is dealing with." },
-  { key: "proof_points", label: "5. Key facts, stats, proof points", multiline: true, rows: 4 },
-  { key: "buyer_outcome", label: "6. What does the buyer get?", multiline: true, rows: 3 },
+  { key: "value_proposition", label: "Value proposition", multiline: true, rows: 4, placeholder: "What your product does and the outcome it delivers for customers." },
+  { key: "usp", label: "Unique selling proposition (USP)", multiline: true, rows: 4, placeholder: "What sets you apart — the one thing competitors can't easily claim." },
+  { key: "demonstrable_roi", label: "Demonstrable ROI", multiline: true, rows: 5, placeholder: "Case studies, quantitative results, or client outcomes we can reference." },
 ]
 
 interface ProductInfoViewProps {

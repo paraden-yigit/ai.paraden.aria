@@ -1,5 +1,5 @@
-import { useRef, useState } from "react"
-import { ImageUp, Trash2 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { ImageUp, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -10,28 +10,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { clientService } from "@/services/client.service"
+import { ApiError } from "@/services/http"
 
-// PREVIEW (for Yigit): the API's client model has no logo field yet, so the
-// image is kept as a data URL in localStorage and nothing is uploaded. Needs
-// a real endpoint + storage; flagged in the PR and the handoff notes.
-const LOGO_KEY = "aria-preview-company-logo"
 const MAX_BYTES = 1024 * 1024
 
-function readStoredLogo(): string | null {
-  try {
-    return localStorage.getItem(LOGO_KEY)
-  } catch {
-    return null
-  }
-}
-
-/** Company logo upload with local preview. */
+/** Company logo — loads the stored logo and uploads replacements to the API. */
 export function CompanyLogoCard() {
-  const [logo, setLogo] = useState<string | null>(readStoredLogo)
+  const [logo, setLogo] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  function handleFile(file: File | undefined) {
+  // Load the current logo (object URL) on mount; revoke it on cleanup/replace.
+  useEffect(() => {
+    let active = true
+    let url: string | null = null
+    void clientService.logoObjectUrl().then((objectUrl) => {
+      if (!active) {
+        if (objectUrl) URL.revokeObjectURL(objectUrl)
+        return
+      }
+      url = objectUrl
+      setLogo(objectUrl)
+    })
+    return () => {
+      active = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [])
+
+  async function handleFile(file: File | undefined) {
     if (!file) return
     if (!file.type.startsWith("image/")) {
       toast.error("Choose an image file (PNG, JPG or SVG).")
@@ -41,27 +50,21 @@ export function CompanyLogoCard() {
       toast.error("Keep the logo under 1 MB.")
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = reader.result as string
-      try {
-        localStorage.setItem(LOGO_KEY, dataUrl)
-      } catch {
-        // Storage full or blocked: preview still shows for this visit.
-      }
-      setLogo(dataUrl)
-      toast.success("Logo added.")
-    }
-    reader.readAsDataURL(file)
-  }
-
-  function handleRemove() {
+    setUploading(true)
     try {
-      localStorage.removeItem(LOGO_KEY)
-    } catch {
-      // Nothing stored to remove.
+      await clientService.uploadLogo(file)
+      setLogo((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return URL.createObjectURL(file)
+      })
+      toast.success("Logo updated.")
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Couldn't upload the logo.",
+      )
+    } finally {
+      setUploading(false)
     }
-    setLogo(null)
   }
 
   return (
@@ -79,7 +82,7 @@ export function CompanyLogoCard() {
           accept="image/*"
           className="sr-only"
           onChange={(e) => {
-            handleFile(e.target.files?.[0])
+            void handleFile(e.target.files?.[0])
             e.target.value = ""
           }}
         />
@@ -92,20 +95,19 @@ export function CompanyLogoCard() {
                 className="max-h-24 max-w-full object-contain"
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => inputRef.current?.click()}
-              >
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
                 <ImageUp className="size-4" />
-                Replace
-              </Button>
-              <Button variant="outline" onClick={handleRemove}>
-                <Trash2 className="size-4" />
-                Remove
-              </Button>
-            </div>
+              )}
+              Replace
+            </Button>
           </>
         ) : (
           <button
@@ -119,7 +121,7 @@ export function CompanyLogoCard() {
             onDrop={(e) => {
               e.preventDefault()
               setDragging(false)
-              handleFile(e.dataTransfer.files?.[0])
+              void handleFile(e.dataTransfer.files?.[0])
             }}
             className={
               "flex w-full flex-col items-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors " +
@@ -128,17 +130,17 @@ export function CompanyLogoCard() {
                 : "border-border hover:border-ring/60 hover:bg-muted/40")
             }
           >
-            <ImageUp className="size-6 text-muted-foreground" />
+            {uploading ? (
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            ) : (
+              <ImageUp className="size-6 text-muted-foreground" />
+            )}
             <span className="text-sm font-medium">Upload your logo</span>
             <span className="text-xs text-muted-foreground">
               Click to choose a file, or drop one here.
             </span>
           </button>
         )}
-        <p className="text-xs text-muted-foreground">
-          Preview build: the logo stays on this device until uploads are wired
-          up.
-        </p>
       </CardContent>
     </Card>
   )

@@ -1,32 +1,26 @@
 import { useCallback, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { ProductCards } from "@/features/products/ProductCards"
-import { ProductForm } from "@/features/products/ProductForm"
 import { useAuth } from "@/features/auth/useAuth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { productService } from "@/services/product.service"
 import { ApiError } from "@/services/http"
-import type { Product, ProductCreate } from "@/types/product"
+import type { Product } from "@/types/product"
 
 export function ProductsPage() {
   // Managing products (create/edit/delete) needs the "products_manage"
   // permission; without it the list is read-only.
   const { hasPermission } = useAuth()
   const canManage = hasPermission(PERMISSIONS.productsManage)
+  const navigate = useNavigate()
 
   const fetchProducts = useCallback(
     (params: { skip?: number; limit?: number }) => productService.list(params),
@@ -45,23 +39,11 @@ export function ProductsPage() {
     refetch,
   } = usePaginatedList<Product>(fetchProducts)
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  async function handleCreate(payload: ProductCreate) {
-    setCreating(true)
-    try {
-      await productService.create(payload)
-      toast.success(`Product "${payload.name}" created.`)
-      setCreateOpen(false)
-      refetch()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to create product.")
-    } finally {
-      setCreating(false)
-    }
+  function startCreate() {
+    navigate("/products/new")
   }
 
   async function handleDelete() {
@@ -91,7 +73,7 @@ export function ProductsPage() {
           </p>
         </div>
         {canManage && (
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button onClick={startCreate}>
             <Plus className="size-4" />
             New product
           </Button>
@@ -109,7 +91,7 @@ export function ProductsPage() {
         }
         emptyAction={
           canManage ? (
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={startCreate}>
               <Plus className="size-4" />
               Create your first product
             </Button>
@@ -131,21 +113,6 @@ export function ProductsPage() {
           onNext={() => setPage((p) => p + 1)}
         />
       </DataState>
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New product</DialogTitle>
-            <DialogDescription>Add a product to your list.</DialogDescription>
-          </DialogHeader>
-          <ProductForm
-            onSubmit={handleCreate}
-            onCancel={() => setCreateOpen(false)}
-            submitting={creating}
-            submitLabel="Create product"
-          />
-        </DialogContent>
-      </Dialog>
 
       <ConfirmDialog
         open={productToDelete !== null}

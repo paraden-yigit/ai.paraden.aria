@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ArrowLeft, Loader2, RefreshCw, Sparkles } from "lucide-react"
+import { ArrowLeft, Loader2, RefreshCw, Shuffle, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -155,6 +155,26 @@ export function SequencePreview({
     }
   }
 
+  // "Try another prospect": regenerate against a different contact than the one
+  // currently shown. Flips to the generating view (polling picks up the rest).
+  async function handleTryAnotherProspect() {
+    try {
+      setGen(
+        await campaignEmailService.generate(campaignId, {
+          excludeContactId: gen?.prospect?.contact_id ?? undefined,
+        }),
+      )
+    } catch (err) {
+      setGen({
+        status: "failed",
+        error:
+          err instanceof ApiError ? err.message : "Couldn't generate emails.",
+        prospect: null,
+        steps: [],
+      })
+    }
+  }
+
   async function handleCreate() {
     if (!gen || gen.status !== "ready" || !onCreate) return
     const selections: EmailSelection[] = gen.steps.map((step) => ({
@@ -245,9 +265,17 @@ export function SequencePreview({
                 .join(" · ") || "Written to your most complete contact"}
             </p>
           </div>
-          <span className="ml-auto shrink-0 self-start rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-            sample prospect
-          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="ml-auto shrink-0 self-start"
+            onClick={handleTryAnotherProspect}
+            disabled={creating}
+          >
+            <Shuffle className="size-4" />
+            Try another prospect
+          </Button>
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">

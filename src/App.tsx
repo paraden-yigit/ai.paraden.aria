@@ -5,6 +5,7 @@ import { AuthProvider } from "@/features/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { RequirePermission } from "@/components/auth/RequirePermission"
 import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute"
+import { OnboardingGate } from "@/components/auth/OnboardingGate"
 import { PERMISSIONS } from "@/lib/permissions"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/LoginPage"
@@ -14,10 +15,13 @@ import { EmailSettingsPage } from "@/pages/EmailSettingsPage"
 import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
 import { NewCampaignPage } from "@/pages/NewCampaignPage"
+import { OnboardingPage } from "@/pages/OnboardingPage"
 import { CampaignLayout } from "@/components/layout/CampaignLayout"
 import { CampaignDashboardPage } from "@/pages/CampaignDashboardPage"
 import { CampaignContactsPage } from "@/pages/CampaignContactsPage"
+import { CampaignEmailsPage } from "@/pages/CampaignEmailsPage"
 import { ProductsPage } from "@/pages/ProductsPage"
+import { NewProductPage } from "@/pages/NewProductPage"
 import { ProductDetailPage } from "@/pages/ProductDetailPage"
 import { CompanyInfoPage } from "@/pages/CompanyInfoPage"
 import { AgentInstructionsPage } from "@/pages/AgentInstructionsPage"
@@ -46,10 +50,19 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute />}>
+              {/* Full-screen first-login onboarding wizard — outside AppLayout so
+                  it has no sidebar/header, only its own minimal chrome. */}
+              <Route path="/onboarding" element={<OnboardingPage />} />
               {/* Full-page campaign wizard — deliberately outside AppLayout so it
                   has no sidebar or header, only its own close button. */}
               <Route path="/campaigns/new" element={<NewCampaignPage />} />
-              <Route element={<AppLayout />}>
+              {/* Full-page product creation wizard — outside AppLayout, same as
+                  the campaign wizard (its own minimal chrome, no app shell). */}
+              <Route path="/products/new" element={<NewProductPage />} />
+              {/* Everything under the app shell first passes the onboarding gate:
+                  unonboarded owners go to the wizard, other users wait. */}
+              <Route element={<OnboardingGate />}>
+                <Route element={<AppLayout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/profile" element={<UserProfilePage />} />
                 <Route path="/email-settings" element={<EmailSettingsPage />} />
@@ -64,6 +77,7 @@ function App() {
                 <Route path="/campaigns/:id" element={<CampaignLayout />}>
                   <Route index element={<CampaignDashboardPage />} />
                   <Route path="contacts" element={<CampaignContactsPage />} />
+                  <Route path="emails" element={<CampaignEmailsPage />} />
                 </Route>
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />
@@ -101,6 +115,7 @@ function App() {
                   }
                 >
                   <Route path="/company/users" element={<UsersPage />} />
+                </Route>
                 </Route>
               </Route>
             </Route>
