@@ -14,7 +14,11 @@ interface WizardStepperProps {
   skipped?: number[]
 }
 
-/** Horizontal step indicator for the campaign wizard. */
+/**
+ * Horizontal step indicator shared by every wizard (product, campaign,
+ * onboarding). Compact by design so it stays legible with many steps: small
+ * dots and small, single-line labels that never wrap to multiple lines.
+ */
 export function WizardStepper({ steps, current, skipped = [] }: WizardStepperProps) {
   return (
     <ol className="flex w-full items-center">
@@ -29,10 +33,10 @@ export function WizardStepper({ steps, current, skipped = [] }: WizardStepperPro
             key={step.title}
             className={cn("flex items-center", !isLast && "flex-1")}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-medium transition-colors",
+                  "flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium transition-colors",
                   isActive &&
                     "border-primary bg-primary text-primary-foreground",
                   isDone && "border-primary bg-primary text-primary-foreground",
@@ -41,11 +45,11 @@ export function WizardStepper({ steps, current, skipped = [] }: WizardStepperPro
                     "border-border bg-muted text-muted-foreground",
                 )}
               >
-                {isDone ? <Check className="size-4" /> : index + 1}
+                {isDone ? <Check className="size-3.5" /> : index + 1}
               </span>
               <span
                 className={cn(
-                  "text-sm font-medium",
+                  "whitespace-nowrap text-xs font-medium",
                   isActive ? "text-foreground" : "text-muted-foreground",
                   isSkipped && "line-through",
                 )}
@@ -56,7 +60,7 @@ export function WizardStepper({ steps, current, skipped = [] }: WizardStepperPro
             {!isLast && (
               <span
                 className={cn(
-                  "mx-4 hidden h-px flex-1 sm:block",
+                  "mx-3 hidden h-px flex-1 sm:block",
                   isDone ? "bg-primary" : "bg-border",
                 )}
               />

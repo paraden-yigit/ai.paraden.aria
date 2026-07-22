@@ -39,6 +39,7 @@ export function StepUpload({
 }: StepUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [parsing, setParsing] = useState(false)
+  const [dragging, setDragging] = useState(false)
 
   // Contacts already uploaded to this campaign (shown when resuming setup).
   const fetchUploaded = useCallback(
@@ -50,12 +51,7 @@ export function StepUpload({
     !!uploaded &&
     (uploaded.companies.length > 0 || uploaded.unassigned_contacts.length > 0)
 
-  async function handleSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    // Reset so the same file can be re-picked after a failure.
-    event.target.value = ""
-    if (!file) return
-
+  async function processFile(file: File) {
     setParsing(true)
     try {
       const result = await parseCsvFile(file)
@@ -68,17 +64,34 @@ export function StepUpload({
     }
   }
 
+  async function handleSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    // Reset so the same file can be re-picked after a failure.
+    event.target.value = ""
+    if (!file) return
+    await processFile(file)
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    setDragging(false)
+    if (parsing) return
+    const file = event.dataTransfer.files?.[0]
+    if (!file) return
+    if (!/\.csv$/i.test(file.name) && file.type !== "text/csv") {
+      toast.error("Please drop a CSV file.")
+      return
+    }
+    void processFile(file)
+  }
+
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-[#f5b740]/50 bg-[#f5b740]/8 p-4 text-sm">
-        <p className="font-medium text-foreground">Before you upload</p>
-        <p className="mt-1 text-muted-foreground">
-          Your CSV must include each contact&apos;s{" "}
-          <span className="font-medium text-foreground">full name</span> and a way
-          to identify their company: a{" "}
-          <span className="font-medium text-foreground">company domain</span> or a{" "}
-          <span className="font-medium text-foreground">LinkedIn URL</span>. You
-          can map the rest of your columns on the next step.
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Upload contacts</h2>
+        <p className="text-sm text-muted-foreground">
+          Add a CSV of contacts to this campaign, or skip to find matching
+          contacts automatically.
         </p>
       </div>
 
@@ -145,7 +158,15 @@ export function StepUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={parsing}
-          className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center transition-colors hover:bg-muted/50 disabled:opacity-60"
+          onDragOver={(event) => {
+            event.preventDefault()
+            if (!parsing) setDragging(true)
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center transition-colors disabled:opacity-60 ${
+            dragging ? "border-primary bg-muted/50" : "hover:bg-muted/50"
+          }`}
         >
           {parsing ? (
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -155,9 +176,11 @@ export function StepUpload({
           <span className="text-sm font-medium">
             {parsing
               ? "Reading file…"
-              : hasUploaded
-                ? "Upload another CSV"
-                : "Select a CSV file"}
+              : dragging
+                ? "Drop your CSV to upload"
+                : hasUploaded
+                  ? "Upload another CSV"
+                  : "Select or drop a CSV file"}
           </span>
           <span className="text-xs text-muted-foreground">
             {hasUploaded
