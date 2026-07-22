@@ -127,7 +127,13 @@ export function IcpApprovalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl">
+      <DialogContent
+        showCloseButton={false}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl"
+      >
         <DialogHeader className="border-b p-6">
           <DialogTitle>Here's who we'll target</DialogTitle>
           <DialogDescription>

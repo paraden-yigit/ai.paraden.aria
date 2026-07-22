@@ -87,11 +87,14 @@ function CampaignCard({
         >
           <Megaphone className="size-5" />
         </span>
-        <span className="min-w-0 flex-1 truncate font-medium">
+        <span className="min-w-0 flex-1 truncate pr-10 font-medium">
           {campaign.name}
         </span>
         {onDelete && (
-          <span className="relative z-10">
+          // Pinned to the top-right corner so it mirrors the thumbnail on the
+          // left; the box matches the thumbnail's size-11 footprint so the two
+          // sit at the same vertical level on opposite edges of the card.
+          <span className="absolute right-6 top-6 z-10 flex h-11 items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-8">

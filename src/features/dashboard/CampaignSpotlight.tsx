@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { loadContactStats } from "@/features/campaigns/contactStats"
+import { ResumeCampaignDialog } from "@/features/campaigns/ResumeCampaignDialog"
+import { useResumeCampaign } from "@/features/campaigns/useResumeCampaign"
 import { useAsync } from "@/hooks/useAsync"
 import { campaignService } from "@/services/campaign.service"
 import { formatDateTime } from "@/lib/format"
@@ -45,6 +47,7 @@ const statTiles = [
 export function CampaignSpotlight() {
   const fetcher = useCallback(() => loadSpotlight(), [])
   const spotlight = useAsync(fetcher, [])
+  const resume = useResumeCampaign()
 
   if (spotlight.loading) {
     return (
@@ -69,6 +72,7 @@ export function CampaignSpotlight() {
   const touches = campaign.sequence_touches ?? 0
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardDescription className="font-mono text-[11px] tracking-widest uppercase">
@@ -109,13 +113,29 @@ export function CampaignSpotlight() {
         </p>
       </CardContent>
       <CardFooter>
-        <Button asChild>
-          <Link to={`/campaigns/${campaign.id}`}>
-            Open campaign
+        {campaign.setup_completed ? (
+          <Button asChild>
+            <Link to={`/campaigns/${campaign.id}`}>
+              Open campaign
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        ) : (
+          <Button onClick={() => resume.open(campaign)}>
+            Finish setup
             <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+          </Button>
+        )}
       </CardFooter>
     </Card>
+
+    <ResumeCampaignDialog
+      campaign={resume.incomplete}
+      resetting={resume.resetting}
+      onClose={resume.close}
+      onContinue={resume.continueSetup}
+      onStartOver={resume.startOver}
+    />
+    </>
   )
 }
