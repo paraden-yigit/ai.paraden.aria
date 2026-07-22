@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils"
 const MIN_GAP = 1
 const MAX_GAP = 45
 const DEFAULT_TOUCHES = 3
-const DEFAULT_GAPS: Gaps = { advancer: 6, closer: 17 }
+const DEFAULT_GAPS: Gaps = { advancer: 3, closer: 4 }
 
 interface Gaps {
   advancer: number

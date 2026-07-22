@@ -40,6 +40,17 @@ export interface CampaignMetrics {
   meetings_booked: number
 }
 
+/**
+ * The call-to-action chosen on the wizard's "Call to action" step — the whole
+ * selected option, stored verbatim on the campaign and fed into email generation.
+ */
+export interface CtaType {
+  type: string
+  friction: string
+  intent: string
+  example_closing_line: string
+}
+
 export interface Campaign {
   id: number
   client_id: number
@@ -65,13 +76,15 @@ export interface Campaign {
   metrics: CampaignMetrics | null
   /** False until the creation wizard is finished. */
   setup_completed: boolean
-  /** The wizard's top-level step last reached (1 = ideal customers … 5 = preview). */
+  /** The wizard's top-level step last reached (1 = ideal customers … 6 = preview). */
   setup_step: number
   /** Outreach sequence config, saved from the sequence step (null until then). */
   sequence_touches: number | null
   sequence_advancer_gap: number | null
   sequence_closer_gap: number | null
   sequence_closer_style: string | null
+  /** The call-to-action chosen on the "Call to action" step (null until then). */
+  cta_type: CtaType | null
   /** How many companies to find, set on the "find contacts" step. */
   target_companies: number | null
   /** How many contacts to fetch per company ("list size"). */
@@ -94,6 +107,7 @@ export interface CampaignUpdate {
   sequence_advancer_gap?: number
   sequence_closer_gap?: number
   sequence_closer_style?: string
+  cta_type?: CtaType
   target_companies?: number
   list_size?: number
 }

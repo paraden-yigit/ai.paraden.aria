@@ -1,21 +1,15 @@
 import { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Loader2, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { CampaignCards } from "@/features/campaigns/CampaignCards"
+import { ResumeCampaignDialog } from "@/features/campaigns/ResumeCampaignDialog"
+import { useResumeCampaign } from "@/features/campaigns/useResumeCampaign"
 import { CampaignSpotlight } from "@/features/dashboard/CampaignSpotlight"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { campaignService } from "@/services/campaign.service"
@@ -44,33 +38,7 @@ export function CampaignsPage() {
 
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [incomplete, setIncomplete] = useState<Campaign | null>(null)
-  const [resetting, setResetting] = useState(false)
-
-  function handleOpen(campaign: Campaign) {
-    if (campaign.setup_completed) {
-      navigate(`/campaigns/${campaign.id}`)
-    } else {
-      setIncomplete(campaign)
-    }
-  }
-
-  function handleContinue() {
-    if (!incomplete) return
-    navigate(`/campaigns/new?resume=${incomplete.id}&mode=continue`)
-  }
-
-  async function handleStartOver() {
-    if (!incomplete) return
-    setResetting(true)
-    try {
-      await campaignService.reset(incomplete.id)
-      navigate(`/campaigns/new?resume=${incomplete.id}&mode=restart`)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to reset the campaign.")
-      setResetting(false)
-    }
-  }
+  const resume = useResumeCampaign()
 
   async function handleDelete() {
     if (!campaignToDelete) return
@@ -116,7 +84,7 @@ export function CampaignsPage() {
         {page === 0 && <CampaignSpotlight />}
         <CampaignCards
           campaigns={campaigns}
-          onOpen={handleOpen}
+          onOpen={resume.open}
           onDelete={setCampaignToDelete}
         />
         <PaginationFooter
@@ -130,33 +98,13 @@ export function CampaignsPage() {
         />
       </DataState>
 
-      <Dialog
-        open={incomplete !== null}
-        onOpenChange={(open) => {
-          if (!open && !resetting) setIncomplete(null)
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Finish setting up this campaign?</DialogTitle>
-            <DialogDescription>
-              You left the setup for “{incomplete?.name}” incomplete. Continue
-              where you left off, or start over from the contact-upload step.
-              Starting over clears any uploaded and discovered contacts but keeps
-              the campaign name and product.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button variant="outline" onClick={handleStartOver} disabled={resetting}>
-              {resetting && <Loader2 className="size-4 animate-spin" />}
-              Start over
-            </Button>
-            <Button onClick={handleContinue} disabled={resetting}>
-              Continue setup
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ResumeCampaignDialog
+        campaign={resume.incomplete}
+        resetting={resume.resetting}
+        onClose={resume.close}
+        onContinue={resume.continueSetup}
+        onStartOver={resume.startOver}
+      />
 
       <ConfirmDialog
         open={campaignToDelete !== null}

@@ -18,6 +18,7 @@ import {
   type SequenceConfig,
 } from "@/features/campaigns/wizard/SequenceBuilder"
 import { SequencePreview } from "@/features/campaigns/wizard/SequencePreview"
+import { StepCta } from "@/features/campaigns/wizard/StepCta"
 import type { ParsedCsv } from "@/features/campaigns/wizard/csv"
 import type { Campaign } from "@/types/campaign"
 import { campaignEmailService } from "@/services/campaign-email.service"
@@ -33,14 +34,15 @@ const STEPS: WizardStep[] = [
   { title: "Upload contacts" },
   { title: "Find contacts" },
   { title: "Sequence" },
+  { title: "Call to action" },
   { title: "Preview" },
 ]
 
-type MainStep = 0 | 1 | 2 | 3 | 4 | 5
+type MainStep = 0 | 1 | 2 | 3 | 4 | 5 | 6
 type SubStep = "upload" | "mapping" | "review"
 
 // The last top-level step index (Preview), used to clamp a resumed setup_step.
-const LAST_STEP: MainStep = 5
+const LAST_STEP: MainStep = 6
 
 /**
  * Full-page campaign creation wizard (no app chrome — only a close button back to
@@ -243,15 +245,31 @@ export function NewCampaignPage() {
       )
     }
 
-    // Step 6 — preview the sequence against a sample prospect.
+    // Step 6 — call to action: pick how each email closes. Saved onto the
+    // campaign and fed into the preview's email generation.
     if (mainStep === 5) {
+      return (
+        <StepCta
+          campaignId={campaign.id}
+          initialCta={campaign.cta_type}
+          onApprove={(cta) => {
+            setCampaign((prev) => (prev ? { ...prev, cta_type: cta } : prev))
+            setMainStep(6)
+          }}
+          onBack={() => setMainStep(4)}
+        />
+      )
+    }
+
+    // Step 7 — preview the sequence against a sample prospect.
+    if (mainStep === 6) {
       return (
         <SequencePreview
           campaignId={campaign.id}
           shape={sequenceConfig?.touches ?? 3}
           advancerGap={sequenceConfig?.gaps.advancer ?? 6}
           closerGap={sequenceConfig?.gaps.closer ?? 17}
-          onBack={() => setMainStep(4)}
+          onBack={() => setMainStep(5)}
           onCreate={complete}
         />
       )
@@ -308,7 +326,8 @@ export function NewCampaignPage() {
   }
 
   // Focused form steps read best narrow; list-heavy steps use the width.
-  const narrowStep = mainStep === 0 || (mainStep === 1 && subStep === "upload")
+  const narrowStep =
+    mainStep === 0 || mainStep === 5 || (mainStep === 1 && subStep === "upload")
 
   return (
     <div className="min-h-screen bg-background">
