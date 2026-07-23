@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -43,17 +43,36 @@ export function PainPointsSection({
   )
 
   const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState<ProductPainPoint | null>(null)
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  async function handleAdd(value: PainPointInput) {
+  function openAdd() {
+    setEditing(null)
+    setModalOpen(true)
+  }
+
+  function openEdit(pp: ProductPainPoint) {
+    setEditing(pp)
+    setModalOpen(true)
+  }
+
+  async function handleSave(value: PainPointInput) {
     setSaving(true)
     try {
-      await productService.addPainPoint(productId, value)
+      if (editing) {
+        await productService.updatePainPoint(productId, editing.id, value)
+      } else {
+        await productService.addPainPoint(productId, value)
+      }
       refetch()
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.message : "Failed to add pain point.",
+        err instanceof ApiError
+          ? err.message
+          : editing
+            ? "Failed to update pain point."
+            : "Failed to add pain point.",
       )
     } finally {
       setSaving(false)
@@ -102,20 +121,32 @@ export function PainPointsSection({
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium">{pp.name}</p>
                   {!readOnly && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 shrink-0 text-destructive hover:text-destructive"
-                      onClick={() => handleRemove(pp)}
-                      disabled={deletingId === pp.id}
-                    >
-                      {deletingId === pp.id ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="size-3.5" />
-                      )}
-                      <span className="sr-only">Remove pain point</span>
-                    </Button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => openEdit(pp)}
+                        disabled={deletingId === pp.id}
+                      >
+                        <Pencil className="size-3.5" />
+                        <span className="sr-only">Edit pain point</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive"
+                        onClick={() => handleRemove(pp)}
+                        disabled={deletingId === pp.id}
+                      >
+                        {deletingId === pp.id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                        <span className="sr-only">Remove pain point</span>
+                      </Button>
+                    </div>
                   )}
                 </div>
                 <p className="mt-1 text-muted-foreground">
@@ -143,11 +174,7 @@ export function PainPointsSection({
 
         {!readOnly && (
           <div className="mt-4">
-            <Button
-              size="sm"
-              onClick={() => setModalOpen(true)}
-              disabled={saving}
-            >
+            <Button size="sm" onClick={openAdd} disabled={saving}>
               {saving ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -162,7 +189,17 @@ export function PainPointsSection({
       <PainPointModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        onSave={handleAdd}
+        initial={
+          editing
+            ? {
+                name: editing.name,
+                challenge: editing.challenge,
+                why_it_matters: editing.why_it_matters,
+                how_it_helps: editing.how_it_helps,
+              }
+            : null
+        }
+        onSave={handleSave}
       />
     </Card>
   )
