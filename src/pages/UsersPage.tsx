@@ -33,6 +33,7 @@ import { useAuth } from "@/features/auth/useAuth"
 import { roleLabel, statusLabel } from "@/lib/roles"
 import { PERMISSIONS } from "@/lib/permissions"
 import { notifyUserCreated } from "@/lib/invite"
+import { userDisplayName } from "@/lib/format"
 import type {
   ClientUser,
   UserManageCreate,
@@ -97,7 +98,7 @@ export function UsersPage() {
     setSaving(true)
     try {
       await userService.update(userToEdit.id, payload)
-      toast.success(`${payload.full_name ?? userToEdit.full_name} updated.`)
+      toast.success(`${payload.full_name ?? userDisplayName(userToEdit)} updated.`)
       setUserToEdit(null)
       refetch()
     } catch (err) {
@@ -112,7 +113,7 @@ export function UsersPage() {
     setDeleting(true)
     try {
       await userService.remove(userToDelete.id)
-      toast.success(`${userToDelete.full_name} deleted.`)
+      toast.success(`${userDisplayName(userToDelete)} deleted.`)
       setUserToDelete(null)
       // Close the edit modal too — it was opened for the now-deleted user.
       setUserToEdit(null)
@@ -167,7 +168,8 @@ export function UsersPage() {
                 // Managers edit everyone except themselves (guards against
                 // accidentally demoting the last owner / self-lockout).
                 const editable = canManage && u.id !== currentUser?.id
-                const initials = u.full_name
+                const displayName = userDisplayName(u)
+                const initials = displayName
                   .split(/\s+/)
                   .filter(Boolean)
                   .slice(0, 2)
@@ -183,7 +185,7 @@ export function UsersPage() {
                         >
                           {initials || "?"}
                         </span>
-                        <span className="font-medium">{u.full_name}</span>
+                        <span className="font-medium">{displayName}</span>
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
@@ -306,7 +308,7 @@ export function UsersPage() {
         title="Delete user?"
         description={
           userToDelete
-            ? `${userToDelete.full_name} will lose access immediately and be removed from your users. This can't be undone.`
+            ? `${userDisplayName(userToDelete)} will lose access immediately and be removed from your users. This can't be undone.`
             : undefined
         }
         confirmLabel="Delete"
