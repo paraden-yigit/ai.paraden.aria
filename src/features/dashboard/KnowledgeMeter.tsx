@@ -14,7 +14,7 @@ import { useAsync } from "@/hooks/useAsync"
 import { agentInstructionsService } from "@/services/agent-instructions.service"
 import type { SetupState } from "@/features/onboarding/useSetupState"
 
-/** How ARIA has been taught so far. Three signals ride along from the setup
+/** How Paraden has been taught so far. Three signals ride along from the setup
  * state; agent instructions get their own cheap probe. */
 export function KnowledgeMeter({ setup }: { setup: SetupState }) {
   const fetcher = useCallback(() => agentInstructionsService.get(), [])
@@ -24,7 +24,7 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>ARIA's knowledge</CardTitle>
+          <CardTitle>What Paraden knows</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <Skeleton className="h-2 w-full" />
@@ -50,7 +50,7 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
     },
     {
       label: "Targeting profile",
-      hint: "Who ARIA looks for.",
+      hint: "Who Paraden looks for.",
       to:
         setup.firstProductId != null
           ? `/products/${setup.firstProductId}?tab=icp`
@@ -59,7 +59,7 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
     },
     {
       label: "Agent instructions",
-      hint: "Extra guidance for how ARIA writes.",
+      hint: "Extra guidance for how Paraden writes.",
       to: "/company/agent-instructions",
       done: !instructions.error && !!instructions.data?.instructions?.trim(),
     },
@@ -69,9 +69,9 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ARIA's knowledge</CardTitle>
+        <CardTitle>What Paraden knows</CardTitle>
         <CardDescription>
-          The more you teach ARIA, the sharper every email gets.
+          The more you teach Paraden, the sharper every email gets.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

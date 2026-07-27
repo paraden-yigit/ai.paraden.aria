@@ -107,10 +107,10 @@ export function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">
           {setup.loading
-            ? "You're signed in to Paraden ARIA."
+            ? "You're signed in to Paraden."
             : setup.allDone
               ? "Here's where your outreach stands."
-              : "Let's get ARIA working for you."}
+              : "Let's get Paraden working for you."}
         </p>
       </div>
 
@@ -127,7 +127,7 @@ export function DashboardPage() {
               loading={loading}
               error={error}
               isEmpty={campaigns.length === 0}
-              emptyMessage="No campaigns in your view yet. When you start one, ARIA finds matching prospects and drafts the outreach for you."
+              emptyMessage="No campaigns in your view yet. When you start one, Paraden finds matching prospects and drafts the outreach for you."
               emptyAction={
                 <Button onClick={() => navigate("/campaigns/new")}>
                   <Plus className="size-4" />

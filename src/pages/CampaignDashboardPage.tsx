@@ -226,7 +226,7 @@ export function CampaignDashboardPage() {
               Your campaign is ready.
             </CardTitle>
             <CardDescription>
-              ARIA has researched your prospects and drafted your outreach.
+              Paraden has researched your prospects and drafted your outreach.
               Everything below is yours to review and refine: nothing is final
               until you decide it is.
             </CardDescription>
@@ -389,7 +389,7 @@ export function CampaignDashboardPage() {
           <CardHeader>
             <CardTitle>Your outreach sequence</CardTitle>
             <CardDescription>
-              The emails ARIA drafted and you approved, in sending order.
+              The emails Paraden drafted and you approved, in sending order.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -175,7 +175,7 @@ export function OnboardingPage() {
                 Welcome{user?.full_name ? `, ${user.full_name.split(" ")[0]}` : ""}.
               </h1>
               <p className="text-sm text-muted-foreground">
-                Let's set up your company. Paste your website and ARIA will fill in
+                Let's set up your company. Paste your website and Paraden will fill in
                 the details for you to review.
               </p>
             </div>
@@ -277,7 +277,7 @@ export function OnboardingPage() {
         return (
           <StepShell
             title="What your company does"
-            description="Review the summary ARIA will use in your outreach."
+            description="Review the summary Paraden will use in your outreach."
             onBack={() => setStep(1)}
             onNext={() => setStep(3)}
           >

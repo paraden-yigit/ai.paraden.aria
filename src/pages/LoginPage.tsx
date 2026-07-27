@@ -26,9 +26,9 @@ export function LoginPage() {
       <main className="login-main">
         <div className="auth" id="auth">
           <div className="auth-head">
-            <div className="auth-eyebrow">Paraden ARIA</div>
+            <div className="auth-eyebrow">Paraden</div>
             <h1>Welcome back.</h1>
-            <p>Log in to the ARIA platform.</p>
+            <p>Log in to Paraden.</p>
           </div>
 
           <LoginForm />

@@ -148,7 +148,7 @@ export function ProductDetailPage() {
               <TabsContent value="info" className="mt-4 space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Teach ARIA about this product</CardTitle>
+                    <CardTitle>Teach Paraden about this product</CardTitle>
                     <CardDescription>
                       {answered} of {briefFields.length} questions answered.
                       Everything here feeds the targeting profile and the

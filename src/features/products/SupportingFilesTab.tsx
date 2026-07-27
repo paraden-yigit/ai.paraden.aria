@@ -224,8 +224,8 @@ export function SupportingFilesTab({
           </h2>
           <p className="text-muted-foreground">
             {readOnly
-              ? "Documents attached to this product. ARIA reads these when writing this product's targeting profile and emails."
-              : "Brochures, case studies, spec sheets: ARIA reads these when writing this product's targeting profile and emails. Upload PDF, Word, Excel, text, RTF or images up to 25 MB each, or add a page from a URL."}
+              ? "Documents attached to this product. Paraden reads these when writing this product's targeting profile and emails."
+              : "Brochures, case studies, spec sheets: Paraden reads these when writing this product's targeting profile and emails. Upload PDF, Word, Excel, text, RTF or images up to 25 MB each, or add a page from a URL."}
           </p>
         </div>
         {!readOnly && (

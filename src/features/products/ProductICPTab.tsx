@@ -152,7 +152,7 @@ export function ProductICPTab({
         open={confirmRegenerate}
         onOpenChange={setConfirmRegenerate}
         title="Regenerate this profile?"
-        description="ARIA will write a fresh profile from your company info, product brief and supporting files. It replaces everything here, including any changes you have made yourself."
+        description="Paraden will write a fresh profile from your company info, product brief and supporting files. It replaces everything here, including any changes you have made yourself."
         confirmLabel="Regenerate"
         onConfirm={handleGenerate}
         loading={starting}
@@ -182,7 +182,7 @@ export function ProductICPTab({
             <div>
               <p className="font-medium">Writing your targeting profile…</p>
               <p className="text-sm text-muted-foreground">
-                ARIA is reading your company info, product brief and
+                Paraden is reading your company info, product brief and
                 supporting files. This usually takes a few seconds, and you
                 can edit everything it writes.
               </p>
@@ -238,7 +238,7 @@ export function ProductICPTab({
               <p className="text-sm text-muted-foreground">
                 {readOnly
                   ? "This product has no targeting profile yet. Someone who manages products can generate one."
-                  : "ARIA reads your company info, this product's brief and any supporting files you have uploaded, then writes a profile of the companies and people worth contacting. You can edit everything afterwards, so nothing you do here is final."}
+                  : "Paraden reads your company info, this product's brief and any supporting files you have uploaded, then writes a profile of the companies and people worth contacting. You can edit everything afterwards, so nothing you do here is final."}
               </p>
             </div>
             {!readOnly && (

@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/useAuth"
 import { PERMISSIONS } from "@/lib/permissions"
 
-// Sidebar nav grouped into sections, ordered by workflow: teach ARIA about
+// Sidebar nav grouped into sections, ordered by workflow: teach Paraden about
 // the business first, run campaigns second, housekeeping last. A null title
 // renders the items with no heading (Dashboard sits on its own). An item with
 // a `permission` is only shown when the user's role grants it
@@ -52,7 +52,7 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: "Teach ARIA",
+    title: "Teach Paraden",
     items: [
       {
         to: "/company",
@@ -155,11 +155,11 @@ export function AppLayout() {
         )}
       >
         <div className="flex h-14 items-center px-4">
-          <Link to="/" onClick={() => setSidebarOpen(false)} aria-label="Paraden ARIA home">
+          <Link to="/" onClick={() => setSidebarOpen(false)} aria-label="Paraden home">
             <img
-              src={isDark ? "/paraden-aria-no-box-dark.svg" : "/paraden-aria-no-box.svg"}
-              alt="Paraden ARIA"
-              className="h-7 w-auto"
+              src={isDark ? "/paraden-wordmark-dark.svg" : "/paraden-wordmark.svg"}
+              alt="Paraden"
+              className="h-5 w-auto"
             />
           </Link>
         </div>

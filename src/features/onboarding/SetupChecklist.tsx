@@ -41,7 +41,7 @@ export function SetupChecklist({ state }: { state: SetupState }) {
 
   const steps: StepDef[] = [
     {
-      title: "Tell ARIA about your company",
+      title: "Tell Paraden about your company",
       blurb: "What you do, your positioning, your competitors. It shapes every email.",
       to: "/company",
       done: state.messagingDone,
@@ -54,7 +54,7 @@ export function SetupChecklist({ state }: { state: SetupState }) {
     },
     {
       title: "Generate your targeting profile",
-      blurb: "ARIA works out which companies and people to look for.",
+      blurb: "Paraden works out which companies and people to look for.",
       to:
         state.firstProductId != null
           ? `/products/${state.firstProductId}?tab=icp`
@@ -63,7 +63,7 @@ export function SetupChecklist({ state }: { state: SetupState }) {
     },
     {
       title: "Create your first campaign",
-      blurb: "ARIA finds prospects and drafts the emails. You approve everything.",
+      blurb: "Paraden finds prospects and drafts the emails. You approve everything.",
       to: "/campaigns/new",
       done: state.campaignDone,
     },

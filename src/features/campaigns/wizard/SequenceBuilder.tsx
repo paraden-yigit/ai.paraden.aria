@@ -178,7 +178,7 @@ export function SequenceBuilder({
             </p>
           </div>
           <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
-            Next, ARIA drafts the wording and you choose your favourite for
+            Next, Paraden drafts the wording and you choose your favourite for
             each email. Nothing sends by itself.
           </p>
         </aside>

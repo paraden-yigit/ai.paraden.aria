@@ -150,7 +150,7 @@ export function IcpApprovalDialog({
               <div>
                 <p className="font-medium">Building your targeting profile…</p>
                 <p className="text-sm text-muted-foreground">
-                  ARIA is reading everything you shared. This usually takes a few
+                  Paraden is reading everything you shared. This usually takes a few
                   seconds.
                 </p>
               </div>
