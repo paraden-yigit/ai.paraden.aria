@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Eye,
   Loader2,
   Mail,
 } from "lucide-react"
@@ -53,9 +54,20 @@ function dayLabels(campaign: Campaign, count: number): string[] {
 function SendOutcome({ send }: { send: SendRecord }) {
   if (send.status === "sent") {
     return (
-      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
-        Sent {formatDateTime(send.sent_at)} from {send.sender_email}
+      <span className="flex flex-col items-end gap-0.5 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+          Sent {formatDateTime(send.sent_at)} from {send.sender_email}
+        </span>
+        {/* Shown only when the pixel actually loaded. There is deliberately no
+            "not opened" state: a recipient who blocks images reads the email and
+            never reaches us, so silence is not evidence of anything. */}
+        {send.first_opened_at && (
+          <span className="flex items-center gap-1.5">
+            <Eye className="size-3.5 shrink-0 text-sky-600" />
+            Opened {formatDateTime(send.first_opened_at)}
+          </span>
+        )}
       </span>
     )
   }

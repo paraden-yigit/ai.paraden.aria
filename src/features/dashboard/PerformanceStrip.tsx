@@ -1,6 +1,12 @@
-import { CalendarCheck, MailOpen, Reply, Send, Target } from "lucide-react"
+import {
+  Ban,
+  MailOpen,
+  Reply,
+  Send,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { MetricTile } from "@/components/MetricTile"
 import type { Campaign, CampaignMetrics } from "@/types/campaign"
 
@@ -30,9 +36,11 @@ function total(
 /**
  * The dashboard's headline performance strip: the funnel totals across every
  * campaign the user can see that has been run. Renders nothing until at least
- * one campaign has metrics. Simulated figures for now (no sending pipeline), so
- * it carries the same "Sample data" badge as the dashboard charts; drop the
- * badge and caption when the sending layer lands.
+ * one campaign has metrics.
+ *
+ * Deliberately the same six tiles as a campaign's own Performance tab, in the
+ * same order — this is that view summed across campaigns, and two layouts for one
+ * funnel would invite the reader to look for a difference that isn't there.
  */
 export function PerformanceStrip({ campaigns }: { campaigns: Campaign[] }) {
   const ran = campaigns.filter((c) => c.metrics != null)
@@ -41,8 +49,9 @@ export function PerformanceStrip({ campaigns }: { campaigns: Campaign[] }) {
   const sent = total(ran, (m) => m.sent)
   const opens = total(ran, (m) => m.opens)
   const replies = total(ran, (m) => m.replies)
-  const leads = total(ran, (m) => m.qualified_leads)
-  const meetings = total(ran, (m) => m.meetings_booked)
+  const success = total(ran, (m) => m.success)
+  const fail = total(ran, (m) => m.fail)
+  const optOut = total(ran, (m) => m.opt_out)
 
   return (
     <section className="space-y-2">
@@ -50,14 +59,13 @@ export function PerformanceStrip({ campaigns }: { campaigns: Campaign[] }) {
         <h2 className="text-sm font-medium text-muted-foreground">
           Performance
         </h2>
-        <Badge variant="secondary">Sample data</Badge>
       </div>
       <p className="text-xs text-muted-foreground">
         Totals across {ran.length} run{" "}
-        {ran.length === 1 ? "campaign" : "campaigns"}. Nothing has been sent:
-        these figures preview how results will read once sending is live.
+        {ran.length === 1 ? "campaign" : "campaigns"}. Replies count prospects who
+        wrote back; Success, Fail and Opt-out are how their latest reply was read.
       </p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <MetricTile
           icon={Send}
           label="Sent"
@@ -68,7 +76,7 @@ export function PerformanceStrip({ campaigns }: { campaigns: Campaign[] }) {
           icon={MailOpen}
           label="Opens"
           value={formatCount(opens)}
-          caption={`${rate(opens, sent)} of sent`}
+          caption="unique prospects"
         />
         <MetricTile
           icon={Reply}
@@ -78,16 +86,22 @@ export function PerformanceStrip({ campaigns }: { campaigns: Campaign[] }) {
           emphasis
         />
         <MetricTile
-          icon={Target}
-          label="Qualified leads"
-          value={formatCount(leads)}
-          caption={`${rate(leads, replies)} of replies`}
+          icon={ThumbsUp}
+          label="Success"
+          value={formatCount(success)}
+          caption={`${rate(success, replies)} of replies`}
         />
         <MetricTile
-          icon={CalendarCheck}
-          label="Meetings booked"
-          value={formatCount(meetings)}
-          caption={`${rate(meetings, leads)} of leads`}
+          icon={ThumbsDown}
+          label="Fail"
+          value={formatCount(fail)}
+          caption={`${rate(fail, replies)} of replies`}
+        />
+        <MetricTile
+          icon={Ban}
+          label="Opt-out"
+          value={formatCount(optOut)}
+          caption={`${rate(optOut, replies)} of replies`}
         />
       </div>
     </section>

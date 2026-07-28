@@ -47,6 +47,11 @@ export function SendingStatusBadge({
       label = "Replied"
       variant = "default"
       break
+    case "suppressed":
+      // Not a failure: they asked to be left alone and we honoured it.
+      label = "Opted out"
+      variant = "outline"
+      break
     default:
       label = sent === 0 ? "Queued" : `Step ${sent} of ${steps_total} sent`
       variant = sent === 0 ? "secondary" : "default"

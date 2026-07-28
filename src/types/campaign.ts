@@ -38,6 +38,16 @@ export interface CampaignMetrics {
   unsubscribes: number
   qualified_leads: number
   meetings_booked: number
+  /**
+   * The reply breakdown. Counted per prospect and mutually exclusive, so
+   * `success + fail + opt_out` never exceeds `replies` — the remainder is replies
+   * that were none of the three (a question, an acknowledgement, or anything too
+   * ambiguous to call). Automated replies (out-of-office, bounces) are excluded
+   * from `replies` entirely.
+   */
+  success: number
+  fail: number
+  opt_out: number
 }
 
 /**

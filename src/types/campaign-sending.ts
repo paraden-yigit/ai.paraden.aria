@@ -13,6 +13,8 @@ export type SendingStatus =
   | "paused"
   | "failed"
   | "replied"
+  /** They asked not to be contacted again; the rest of the sequence was cancelled. */
+  | "suppressed"
 
 /** Dispatch priority — committed sequences finish before new ones start. */
 export const TIER_CLOSER = 0
@@ -47,6 +49,12 @@ export interface SendRecord {
   sent_at: string | null
   error: string | null
   error_kind: string | null
+  /** Whether a tracking pixel shipped with this message. False means nothing is
+   * known about whether it was opened — not that it wasn't. */
+  tracked: boolean
+  /** When the recipient's mail client first loaded the pixel, if it ever did. */
+  first_opened_at: string | null
+  open_count: number
 }
 
 /** Response of GET /api/campaigns/{id}/sending/contacts/{contactId}. */
