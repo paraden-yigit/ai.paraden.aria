@@ -1,5 +1,5 @@
 import { config } from "@/lib/config"
-import type { User, UserProfileUpdate } from "@/types/auth"
+import type { PasswordResetInfo, User, UserProfileUpdate } from "@/types/auth"
 import { apiClient } from "./http"
 
 /**
@@ -54,6 +54,37 @@ export const authService = {
     new_password: string
   }): Promise<void> {
     await apiClient.post("/api/auth/me/password", payload)
+  },
+
+  /**
+   * Ask for a password-reset link ("forgot password").
+   *
+   * Always succeeds, whether or not the address has an account — the API will
+   * not say which, so the form must not either.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    await apiClient.post(
+      "/api/auth/password-reset",
+      { email },
+      { skipRefresh: true },
+    )
+  },
+
+  /** Check a reset link is still good before showing its form (404/410 if not). */
+  async checkPasswordReset(token: string): Promise<PasswordResetInfo> {
+    return apiClient.get<PasswordResetInfo>(
+      `/api/auth/password-reset/${encodeURIComponent(token)}`,
+      { skipRefresh: true },
+    )
+  },
+
+  /** Set a new password from a reset link. Ends every existing session. */
+  async resetPassword(token: string, password: string): Promise<void> {
+    await apiClient.post(
+      `/api/auth/password-reset/${encodeURIComponent(token)}`,
+      { password },
+      { skipRefresh: true },
+    )
   },
 
   /** Revoke the refresh token server-side and clear the session cookies. */

@@ -9,6 +9,8 @@ import { OnboardingGate } from "@/components/auth/OnboardingGate"
 import { PERMISSIONS } from "@/lib/permissions"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/LoginPage"
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage"
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage"
 import { DashboardPage } from "@/pages/DashboardPage"
 import { AccountSettingsPage } from "@/pages/AccountSettingsPage"
 import { ProfileSettingsPage } from "@/pages/ProfileSettingsPage"
@@ -48,6 +50,13 @@ function App() {
           <Routes>
             <Route element={<PublicOnlyRoute />}>
               <Route path="/login" element={<LoginPage />} />
+              {/* Password reset. Public-only like login: anyone here has lost
+                  their session, and a signed-in user belongs in the app. */}
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route
+                path="/reset-password/:token"
+                element={<ResetPasswordPage />}
+              />
             </Route>
 
             <Route element={<ProtectedRoute />}>

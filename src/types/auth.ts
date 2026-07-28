@@ -34,6 +34,14 @@ export interface User {
   updated_at: string
 }
 
+/**
+ * What GET /api/auth/password-reset/{token} returns for a link that is still
+ * good — just the address, so the form can say whose password is being set.
+ */
+export interface PasswordResetInfo {
+  email: string
+}
+
 /** Body for PATCH /api/auth/me — the current user's self-serve profile edit. */
 export interface UserProfileUpdate {
   full_name?: string | null
