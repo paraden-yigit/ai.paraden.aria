@@ -32,6 +32,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { DataState } from "@/components/DataState"
 import { Disclosure } from "@/components/Disclosure"
 import { MetricTile } from "@/components/MetricTile"
@@ -83,6 +88,44 @@ function formatCount(value: number): string {
 function rate(num: number, denom: number): string {
   if (denom <= 0) return "n/a"
   return `${((num / denom) * 100).toFixed(1)}%`
+}
+
+/**
+ * The counting caveats, on an info button beside the Performance heading.
+ *
+ * A popover rather than a tooltip: this is five sentences, and a tooltip that
+ * long cannot be read on a touch screen, cannot be kept open while you look
+ * back at the numbers, and cannot have its text selected. Same affordance, same
+ * place, but it behaves like something you are meant to read.
+ */
+function CountingNote() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
+          aria-label="How these figures are counted"
+        >
+          <Info className="size-4" aria-hidden="true" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-96 text-sm">
+        <p className="font-medium">How these are counted</p>
+        <p className="mt-2 text-muted-foreground">
+          Every figure here is real, recounted from the send and reply logs each
+          time this page loads. Opens count prospects whose mail client loaded
+          the tracking image, so they undercount anyone who blocks images and
+          overcount privacy proxies that load it for them. Replies count
+          prospects who wrote back, so an out-of-office or a bounce notice is
+          not one. Success, Fail and Opt-out are how their latest reply was
+          read; a reply that fitted none of the three is counted in Replies but
+          in no outcome tile. Bounces only count rejections we see at the moment
+          of sending.
+        </p>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 /** One line of campaign make-up: what the list is built from. A definition row
@@ -375,31 +418,13 @@ export function CampaignDashboardPage() {
 
       {campaign.metrics && (
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <h3 className="text-sm font-medium text-muted-foreground">
               Performance
             </h3>
+            <CountingNote />
           </div>
           <MetricsGrid metrics={campaign.metrics} />
-          {/* The caveats are load-bearing and survive word for word; they just
-              no longer sit between the reader and the numbers they qualify. */}
-          <Disclosure
-            id={`metric-notes-${campaign.id}`}
-            label="How these are counted"
-            icon={Info}
-          >
-            <p className="text-sm text-muted-foreground">
-              Every figure here is real, recounted from the send and reply logs
-              each time this page loads. Opens count prospects whose mail client
-              loaded the tracking image, so they undercount anyone who blocks
-              images and overcount privacy proxies that load it for them.
-              Replies count prospects who wrote back, so an out-of-office or a
-              bounce notice is not one. Success, Fail and Opt-out are how their
-              latest reply was read; a reply that fitted none of the three is
-              counted in Replies but in no outcome tile. Bounces only count
-              rejections we see at the moment of sending.
-            </p>
-          </Disclosure>
         </div>
       )}
 
@@ -480,17 +505,16 @@ export function CampaignDashboardPage() {
               onRetry={emails.refetch}
               skeletonRows={3}
             >
-              {/* Collapsed by default. Expanded, the full sequence ran to
-                  several screens and pushed the next-steps card off the page,
-                  which made the least useful thing the most prominent. */}
+              {/* SavedSequence already gives every step its own open/close
+                  toggle, so wrapping the lot in one more disclosure made
+                  reading a single email a two-click job. The steps are the
+                  disclosures; they just all start closed here. */}
               {emails.data && (
-                <Disclosure
-                  id={`sequence-${campaign.id}`}
-                  label="Read the emails"
-                  badge={`${emails.data.length}`}
-                >
-                  <SavedSequence campaign={campaign} emails={emails.data} />
-                </Disclosure>
+                <SavedSequence
+                  campaign={campaign}
+                  emails={emails.data}
+                  startCollapsed
+                />
               )}
             </DataState>
           </CardContent>

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
-import { Inbox as InboxIcon } from "lucide-react"
+import { Inbox as InboxIcon, Search } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -66,26 +67,49 @@ export function InboxPage() {
   const [mailbox, setMailbox] = useState<string>(ALL_MAILBOXES)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [query, setQuery] = useState("")
   const wide = useIsWideLayout()
 
+  /** Everything a person might half-remember about a message. */
+  function haystack(m: InboxMessage): string {
+    return [
+      m.contact.name,
+      m.contact.email,
+      m.contact.company,
+      m.contact.jobTitle,
+      m.campaign,
+      m.subject,
+      m.body.replace(/<[^>]+>/g, " "),
+      m.mailbox,
+    ]
+      .join(" ")
+      .toLowerCase()
+  }
+
+  const terms = query.trim().toLowerCase()
+
+  const matches = useMemo(() => {
+    return SAMPLE_MESSAGES.filter(
+      (m) =>
+        (mailbox === ALL_MAILBOXES || m.mailbox === mailbox) &&
+        (terms === "" || haystack(m).includes(terms)),
+    )
+    // haystack is pure and stable; the inputs that matter are below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailbox, terms])
+
   const messages = useMemo(
-    () =>
-      SAMPLE_MESSAGES.filter(
-        (m) =>
-          m.folder === folder &&
-          (mailbox === ALL_MAILBOXES || m.mailbox === mailbox),
-      ),
-    [folder, mailbox],
+    () => matches.filter((m) => m.folder === folder),
+    [matches, folder],
   )
 
+  // Counts follow the search, so a folder tab never promises results the
+  // current filter would not show.
   const counts = useMemo(() => {
     const byFolder: Record<string, number> = {}
-    for (const m of SAMPLE_MESSAGES) {
-      if (mailbox !== ALL_MAILBOXES && m.mailbox !== mailbox) continue
-      byFolder[m.folder] = (byFolder[m.folder] ?? 0) + 1
-    }
+    for (const m of matches) byFolder[m.folder] = (byFolder[m.folder] ?? 0) + 1
     return byFolder
-  }, [mailbox])
+  }, [matches])
 
   const selected = messages.find((m) => m.id === selectedId) ?? null
 
@@ -133,66 +157,94 @@ export function InboxPage() {
 
       <SampleDataBanner />
 
-      {/* Folders. A plain button row rather than shadcn Tabs, because the
-          panel below is a two-column layout, not a tab panel. */}
-      <nav className="flex gap-1 border-b" aria-label="Mail folders">
-        {FOLDERS.map((f) => {
-          const active = f.key === folder
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => changeFolder(f.key)}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {f.label}
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums">
-                {counts[f.key] ?? 0}
-              </span>
-            </button>
-          )
-        })}
-      </nav>
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b">
+        {/* Folders. A plain button row rather than shadcn Tabs, because the
+            panel below is a two-column layout, not a tab panel. */}
+        <nav className="flex gap-1" aria-label="Mail folders">
+          {FOLDERS.map((f) => {
+            const active = f.key === folder
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => changeFolder(f.key)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+                  active
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {f.label}
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums">
+                  {counts[f.key] ?? 0}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
 
-      {messages.length === 0 ? (
-        <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-          <InboxIcon
-            className="mx-auto mb-3 size-6 opacity-60"
+        <div className="relative mb-2 w-full sm:w-72">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
-          {folder === "received"
-            ? "No replies in this mailbox yet."
-            : folder === "sent"
-              ? "Nothing has been sent from this mailbox yet."
-              : "Nothing is queued from this mailbox."}
-        </div>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-          <MessageList
-            folder={folder}
-            messages={messages}
-            selectedId={selectedId}
-            onSelect={select}
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search people, companies, subjects"
+            aria-label="Search mail"
+            className="pl-8"
           />
-
-          {/* Desktop reading pane. Below lg the same content opens in a Sheet. */}
-          <div className="hidden rounded-lg border lg:block">
-            {selected ? (
-              <MessageView message={selected} />
-            ) : (
-              <p className="p-10 text-center text-sm text-muted-foreground">
-                Pick a message to read it.
-              </p>
-            )}
-          </div>
         </div>
-      )}
+      </div>
+
+      {/* A mail client, so the two panes scroll independently inside a panel of
+          fixed height rather than the whole page growing with the list. The
+          height is the viewport minus the app chrome and this page's header. */}
+      <div className="grid gap-4 lg:h-[calc(100vh-21rem)] lg:min-h-100 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-col rounded-lg border">
+          {messages.length === 0 ? (
+            <p className="p-10 text-center text-sm text-muted-foreground">
+              <InboxIcon
+                className="mx-auto mb-3 size-6 opacity-60"
+                aria-hidden="true"
+              />
+              {terms
+                ? `Nothing matches "${query.trim()}" in ${FOLDERS.find((f) => f.key === folder)?.label.toLowerCase()}.`
+                : folder === "received"
+                  ? "No replies in this mailbox yet."
+                  : folder === "sent"
+                    ? "Nothing has been sent from this mailbox yet."
+                    : "Nothing is queued from this mailbox."}
+            </p>
+          ) : (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <MessageList
+                folder={folder}
+                messages={messages}
+                selectedId={selectedId}
+                onSelect={select}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Desktop reading pane. Below lg the same content opens in a Sheet. */}
+        <div className="hidden min-h-0 rounded-lg border lg:block">
+          {selected ? (
+            <MessageView message={selected} />
+          ) : (
+            <p className="p-10 text-center text-sm text-muted-foreground">
+              {messages.length === 0
+                ? "Nothing to read here."
+                : "Pick a message to read it."}
+            </p>
+          )}
+        </div>
+      </div>
 
       {!wide && (
         <Sheet open={sheetOpen && selected !== null} onOpenChange={setSheetOpen}>

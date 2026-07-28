@@ -41,7 +41,8 @@ export function MessageList({
   onSelect: (message: InboxMessage) => void
 }) {
   return (
-    <ul className="divide-y rounded-lg border">
+    // The panel that scrolls this list owns the border and the corners.
+    <ul className="divide-y">
       {messages.map((message) => {
         const selected = message.id === selectedId
         const when = stamp(message)
