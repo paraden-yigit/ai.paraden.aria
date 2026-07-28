@@ -43,6 +43,15 @@ itself (`/login`), copied in look from the marketing site.
   `/login`; **`PublicOnlyRoute`** keeps signed-in users off `/login`.
 - **Logout** (`AppLayout` account menu) calls `POST /api/auth/logout` then routes
   to `/login`.
+- **Password reset** — `/forgot-password` (ask for an address) and
+  `/reset-password/:token` (choose a new password), both under `PublicOnlyRoute`.
+  The reset page validates the token on mount before showing its form, then sends
+  the user to `/login` with a `notice` in the navigation state, which `LoginForm`
+  seeds its info line from. Setting the password ends every existing session
+  server-side, so logging in again is required, not just polite.
+- **`features/auth/AuthScreen`** is the shell all three unauthenticated screens
+  share (nav, heading, card slot, footer). Reuse it for any new logged-out page
+  rather than copying the markup.
 
 ## REST API
 

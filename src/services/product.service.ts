@@ -110,6 +110,17 @@ export const productService = {
     )
   },
 
+  updatePainPoint(
+    productId: number,
+    painPointId: number,
+    payload: PainPointInput,
+  ): Promise<ProductPainPoint> {
+    return apiClient.patch<ProductPainPoint>(
+      `/api/products/${productId}/pain-points/${painPointId}`,
+      payload,
+    )
+  },
+
   removePainPoint(
     productId: number,
     painPointId: number,

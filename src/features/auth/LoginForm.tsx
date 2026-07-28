@@ -1,34 +1,38 @@
 import { useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/features/auth/useAuth"
 import { ApiError } from "@/services/http"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-interface FromState {
+interface LoginState {
   from?: { pathname?: string }
+  /** One-off message from wherever we were sent here (e.g. a password reset). */
+  notice?: string
 }
 
 /*
   Login form for the aria dashboard. Authenticates directly against the platform
   API (POST /api/auth/login), which sets the httpOnly session cookies; we then
   load the user and route into the app. Markup/styling are copied from the
-  marketing site's login. Email + password only: Google sign-in and a real
-  password-reset flow arrive with backend support (the removed placeholders
-  live in git history), so the screen promises nothing it cannot do.
+  marketing site's login. Email + password only — Google sign-in is still a
+  placeholder-free absence (see git history).
 */
 export default function LoginForm() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as FromState | null)?.from?.pathname ?? "/"
+  const state = location.state as LoginState | null
+  const from = state?.from?.pathname ?? "/"
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const [info, setInfo] = useState("")
+  // Seeded once from the navigation state, so the "password changed" line shows
+  // on arrival and then clears the moment the user does anything else.
+  const [info, setInfo] = useState(state?.notice ?? "")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -54,12 +58,6 @@ export default function LoginForm() {
     }
   }
 
-  function handleForgot(e: React.MouseEvent<HTMLAnchorElement>) {
-    e.preventDefault()
-    setError("")
-    setInfo("Password help: email support@paraden.ai and we will sort it out.")
-  }
-
   return (
     <div className="card">
       <form id="loginForm" onSubmit={handleSubmit} noValidate>
@@ -79,9 +77,9 @@ export default function LoginForm() {
         <div className="field">
           <div className="field-row">
             <label htmlFor="password">Password</label>
-            <a className="forgot" href="#" id="forgotLink" onClick={handleForgot}>
+            <Link className="forgot" to="/forgot-password" id="forgotLink">
               Forgot?
-            </a>
+            </Link>
           </div>
           <input
             id="password"

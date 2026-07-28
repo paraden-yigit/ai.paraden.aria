@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { AlertCircle, AtSign, Building2, Loader2, Mail } from "lucide-react"
+import { AtSign, Building2, Loader2, Mail } from "lucide-react"
 
 import { DataState } from "@/components/DataState"
 import {
@@ -10,10 +10,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
+import { SendingStatusBadge } from "@/features/campaigns/SendingStatusBadge"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
 import { ApiError } from "@/services/http"
 import { campaignContactService } from "@/services/campaign-contact.service"
 import { campaignEmailService } from "@/services/campaign-email.service"
+import { campaignSendingService } from "@/services/campaign-sending.service"
+import type { SendRecord } from "@/types/campaign-sending"
 import type { CampaignContact } from "@/types/campaign-contact"
 import type { CampaignContactEmail } from "@/types/campaign-email"
 
@@ -30,9 +33,9 @@ function initials(name: string | null): string {
 
 /**
  * The campaign Emails tab: lists the reachable prospects (those with a work
- * email) and, on selecting one, slides over their generated outreach sequence.
- * The emails are written per-prospect by the post-launch generation job; while
- * that runs, a banner shows progress and the list fills in on refresh.
+ * email) and, on selecting one, slides over their outreach sequence. Each
+ * prospect's whole sequence is written just before their opener is sent, so a
+ * prospect still in the queue has none yet and the list fills in over time.
  */
 export function CampaignEmailsPage() {
   const { campaign } = useCampaignContext()
@@ -44,6 +47,7 @@ export function CampaignEmailsPage() {
 
   const [selected, setSelected] = useState<CampaignContact | null>(null)
   const [emails, setEmails] = useState<CampaignContactEmail[] | null>(null)
+  const [sends, setSends] = useState<SendRecord[]>([])
   const [emailsLoading, setEmailsLoading] = useState(false)
   const [emailsError, setEmailsError] = useState<string | null>(null)
 
@@ -78,17 +82,31 @@ export function CampaignEmailsPage() {
     void loadContacts()
   }, [loadContacts, campaign.updated_at])
 
-  // Fetch the selected prospect's emails when the sheet opens.
+  // Fetch the selected prospect's emails — and what has actually been sent to
+  // them — when the sheet opens. The send record is best-effort: a campaign that
+  // never launched has none, and that must not block the drafts from rendering.
   useEffect(() => {
     if (selected === null) return
     let active = true
+    // Clearing the previous prospect's data as the sheet switches — the same
+    // reset the effect above does, and the rule's suggested alternatives don't
+    // fit a fetch keyed on the selected row.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setEmails(null)
+    setSends([])
     setEmailsLoading(true)
     setEmailsError(null)
-    campaignEmailService
-      .forContact(campaignId, selected.id)
-      .then((rows) => {
-        if (active) setEmails(rows)
+    /* eslint-enable react-hooks/set-state-in-effect */
+    Promise.all([
+      campaignEmailService.forContact(campaignId, selected.id),
+      campaignSendingService
+        .forContact(campaignId, selected.id)
+        .catch(() => ({ sending: null, sends: [] })),
+    ])
+      .then(([rows, sending]) => {
+        if (!active) return
+        setEmails(rows)
+        setSends(sending.sends)
       })
       .catch((err) => {
         if (active)
@@ -104,51 +122,26 @@ export function CampaignEmailsPage() {
     }
   }, [selected, campaignId])
 
-  const status = campaign.email_generation_status
-
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Emails</h2>
         <p className="text-muted-foreground">
-          The outreach sequence generated for each reachable prospect. Select a
+          The outreach sequence written for each reachable prospect. Select a
           prospect to read their emails.
         </p>
       </div>
 
-      {status === "generating" && (
-        <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
-          <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-          <span>
-            Generating personalized emails for each prospect… this can take a
-            while. Refresh to see them appear.
-          </span>
-        </div>
-      )}
-      {status === "failed" && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>
-            {campaign.email_generation_error ??
-              "Email generation failed. Re-run the campaign to try again."}
-          </span>
-        </div>
-      )}
-      {status === "pending" && (
-        <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          Emails are generated once the campaign is launched.
-        </div>
-      )}
+      <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        A prospect's whole sequence is written just before their first email goes
+        out, so emails appear here as the campaign works through the queue.
+      </div>
 
       <DataState
         loading={loading}
         error={error}
         isEmpty={contacts.length === 0}
-        emptyMessage={
-          status === "generating"
-            ? "No emails yet — generation is still running."
-            : "No reachable prospects yet. Prospects need a work email before emails can be generated."
-        }
+        emptyMessage="No reachable prospects yet. Prospects need a work email before emails can be written."
         onRetry={loadContacts}
         skeletonRows={6}
       >
@@ -176,7 +169,11 @@ export function CampaignEmailsPage() {
                       .join(" · ") || contact.email}
                   </p>
                 </div>
-                <Mail className="size-4 shrink-0 text-muted-foreground" />
+                {contact.sending ? (
+                  <SendingStatusBadge sending={contact.sending} />
+                ) : (
+                  <Mail className="size-4 shrink-0 text-muted-foreground" />
+                )}
               </button>
             </li>
           ))}
@@ -219,13 +216,16 @@ export function CampaignEmailsPage() {
                   <p className="text-sm text-destructive">{emailsError}</p>
                 )}
                 {!emailsLoading && !emailsError && emails && emails.length > 0 && (
-                  <SavedSequence campaign={campaign} emails={emails} />
+                  <SavedSequence
+                    campaign={campaign}
+                    emails={emails}
+                    sends={sends}
+                  />
                 )}
                 {!emailsLoading && !emailsError && emails && emails.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    {status === "generating"
-                      ? "This prospect's emails haven't been generated yet."
-                      : "No emails were generated for this prospect."}
+                    This prospect's emails haven't been written yet — they are
+                    generated just before their first email is sent.
                   </p>
                 )}
               </div>

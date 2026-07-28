@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
 import { ArrowLeft, Loader2, RefreshCw, Shuffle, Sparkles } from "lucide-react"
 
+import { EmailBody } from "@/components/EmailBody"
 import { Button } from "@/components/ui/button"
+import { emailPlainText } from "@/lib/email-html"
 import { cn } from "@/lib/utils"
 import { campaignEmailService } from "@/services/campaign-email.service"
 import { ApiError } from "@/services/http"
@@ -30,7 +32,8 @@ function prospectInitials(name: string): string {
 }
 
 function wordCount(body: string): number {
-  return body.trim().split(/\s+/).filter(Boolean).length
+  // Counted on the copy, not the markup — bodies are HTML fragments.
+  return emailPlainText(body).split(/\s+/).filter(Boolean).length
 }
 
 /** Human label + timing note for a sequence step. */
@@ -401,12 +404,20 @@ function TouchCard({
             <span className="mr-2 text-xs uppercase tracking-wide text-muted-foreground">
               subject
             </span>
-            <span className="font-medium">{approach.subject}</span>
+            {/* Only the opener has one; follow-ups reply inside its thread. */}
+            {approach.subject?.trim() ? (
+              <span className="font-medium">{approach.subject}</span>
+            ) : (
+              <span className="text-muted-foreground">
+                Replies in the same thread, no new subject
+              </span>
+            )}
           </p>
           <div className="border-t" />
-          <div className="whitespace-pre-line pt-3 text-sm text-muted-foreground">
-            {approach.body}
-          </div>
+          <EmailBody
+            body={approach.body}
+            className="pt-3 text-muted-foreground"
+          />
         </div>
       )}
     </div>

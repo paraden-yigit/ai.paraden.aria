@@ -88,8 +88,8 @@ export interface SavedCampaignEmail {
 }
 
 /**
- * A generated outreach email for ONE prospect at one sequence step, written by
- * the per-prospect generation job after launch. Mirrors the API's
+ * A generated outreach email for ONE prospect at one sequence step, written
+ * just before that prospect's first email is sent. Mirrors the API's
  * CampaignContactEmailRead. Shares the saved-email shape (so it renders with
  * `SavedSequence`) plus the owning `campaign_contact_id`.
  */
