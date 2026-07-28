@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react"
-import { Pencil, Plus } from "lucide-react"
+import { Pencil, Plus, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -32,7 +32,7 @@ import { ApiError } from "@/services/http"
 import { useAuth } from "@/features/auth/useAuth"
 import { roleLabel, statusLabel } from "@/lib/roles"
 import { PERMISSIONS } from "@/lib/permissions"
-import { notifyUserCreated } from "@/lib/invite"
+import { isPendingInvite, notifyUserCreated, resendInvitation } from "@/lib/invite"
 import { userDisplayName } from "@/lib/format"
 import type {
   ClientUser,
@@ -78,6 +78,9 @@ export function UsersPage() {
   const [saving, setSaving] = useState(false)
   const [userToDelete, setUserToDelete] = useState<ClientUser | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // Id of the user whose invitation is currently being re-sent, so only that
+  // row's button shows the pending state.
+  const [resendingId, setResendingId] = useState<number | null>(null)
 
   async function handleCreate(payload: UserManageCreate) {
     setCreating(true)
@@ -90,6 +93,19 @@ export function UsersPage() {
       toast.error(err instanceof ApiError ? err.message : "Failed to create user.")
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleResendInvite(user: ClientUser) {
+    setResendingId(user.id)
+    try {
+      // Refetch either way: on success the row is carrying a stale token, and on
+      // failure the user may have accepted in the meantime (a 409), which the
+      // fresh list will show as active.
+      await resendInvitation(user)
+      refetch()
+    } finally {
+      setResendingId(null)
     }
   }
 
@@ -160,7 +176,7 @@ export function UsersPage() {
                 <TableHead>Teams</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-40">Role</TableHead>
-                {canManage && <TableHead className="w-12" />}
+                {canManage && <TableHead className="w-56" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -224,17 +240,32 @@ export function UsersPage() {
                     </TableCell>
                     {canManage && (
                       <TableCell>
-                        {editable && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => setUserToEdit(u)}
-                          >
-                            <Pencil className="size-4" />
-                            <span className="sr-only">Edit user</span>
-                          </Button>
-                        )}
+                        <span className="flex items-center justify-end gap-1">
+                          {isPendingInvite(u) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={resendingId === u.id}
+                              onClick={() => handleResendInvite(u)}
+                            >
+                              <Send className="size-4" />
+                              {resendingId === u.id
+                                ? "Sending…"
+                                : "Re-send invitation"}
+                            </Button>
+                          )}
+                          {editable && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => setUserToEdit(u)}
+                            >
+                              <Pencil className="size-4" />
+                              <span className="sr-only">Edit user</span>
+                            </Button>
+                          )}
+                        </span>
                       </TableCell>
                     )}
                   </TableRow>

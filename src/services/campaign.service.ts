@@ -39,13 +39,15 @@ export const campaignService = {
     return apiClient.post<Campaign>(`/api/campaigns/${id}/reset`)
   },
 
-  /** Launch the campaign: set it running and populate simulated metrics. */
+  /**
+   * Launch the campaign: find each contact's work email, write their sequence,
+   * then queue them for sending. Refused once any email has already gone out —
+   * re-running would rewrite outreach prospects have already received.
+   *
+   * There is no `complete`: a campaign marks itself completed once every
+   * enrolled prospect has finished their sequence.
+   */
   run(id: number): Promise<Campaign> {
     return apiClient.post<Campaign>(`/api/campaigns/${id}/run`)
-  },
-
-  /** Mark the campaign complete and repopulate metrics at 100% completion. */
-  complete(id: number): Promise<Campaign> {
-    return apiClient.post<Campaign>(`/api/campaigns/${id}/complete`)
   },
 }

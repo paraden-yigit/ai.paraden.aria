@@ -9,6 +9,12 @@ export interface UserTeamRef {
 /** A client user as returned by GET /api/users — the roster, with their teams. */
 export interface ClientUser extends User {
   teams: UserTeamRef[]
+  /**
+   * Only on the response of POST /api/users/new: whether the invitation email
+   * actually went out. `false` (or absent) means the link has to be shared by
+   * hand.
+   */
+  invitation_email_sent?: boolean
 }
 
 /**

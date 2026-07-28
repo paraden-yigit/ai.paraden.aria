@@ -1,11 +1,21 @@
 import { useState } from "react"
-import { ChevronDown, ChevronUp, Mail } from "lucide-react"
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Mail,
+} from "lucide-react"
 
+import { EmailBody } from "@/components/EmailBody"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { formatDateTime } from "@/lib/format"
 import type { Campaign } from "@/types/campaign"
 import type { SavedCampaignEmail } from "@/types/campaign-email"
+import type { SendRecord } from "@/types/campaign-sending"
 
 // Plain-language framing for each step kind, so non-technical users know what
 // each email in the sequence is actually for.
@@ -39,23 +49,59 @@ function dayLabels(campaign: Campaign, count: number): string[] {
   return labels
 }
 
+/** What actually happened to a step, when we have a send record for it. */
+function SendOutcome({ send }: { send: SendRecord }) {
+  if (send.status === "sent") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+        Sent {formatDateTime(send.sent_at)} from {send.sender_email}
+      </span>
+    )
+  }
+  if (send.status === "sending") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Loader2 className="size-3.5 shrink-0 animate-spin" />
+        Sending from {send.sender_email}…
+      </span>
+    )
+  }
+  return (
+    <span className="flex items-start gap-1.5 text-xs text-destructive">
+      <AlertCircle className="mt-px size-3.5 shrink-0" />
+      {send.error ?? "This email could not be sent."}
+    </span>
+  )
+}
+
 /**
  * The campaign's saved outreach emails as a readable timeline: one card per
  * step with its timing, the angle the user picked, subject, and an expandable
  * body. The first email starts expanded so the section never reads as empty.
+ *
+ * ``sends`` is the delivery record for one prospect — pass it and each step also
+ * shows whether it actually went out. Omitted on the campaign dashboard, where
+ * the sequence is shown as a template rather than as one person's thread.
  */
 export function SavedSequence({
   campaign,
   emails,
+  sends,
 }: {
   campaign: Campaign
   emails: SavedCampaignEmail[]
+  sends?: SendRecord[]
 }) {
   const ordered = [...emails].sort((a, b) => a.step_index - b.step_index)
   const [open, setOpen] = useState<Record<number, boolean>>(() =>
     ordered.length > 0 ? { [ordered[0].id]: true } : {},
   )
   const labels = dayLabels(campaign, ordered.length)
+  // Latest attempt per step: a retried step has more than one record, and the
+  // most recent is the one that describes where it actually stands.
+  const sendByStep = new Map<number, SendRecord>()
+  for (const send of sends ?? []) sendByStep.set(send.step_index, send)
 
   return (
     <ol className="space-y-3">
@@ -84,9 +130,14 @@ export function SavedSequence({
                   <p className="text-sm text-muted-foreground">{meta.blurb}</p>
                 </div>
               </div>
-              <span className="text-sm text-muted-foreground">
-                {labels[index]}
-              </span>
+              <div className="flex flex-col items-end gap-1 text-right">
+                <span className="text-sm text-muted-foreground">
+                  {labels[index]}
+                </span>
+                {sendByStep.has(email.step_index) && (
+                  <SendOutcome send={sendByStep.get(email.step_index)!} />
+                )}
+              </div>
             </div>
 
             <div className="border-t px-4 py-3">
@@ -115,14 +166,13 @@ export function SavedSequence({
                   )}
                 </Button>
               </div>
-              <div
+              <EmailBody
+                body={email.body}
                 className={cn(
-                  "whitespace-pre-wrap text-sm text-muted-foreground",
+                  "text-muted-foreground",
                   isOpen ? "mt-3" : "hidden",
                 )}
-              >
-                {email.body ?? ""}
-              </div>
+              />
             </div>
           </li>
         )

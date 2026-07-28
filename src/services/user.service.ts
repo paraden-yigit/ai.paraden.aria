@@ -27,6 +27,14 @@ export const userService = {
     return apiClient.post<ClientUser>("/api/users/new", payload)
   },
 
+  /**
+   * Issue a fresh invitation for a pending user and email it again (requires
+   * "users_manage"). This invalidates the previous link.
+   */
+  regenerateInvitation(id: number): Promise<ClientUser> {
+    return apiClient.post<ClientUser>(`/api/users/${id}/invitation`)
+  },
+
   /** Update a user's name, role and/or team (requires "users_manage"). */
   update(id: number, payload: UserManageUpdate): Promise<ClientUser> {
     return apiClient.patch<ClientUser>(`/api/users/${id}`, payload)

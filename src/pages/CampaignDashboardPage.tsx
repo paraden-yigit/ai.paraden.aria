@@ -35,6 +35,7 @@ import {
 import { DataState } from "@/components/DataState"
 import { MetricTile } from "@/components/MetricTile"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
+import { SendingSummaryCard } from "@/features/campaigns/SendingSummaryCard"
 import { loadContactStats } from "@/features/campaigns/contactStats"
 import { useAsync } from "@/hooks/useAsync"
 import { formatDateTime } from "@/lib/format"
@@ -197,14 +198,12 @@ export function CampaignDashboardPage() {
   ])
   const spanWeeks = Math.max(1, Math.round(spanDays / 5))
 
-  const act = async (action: "run" | "complete") => {
+  const run = async () => {
     setBusy(true)
     try {
-      await campaignService[action](campaign.id)
+      await campaignService.run(campaign.id)
       toast.success(
-        action === "run"
-          ? "Finding contact work emails… this can take a few minutes. Refresh to see progress."
-          : "Campaign completed.",
+        "Finding contact work emails… this can take a few minutes. Refresh to see progress.",
       )
       refetch()
     } catch (err) {
@@ -253,12 +252,14 @@ export function CampaignDashboardPage() {
           )}
         </div>
 
-        {/* Draft / failed → Run; enriching → wait; Running → Complete; Completed → none. */}
+        {/* Draft / failed → Run; enriching → wait. Once running there is nothing
+            to press: sending starts on its own and the campaign completes itself
+            when every prospect has finished their sequence. */}
         {(campaign.status === "draft" ||
           campaign.status === "enrichment_failed") &&
           campaign.setup_completed && (
             <div className="flex flex-col items-end gap-1">
-              <Button onClick={() => act("run")} disabled={busy}>
+              <Button onClick={run} disabled={busy}>
                 {busy ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
@@ -268,10 +269,9 @@ export function CampaignDashboardPage() {
                   ? "Retry enrichment"
                   : "Run campaign"}
               </Button>
-              {/* Sending is not built yet (run/complete only moves the status and
-                  fills preview figures); drop this note when the sending layer lands. */}
               <p className="text-xs text-muted-foreground">
-                Preview for now: nothing is emailed yet.
+                Finds work emails, writes each prospect's sequence, then starts
+                sending.
               </p>
             </div>
           )}
@@ -281,21 +281,17 @@ export function CampaignDashboardPage() {
             Enriching contacts…
           </Button>
         )}
-        {campaign.status === "running" && (
-          <Button
-            variant="outline"
-            onClick={() => act("complete")}
-            disabled={busy}
-          >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="size-4" />
-            )}
-            Complete campaign
-          </Button>
+        {campaign.status === "completed" && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="size-4" />
+            Every prospect has finished their sequence.
+          </div>
         )}
       </div>
+
+      {(campaign.status === "running" || campaign.status === "completed") && (
+        <SendingSummaryCard campaignId={campaign.id} />
+      )}
 
       {campaign.metrics && (
         <div className="space-y-2">
@@ -305,8 +301,9 @@ export function CampaignDashboardPage() {
             </h3>
           </div>
           <p className="text-xs text-muted-foreground">
-            Nothing has been sent yet, so every figure starts at zero. They will
-            fill in once the sending layer is live.
+            Sent, bounces and sequence completion are real. Opens, clicks,
+            replies and the rest stay at zero — nothing tracks them yet, and
+            bounces only count rejections we see at send time.
           </p>
           <MetricsGrid metrics={campaign.metrics} />
         </div>
