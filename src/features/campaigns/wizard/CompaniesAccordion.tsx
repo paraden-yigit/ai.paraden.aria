@@ -18,6 +18,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
+import { SendingStatusBadge } from "@/features/campaigns/SendingStatusBadge"
+import type { ContactSendingStatus } from "@/types/campaign-sending"
 
 /** Minimal structural shapes the accordion needs — both the upload-review and
  * discovery company/contact types satisfy these. */
@@ -26,6 +28,8 @@ export interface AccordionContact {
   job_title: string | null
   email: string | null
   linkedin_url: string | null
+  /** Sending-queue state. Absent in the wizard (nothing is queued yet). */
+  sending?: ContactSendingStatus | null
 }
 
 export interface AccordionCompany {
@@ -204,6 +208,11 @@ export function ContactsTable({
                 {contact.email || "No email yet"}
               </span>
             )}
+            {contact.sending && (
+              <span className="hidden shrink-0 sm:block">
+                <SendingStatusBadge sending={contact.sending} />
+              </span>
+            )}
             {onSelect && (
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             )}
@@ -293,6 +302,24 @@ function ContactSheet({
                   </Button>
                 )}
               </section>
+              {contact.sending && (
+                <section className="space-y-2">
+                  <h3 className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+                    Sending
+                  </h3>
+                  <SendingStatusBadge sending={contact.sending} />
+                  {contact.sending.mailbox_email && (
+                    <p className="text-sm text-muted-foreground">
+                      Sending from {contact.sending.mailbox_email}
+                    </p>
+                  )}
+                  {contact.sending.failure_reason && (
+                    <p className="text-sm text-destructive">
+                      {contact.sending.failure_reason}
+                    </p>
+                  )}
+                </section>
+              )}
               {company && (
                 <section className="space-y-2">
                   <h3 className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">

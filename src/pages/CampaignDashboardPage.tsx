@@ -2,8 +2,8 @@ import { useCallback, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import {
   AtSign,
+  Ban,
   Building2,
-  CalendarCheck,
   CalendarRange,
   CheckCircle2,
   ListChecks,
@@ -16,7 +16,8 @@ import {
   Play,
   Reply,
   Send,
-  Target,
+  ThumbsDown,
+  ThumbsUp,
   UserMinus,
   Users,
   type LucideIcon,
@@ -35,6 +36,7 @@ import {
 import { DataState } from "@/components/DataState"
 import { MetricTile } from "@/components/MetricTile"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
+import { SendingSummaryCard } from "@/features/campaigns/SendingSummaryCard"
 import { loadContactStats } from "@/features/campaigns/contactStats"
 import { useAsync } from "@/hooks/useAsync"
 import { formatDateTime } from "@/lib/format"
@@ -102,14 +104,18 @@ function Diagnostic({
   )
 }
 
-/** The campaign's funnel with a hierarchy instead of nine equal boxes: five
- * headline tiles (replies is the North Star), then the health diagnostics in
- * one slim bar. Counts are stored; the percentage rates are derived here from
- * their funnel denominators. */
+/** The campaign's funnel with a hierarchy instead of nine equal boxes: six
+ * headline tiles (replies is the North Star, then what those replies were), and
+ * the health diagnostics in one slim bar. Counts are stored; the percentage rates
+ * are derived here from their funnel denominators.
+ *
+ * The three outcome tiles come from the reply categoriser and are counted per
+ * prospect, so they are mutually exclusive and never add up to more than
+ * `replies` — anything left over is a reply that was none of the three. */
 function MetricsGrid({ metrics }: { metrics: CampaignMetrics }) {
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <MetricTile
           icon={Send}
           label="Sent"
@@ -120,26 +126,38 @@ function MetricsGrid({ metrics }: { metrics: CampaignMetrics }) {
           icon={MailOpen}
           label="Opens"
           value={formatCount(metrics.opens)}
-          caption={`${rate(metrics.opens, metrics.sent)} of sent`}
+          // Prospects, not messages — one person opening a reply re-fires the
+          // pixels of every earlier email in the thread, so a per-message rate
+          // would read far too high. "% of sent" would also divide prospects by
+          // messages, which a multi-step sequence makes meaningless.
+          caption="unique prospects"
         />
         <MetricTile
           icon={Reply}
           label="Replies"
           value={formatCount(metrics.replies)}
+          // Prospects who answered, so it shares the Opens denominator. Excludes
+          // out-of-office and bounce notifications, which are not people replying.
           caption={`${rate(metrics.replies, metrics.opens)} of opens`}
           emphasis
         />
         <MetricTile
-          icon={Target}
-          label="Qualified leads"
-          value={formatCount(metrics.qualified_leads)}
-          caption={`${rate(metrics.qualified_leads, metrics.replies)} of replies`}
+          icon={ThumbsUp}
+          label="Success"
+          value={formatCount(metrics.success)}
+          caption={`${rate(metrics.success, metrics.replies)} of replies`}
         />
         <MetricTile
-          icon={CalendarCheck}
-          label="Meetings booked"
-          value={formatCount(metrics.meetings_booked)}
-          caption={`${rate(metrics.meetings_booked, metrics.qualified_leads)} of leads`}
+          icon={ThumbsDown}
+          label="Fail"
+          value={formatCount(metrics.fail)}
+          caption={`${rate(metrics.fail, metrics.replies)} of replies`}
+        />
+        <MetricTile
+          icon={Ban}
+          label="Opt-out"
+          value={formatCount(metrics.opt_out)}
+          caption={`${rate(metrics.opt_out, metrics.replies)} of replies`}
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
@@ -197,14 +215,12 @@ export function CampaignDashboardPage() {
   ])
   const spanWeeks = Math.max(1, Math.round(spanDays / 5))
 
-  const act = async (action: "run" | "complete") => {
+  const run = async () => {
     setBusy(true)
     try {
-      await campaignService[action](campaign.id)
+      await campaignService.run(campaign.id)
       toast.success(
-        action === "run"
-          ? "Finding contact work emails… this can take a few minutes. Refresh to see progress."
-          : "Campaign completed.",
+        "Finding contact work emails… this can take a few minutes. Refresh to see progress.",
       )
       refetch()
     } catch (err) {
@@ -253,12 +269,14 @@ export function CampaignDashboardPage() {
           )}
         </div>
 
-        {/* Draft / failed → Run; enriching → wait; Running → Complete; Completed → none. */}
+        {/* Draft / failed → Run; enriching → wait. Once running there is nothing
+            to press: sending starts on its own and the campaign completes itself
+            when every prospect has finished their sequence. */}
         {(campaign.status === "draft" ||
           campaign.status === "enrichment_failed") &&
           campaign.setup_completed && (
             <div className="flex flex-col items-end gap-1">
-              <Button onClick={() => act("run")} disabled={busy}>
+              <Button onClick={run} disabled={busy}>
                 {busy ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
@@ -268,10 +286,9 @@ export function CampaignDashboardPage() {
                   ? "Retry enrichment"
                   : "Run campaign"}
               </Button>
-              {/* Sending is not built yet (run/complete only moves the status and
-                  fills preview figures); drop this note when the sending layer lands. */}
               <p className="text-xs text-muted-foreground">
-                Preview for now: nothing is emailed yet.
+                Finds work emails, writes each prospect's sequence, then starts
+                sending.
               </p>
             </div>
           )}
@@ -281,21 +298,17 @@ export function CampaignDashboardPage() {
             Enriching contacts…
           </Button>
         )}
-        {campaign.status === "running" && (
-          <Button
-            variant="outline"
-            onClick={() => act("complete")}
-            disabled={busy}
-          >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="size-4" />
-            )}
-            Complete campaign
-          </Button>
+        {campaign.status === "completed" && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="size-4" />
+            Every prospect has finished their sequence.
+          </div>
         )}
       </div>
+
+      {(campaign.status === "running" || campaign.status === "completed") && (
+        <SendingSummaryCard campaignId={campaign.id} />
+      )}
 
       {campaign.metrics && (
         <div className="space-y-2">
@@ -305,8 +318,15 @@ export function CampaignDashboardPage() {
             </h3>
           </div>
           <p className="text-xs text-muted-foreground">
-            Nothing has been sent yet, so every figure starts at zero. They will
-            fill in once the sending layer is live.
+            Sent, opens, replies, bounces and sequence completion are real. Opens
+            count prospects whose mail client loaded the tracking image, so they
+            undercount anyone who blocks images and overcount privacy proxies that
+            load it for them. Replies count prospects who wrote back — an
+            out-of-office or bounce notice is not counted — and Success, Fail and
+            Opt-out are how their latest reply was read; anything that fitted none
+            of the three is in Replies but in no outcome tile. Clicks and
+            unsubscribes stay at zero, nothing tracks those yet, and bounces only
+            count rejections we see at send time.
           </p>
           <MetricsGrid metrics={campaign.metrics} />
         </div>

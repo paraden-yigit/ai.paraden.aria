@@ -4,6 +4,7 @@ import {
   Ban,
   Bot,
   Briefcase,
+  IdCard,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -245,9 +246,15 @@ export function AppLayout() {
               <DropdownMenuLabel>{user?.full_name ?? "My account"}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/profile">
+                <Link to="/account-settings">
                   <UserRound className="size-4" />
-                  Profile
+                  Account settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/profile-settings">
+                  <IdCard className="size-4" />
+                  Profile settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

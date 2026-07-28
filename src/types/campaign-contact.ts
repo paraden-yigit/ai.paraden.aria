@@ -2,6 +2,8 @@
 // with FullEnrich company-search (companies) + people-search (people).
 // Mirrors the API's CampaignContactSearchRead / CampaignContactRead.
 
+import type { ContactSendingStatus } from "./campaign-sending"
+
 export type CampaignContactSearchStatus = "running" | "ready" | "failed"
 
 /** A single prospect: a person plus their (denormalized) company. */
@@ -25,6 +27,8 @@ export interface CampaignContact {
   company_linkedin_url: string | null
   company_industry: string | null
   company_headcount: number | null
+  /** Where this prospect has got to in the sending queue; null until launch. */
+  sending: ContactSendingStatus | null
   created_at: string
   updated_at: string
 }

@@ -9,8 +9,11 @@ import { OnboardingGate } from "@/components/auth/OnboardingGate"
 import { PERMISSIONS } from "@/lib/permissions"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/LoginPage"
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage"
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage"
 import { DashboardPage } from "@/pages/DashboardPage"
-import { UserProfilePage } from "@/pages/UserProfilePage"
+import { AccountSettingsPage } from "@/pages/AccountSettingsPage"
+import { ProfileSettingsPage } from "@/pages/ProfileSettingsPage"
 import { EmailSettingsPage } from "@/pages/EmailSettingsPage"
 import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
@@ -47,6 +50,13 @@ function App() {
           <Routes>
             <Route element={<PublicOnlyRoute />}>
               <Route path="/login" element={<LoginPage />} />
+              {/* Password reset. Public-only like login: anyone here has lost
+                  their session, and a signed-in user belongs in the app. */}
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route
+                path="/reset-password/:token"
+                element={<ResetPasswordPage />}
+              />
             </Route>
 
             <Route element={<ProtectedRoute />}>
@@ -64,7 +74,14 @@ function App() {
               <Route element={<OnboardingGate />}>
                 <Route element={<AppLayout />}>
                 <Route path="/" element={<DashboardPage />} />
-                <Route path="/profile" element={<UserProfilePage />} />
+                <Route
+                  path="/account-settings"
+                  element={<AccountSettingsPage />}
+                />
+                <Route
+                  path="/profile-settings"
+                  element={<ProfileSettingsPage />}
+                />
                 <Route path="/email-settings" element={<EmailSettingsPage />} />
                 <Route
                   element={

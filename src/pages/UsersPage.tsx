@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react"
-import { Pencil, Plus } from "lucide-react"
+import { Pencil, Plus, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -32,7 +32,8 @@ import { ApiError } from "@/services/http"
 import { useAuth } from "@/features/auth/useAuth"
 import { roleLabel, statusLabel } from "@/lib/roles"
 import { PERMISSIONS } from "@/lib/permissions"
-import { notifyUserCreated } from "@/lib/invite"
+import { isPendingInvite, notifyUserCreated, resendInvitation } from "@/lib/invite"
+import { userDisplayName } from "@/lib/format"
 import type {
   ClientUser,
   UserManageCreate,
@@ -77,6 +78,9 @@ export function UsersPage() {
   const [saving, setSaving] = useState(false)
   const [userToDelete, setUserToDelete] = useState<ClientUser | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // Id of the user whose invitation is currently being re-sent, so only that
+  // row's button shows the pending state.
+  const [resendingId, setResendingId] = useState<number | null>(null)
 
   async function handleCreate(payload: UserManageCreate) {
     setCreating(true)
@@ -92,12 +96,25 @@ export function UsersPage() {
     }
   }
 
+  async function handleResendInvite(user: ClientUser) {
+    setResendingId(user.id)
+    try {
+      // Refetch either way: on success the row is carrying a stale token, and on
+      // failure the user may have accepted in the meantime (a 409), which the
+      // fresh list will show as active.
+      await resendInvitation(user)
+      refetch()
+    } finally {
+      setResendingId(null)
+    }
+  }
+
   async function handleSave(payload: UserManageUpdate) {
     if (!userToEdit) return
     setSaving(true)
     try {
       await userService.update(userToEdit.id, payload)
-      toast.success(`${payload.full_name ?? userToEdit.full_name} updated.`)
+      toast.success(`${payload.full_name ?? userDisplayName(userToEdit)} updated.`)
       setUserToEdit(null)
       refetch()
     } catch (err) {
@@ -112,7 +129,7 @@ export function UsersPage() {
     setDeleting(true)
     try {
       await userService.remove(userToDelete.id)
-      toast.success(`${userToDelete.full_name} deleted.`)
+      toast.success(`${userDisplayName(userToDelete)} deleted.`)
       setUserToDelete(null)
       // Close the edit modal too — it was opened for the now-deleted user.
       setUserToEdit(null)
@@ -159,7 +176,7 @@ export function UsersPage() {
                 <TableHead>Teams</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-40">Role</TableHead>
-                {canManage && <TableHead className="w-12" />}
+                {canManage && <TableHead className="w-56" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -167,7 +184,8 @@ export function UsersPage() {
                 // Managers edit everyone except themselves (guards against
                 // accidentally demoting the last owner / self-lockout).
                 const editable = canManage && u.id !== currentUser?.id
-                const initials = u.full_name
+                const displayName = userDisplayName(u)
+                const initials = displayName
                   .split(/\s+/)
                   .filter(Boolean)
                   .slice(0, 2)
@@ -183,7 +201,7 @@ export function UsersPage() {
                         >
                           {initials || "?"}
                         </span>
-                        <span className="font-medium">{u.full_name}</span>
+                        <span className="font-medium">{displayName}</span>
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
@@ -222,17 +240,32 @@ export function UsersPage() {
                     </TableCell>
                     {canManage && (
                       <TableCell>
-                        {editable && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => setUserToEdit(u)}
-                          >
-                            <Pencil className="size-4" />
-                            <span className="sr-only">Edit user</span>
-                          </Button>
-                        )}
+                        <span className="flex items-center justify-end gap-1">
+                          {isPendingInvite(u) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={resendingId === u.id}
+                              onClick={() => handleResendInvite(u)}
+                            >
+                              <Send className="size-4" />
+                              {resendingId === u.id
+                                ? "Sending…"
+                                : "Re-send invitation"}
+                            </Button>
+                          )}
+                          {editable && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => setUserToEdit(u)}
+                            >
+                              <Pencil className="size-4" />
+                              <span className="sr-only">Edit user</span>
+                            </Button>
+                          )}
+                        </span>
                       </TableCell>
                     )}
                   </TableRow>
@@ -306,7 +339,7 @@ export function UsersPage() {
         title="Delete user?"
         description={
           userToDelete
-            ? `${userToDelete.full_name} will lose access immediately and be removed from your users. This can't be undone.`
+            ? `${userDisplayName(userToDelete)} will lose access immediately and be removed from your users. This can't be undone.`
             : undefined
         }
         confirmLabel="Delete"
