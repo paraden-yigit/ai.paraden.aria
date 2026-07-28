@@ -74,6 +74,7 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     title: "Campaigns",
     items: [
       { to: "/campaigns", label: "Campaigns", icon: Megaphone },
+      { to: "/inbox", label: "Inbox", icon: Mail },
       {
         to: "/exclusions",
         label: "Exclusion list",

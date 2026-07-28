@@ -17,6 +17,7 @@ import { ProfileSettingsPage } from "@/pages/ProfileSettingsPage"
 import { EmailSettingsPage } from "@/pages/EmailSettingsPage"
 import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
+import { InboxPage } from "@/pages/InboxPage"
 import { NewCampaignPage } from "@/pages/NewCampaignPage"
 import { OnboardingPage } from "@/pages/OnboardingPage"
 import { CampaignLayout } from "@/components/layout/CampaignLayout"
@@ -91,6 +92,10 @@ function App() {
                   <Route path="/exclusions" element={<ExclusionListPage />} />
                 </Route>
                 <Route path="/campaigns" element={<CampaignsPage />} />
+                {/* Ungated, like /campaigns and /products: everyone with a
+                    mailbox has an inbox, and there is no inbox permission in
+                    the API catalog to gate it on. */}
+                <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/campaigns/:id" element={<CampaignLayout />}>
                   <Route index element={<CampaignDashboardPage />} />
                   <Route path="contacts" element={<CampaignContactsPage />} />
