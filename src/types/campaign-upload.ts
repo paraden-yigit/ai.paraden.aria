@@ -46,6 +46,8 @@ export interface UploadedContactsPayload {
 export interface UploadResult {
   companies_created: number
   contacts_created: number
+  /** Rows dropped because the company or address is on the exclusion list. */
+  excluded_skipped: number
 }
 
 /** A contact as returned by the step-4 review. */

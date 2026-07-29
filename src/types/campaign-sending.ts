@@ -15,6 +15,8 @@ export type SendingStatus =
   | "replied"
   /** They asked not to be contacted again; the rest of the sequence was cancelled. */
   | "suppressed"
+  /** Their company is on the exclusion list; the rest of the sequence was cancelled. */
+  | "excluded"
 
 /** Dispatch priority — committed sequences finish before new ones start. */
 export const TIER_CLOSER = 0

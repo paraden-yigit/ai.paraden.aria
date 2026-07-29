@@ -115,8 +115,15 @@ export function StepMapping({ campaignId, parsed, onSaved, onBack }: StepMapping
     setSaving(true)
     try {
       const result = await campaignUploadService.upload(campaignId, { rows })
+      // Say when rows were dropped: a file that quietly imports short looks
+      // like a broken upload rather than the exclusion list doing its job.
+      const skipped = result.excluded_skipped
+        ? ` ${result.excluded_skipped} row${
+            result.excluded_skipped === 1 ? " was" : "s were"
+          } skipped — on your exclusion list.`
+        : ""
       toast.success(
-        `Imported ${result.contacts_created} contacts across ${result.companies_created} companies.`,
+        `Imported ${result.contacts_created} contacts across ${result.companies_created} companies.${skipped}`,
       )
       onSaved()
     } catch (err) {

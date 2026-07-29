@@ -11,11 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { ExcludedCompaniesTable } from "@/features/excluded-companies/ExcludedCompaniesTable"
 import { ExcludedCompanyForm } from "@/features/excluded-companies/ExcludedCompanyForm"
+import { ExcludedDomainsForm } from "@/features/excluded-companies/ExcludedDomainsForm"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 import { excludedCompanyService } from "@/services/excluded-company.service"
@@ -67,6 +69,37 @@ export function ExclusionListPage() {
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to add company.",
+      )
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function handleCreateMany(domains: string[]) {
+    setCreating(true)
+    try {
+      const result = await excludedCompanyService.createMany(domains)
+      // Report every line back: added, already there, or not a domain. A paste
+      // that half-worked is the case worth being explicit about.
+      const parts = [`Added ${result.created.length} domains.`]
+      if (result.skipped_existing.length > 0) {
+        parts.push(`${result.skipped_existing.length} already on the list.`)
+      }
+      if (result.invalid.length > 0) {
+        parts.push(
+          `Skipped ${result.invalid.length} line(s) that aren't domains: ${result.invalid
+            .slice(0, 3)
+            .join(", ")}${result.invalid.length > 3 ? "…" : ""}`,
+        )
+      }
+      const message = parts.join(" ")
+      if (result.created.length > 0) toast.success(message)
+      else toast.warning(message)
+      setCreateOpen(false)
+      refetch()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Failed to add domains.",
       )
     } finally {
       setCreating(false)
@@ -176,19 +209,35 @@ export function ExclusionListPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add company to exclusion list</DialogTitle>
+            <DialogTitle>Add to exclusion list</DialogTitle>
             <DialogDescription>
-              A company needs a name plus a domain or a LinkedIn URL. Adding it
-              removes any matching company and its contacts from your company
-              list and from every campaign.
+              Anything you add here is removed from your campaigns — the company,
+              its contacts, and anyone whose work email is at that domain.
             </DialogDescription>
           </DialogHeader>
-          <ExcludedCompanyForm
-            onSubmit={handleCreate}
-            onCancel={() => setCreateOpen(false)}
-            submitting={creating}
-            submitLabel="Add company"
-          />
+          {/* Two ways in, because they answer different questions: "exclude this
+              one company I know about" and "exclude this list I was handed". */}
+          <Tabs defaultValue="single">
+            <TabsList className="w-full">
+              <TabsTrigger value="single">One company</TabsTrigger>
+              <TabsTrigger value="bulk">Paste domains</TabsTrigger>
+            </TabsList>
+            <TabsContent value="single" className="pt-4">
+              <ExcludedCompanyForm
+                onSubmit={handleCreate}
+                onCancel={() => setCreateOpen(false)}
+                submitting={creating}
+                submitLabel="Add company"
+              />
+            </TabsContent>
+            <TabsContent value="bulk" className="pt-4">
+              <ExcludedDomainsForm
+                onSubmit={handleCreateMany}
+                onCancel={() => setCreateOpen(false)}
+                submitting={creating}
+              />
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

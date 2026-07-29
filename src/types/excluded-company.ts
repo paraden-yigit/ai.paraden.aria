@@ -22,3 +22,15 @@ export interface ExcludedCompanyCreate {
 }
 
 export type ExcludedCompanyUpdate = Partial<ExcludedCompanyCreate>
+
+/**
+ * The outcome of pasting a list of domains. Every line is accounted for — a
+ * paste that quietly drops half its lines looks exactly like one that worked.
+ */
+export interface ExcludedCompaniesBulkResult {
+  created: ExcludedCompany[]
+  /** Already on the list, or repeated within the paste. Not an error. */
+  skipped_existing: string[]
+  /** Lines that don't look like a domain, echoed back verbatim. */
+  invalid: string[]
+}
