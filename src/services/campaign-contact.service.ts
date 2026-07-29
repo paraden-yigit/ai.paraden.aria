@@ -39,4 +39,21 @@ export const campaignContactService = {
       `/api/campaigns/${campaignId}/contacts/generate`,
     )
   },
+
+  /** Take one person off the campaign. Rejected (409) unless the campaign is
+   * idle — not preparing, sending or completed. */
+  remove(campaignId: number, contactId: number): Promise<void> {
+    return apiClient.delete<void>(
+      `/api/campaigns/${campaignId}/contacts/${contactId}`,
+    )
+  },
+
+  /** Take a company and everyone at it off the campaign. Same gating as `remove`.
+   * Campaign-local: it doesn't stop the company reappearing in a later search
+   * (that's what the exclusion list is for). */
+  removeCompany(campaignId: number, companyId: number): Promise<void> {
+    return apiClient.delete<void>(
+      `/api/campaigns/${campaignId}/contacts/companies/${companyId}`,
+    )
+  },
 }

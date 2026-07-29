@@ -10,6 +10,9 @@ export type CampaignContactSearchStatus = "running" | "ready" | "failed"
 export interface CampaignContact {
   id: number
   campaign_id: number
+  /** The campaign company this person belongs to; null when they were uploaded
+   * without any company columns. */
+  company_id: number | null
   external_id: string | null
   full_name: string | null
   first_name: string | null

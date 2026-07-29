@@ -52,6 +52,21 @@ export function isCampaignPreparing(campaign: Campaign): boolean {
 }
 
 /**
+ * Whether the campaign's contact list can still be pruned. Mirrors the API's
+ * `_CONTACT_EDITABLE_STATUSES`: the campaign has to be sitting still — set up but
+ * never run, prepared and waiting for sending approval, or stalled on a failed
+ * enrichment. While it's preparing, a background pass owns those rows; once it's
+ * running or completed they anchor the sending queue and its history.
+ */
+export function canEditCampaignContacts(campaign: Campaign): boolean {
+  return (
+    campaign.status === "draft" ||
+    campaign.status === "ready_to_send" ||
+    campaign.status === "enrichment_failed"
+  )
+}
+
+/**
  * Which half of preparation is running. Enrichment comes first and composition
  * second, so the campaign's generation state is what separates them.
  */
