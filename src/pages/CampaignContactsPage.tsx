@@ -18,7 +18,9 @@ import { ConfirmDialog } from "@/components/ConfirmDialog"
 import {
   CompaniesAccordion,
   type AccordionCompany,
+  type AccordionContact,
 } from "@/features/campaigns/wizard/CompaniesAccordion"
+import { canEditCampaignContacts } from "@/features/campaigns/status"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
 import { useAuth } from "@/features/auth/useAuth"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -46,10 +48,17 @@ function groupByCompany(contacts: CampaignContact[]): AccordionCompany[] {
   const byKey = new Map<string, AccordionCompany>()
   const order: string[] = []
   for (const c of contacts) {
-    const key = `${c.company_name ?? ""}|${c.company_domain ?? ""}`
+    // Group on the company row itself where there is one, so two same-named
+    // companies stay apart and the group carries the id removal targets. Contacts
+    // with no company fall back to their name/domain text.
+    const key =
+      c.company_id != null
+        ? `id:${c.company_id}`
+        : `name:${c.company_name ?? ""}|${c.company_domain ?? ""}`
     let group = byKey.get(key)
     if (!group) {
       group = {
+        id: c.company_id,
         name: c.company_name,
         domain: c.company_domain,
         industry: c.company_industry,
@@ -60,6 +69,7 @@ function groupByCompany(contacts: CampaignContact[]): AccordionCompany[] {
       order.push(key)
     }
     group.contacts.push({
+      id: c.id,
       full_name: c.full_name,
       job_title: c.job_title,
       email: c.email,
@@ -77,6 +87,10 @@ export function CampaignContactsPage() {
   // Excluding a company needs the exclusion-list permission.
   const { hasPermission } = useAuth()
   const canExclude = hasPermission(PERMISSIONS.exclusionLists)
+  // Pruning the list is only offered while the campaign is idle — set up but not
+  // run, or prepared and waiting for sending approval. Once preparation is under
+  // way or the campaign is sending, the list is frozen (the API agrees, 409).
+  const canRemove = canEditCampaignContacts(campaign)
 
   const [icp, setIcp] = useState<Icp | null>(null)
   const [search, setSearch] = useState<CampaignContactSearch | null>(null)
@@ -244,6 +258,59 @@ export function CampaignContactsPage() {
     }
   }
 
+  // Remove flows: one for a single person, one for a whole company. Both confirm
+  // first, then reload the list from the API rather than splicing locally, so the
+  // counts and grouping stay honest.
+  const [contactToRemove, setContactToRemove] = useState<AccordionContact | null>(
+    null,
+  )
+  const [companyToRemove, setCompanyToRemove] = useState<AccordionCompany | null>(
+    null,
+  )
+  const [removing, setRemoving] = useState(false)
+
+  async function handleRemoveContact() {
+    const contact = contactToRemove
+    if (contact?.id == null) return
+    const label = contact.full_name || "Contact"
+    setRemoving(true)
+    try {
+      await campaignContactService.remove(campaignId, contact.id)
+      toast.success(`${label} removed from this campaign.`)
+      setContactToRemove(null)
+      void loadContacts()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : `Could not remove ${label}. Nothing was changed.`,
+      )
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  async function handleRemoveCompany() {
+    const company = companyToRemove
+    if (company?.id == null) return
+    const label = company.name || company.domain || "The company"
+    setRemoving(true)
+    try {
+      await campaignContactService.removeCompany(campaignId, company.id)
+      toast.success(`${label} removed from this campaign.`)
+      setCompanyToRemove(null)
+      void loadContacts()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : `Could not remove ${label}. Nothing was changed.`,
+      )
+    } finally {
+      setRemoving(false)
+    }
+  }
+
   async function handleGenerate() {
     setStarting(true)
     try {
@@ -372,6 +439,8 @@ export function CampaignContactsPage() {
               companies={companies}
               className="max-h-none"
               onExcludeCompany={canExclude ? setCompanyToExclude : undefined}
+              onRemoveCompany={canRemove ? setCompanyToRemove : undefined}
+              onRemoveContact={canRemove ? setContactToRemove : undefined}
             />
           )}
         </div>
@@ -476,6 +545,32 @@ export function CampaignContactsPage() {
         destructive
         loading={excluding}
         onConfirm={handleExclude}
+      />
+
+      <ConfirmDialog
+        open={contactToRemove !== null}
+        onOpenChange={(open) => {
+          if (!open && !removing) setContactToRemove(null)
+        }}
+        title={`Remove ${contactToRemove?.full_name ?? "this contact"}?`}
+        description="They come off this campaign, along with any emails already written for them. Other campaigns are untouched, and finding contacts again could bring them back."
+        confirmLabel="Remove contact"
+        destructive
+        loading={removing}
+        onConfirm={handleRemoveContact}
+      />
+
+      <ConfirmDialog
+        open={companyToRemove !== null}
+        onOpenChange={(open) => {
+          if (!open && !removing) setCompanyToRemove(null)
+        }}
+        title={`Remove ${companyToRemove?.name ?? companyToRemove?.domain ?? "this company"}?`}
+        description={`Everyone at this company (${companyToRemove?.contacts.length ?? 0}) comes off this campaign, along with any emails already written for them. Other campaigns are untouched, and finding contacts again could bring them back. Use the exclusion list to keep them out for good.`}
+        confirmLabel="Remove company"
+        destructive
+        loading={removing}
+        onConfirm={handleRemoveCompany}
       />
     </div>
   )

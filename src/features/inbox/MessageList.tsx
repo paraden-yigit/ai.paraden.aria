@@ -9,7 +9,7 @@ import {
   type InboxMessage,
 } from "./sampleMessages"
 
-/** Two initials for the avatar circle, matching the campaign Emails tab. */
+/** Two initials for the avatar circle, matching the campaign Outbox tab. */
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return "?"

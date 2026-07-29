@@ -5,17 +5,24 @@
  * generation. `product_name` is resolved server-side (null if the product was
  * deleted).
  */
-/** A campaign's lifecycle state. `enriching_contacts` is transitional: Run has
- * been pressed and a background task is finding contacts' work emails; it flips
- * to `running` on success or `enrichment_failed` (re-runnable) on error. */
+/** A campaign's lifecycle state.
+ *
+ * `preparing` is transitional: Run has been pressed and a background task is
+ * finding contacts' work emails and composing each prospect's sequence. It ends
+ * at `ready_to_send` — prepared, but deliberately not sending — or
+ * `enrichment_failed` (re-runnable). Pressing Start sending is what moves a
+ * campaign to `running`; nothing goes out before that. */
 export type CampaignStatus =
   | "draft"
-  | "enriching_contacts"
+  | "preparing"
+  | "ready_to_send"
   | "running"
   | "enrichment_failed"
   | "completed"
 
-/** Legacy bulk-generation state; see `email_generation_status` below. */
+/** State of the pass that writes every prospect's sequence, which runs straight
+ * after enrichment. `generating` while it is in flight, `ready` once every
+ * reachable prospect has emails, `failed` with a reason on the campaign. */
 export type EmailGenerationStatus =
   | "pending"
   | "generating"
@@ -82,9 +89,8 @@ export interface Campaign {
   enrichment_complete: boolean
   /** Failure reason while `status` is `enrichment_failed` (null otherwise). */
   enrichment_error: string | null
-  /** LEGACY. Emails used to be generated in bulk at launch and this tracked it;
-   * each prospect's sequence is now written just before their first email is
-   * sent, so this stays "pending" on new campaigns. Don't key UI off it. */
+  /** How far the post-enrichment pass that writes every prospect's sequence has
+   * got. Drives the "Preparing" status and the Outbox tab's banner. */
   email_generation_status: EmailGenerationStatus
   /** Failure reason while `email_generation_status` is "failed" (null otherwise). */
   email_generation_error: string | null

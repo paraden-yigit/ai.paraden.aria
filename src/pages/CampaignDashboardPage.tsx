@@ -46,6 +46,7 @@ import {
   loadContactStats,
   type ContactStats,
 } from "@/features/campaigns/contactStats"
+import { preparingStage } from "@/features/campaigns/status"
 import { useAsync } from "@/hooks/useAsync"
 import { formatDateTime } from "@/lib/format"
 import { ApiError } from "@/services/http"
@@ -61,7 +62,8 @@ function sequenceSpanDays(gaps: (number | null)[]): number {
 
 const STATUS_LABEL: Record<CampaignStatus, string> = {
   draft: "Draft",
-  enriching_contacts: "Enriching contacts",
+  preparing: "Preparing",
+  ready_to_send: "Ready to send",
   running: "Running",
   enrichment_failed: "Enrichment failed",
   completed: "Completed",
@@ -72,7 +74,8 @@ const STATUS_VARIANT: Record<
   "secondary" | "default" | "outline" | "destructive"
 > = {
   draft: "secondary",
-  enriching_contacts: "secondary",
+  preparing: "secondary",
+  ready_to_send: "default",
   running: "default",
   enrichment_failed: "destructive",
   completed: "outline",
@@ -307,8 +310,12 @@ export function CampaignDashboardPage() {
         return campaign.setup_completed
           ? "Ready to run. Nothing sends until you start it."
           : "Setup is not finished yet."
-      case "enriching_contacts":
-        return "Finding work email addresses, then writing each prospect's sequence."
+      case "preparing":
+        return preparingStage(campaign) === "composing"
+          ? "Composing each prospect's emails. Nothing sends until you approve them."
+          : "Finding work email addresses, then composing each prospect's emails."
+      case "ready_to_send":
+        return "Contacts found and emails composed. Review them, then start sending."
       case "enrichment_failed":
         return "Something went wrong finding contact details."
       case "completed":
@@ -328,8 +335,23 @@ export function CampaignDashboardPage() {
     try {
       await campaignService.run(campaign.id)
       toast.success(
-        "Finding contact work emails… this can take a few minutes. Refresh to see progress.",
+        "Finding contact emails and composing the sequences… this can take a few minutes. Nothing sends until you approve it.",
       )
+      refetch()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Something went wrong.",
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const startSending = async () => {
+    setBusy(true)
+    try {
+      await campaignService.startSending(campaign.id)
+      toast.success("Sending started. The first emails go out shortly.")
       refetch()
     } catch (err) {
       toast.error(
@@ -366,7 +388,15 @@ export function CampaignDashboardPage() {
               {STATUS_LABEL[campaign.status]}
             </Badge>
           </div>
-          <p className="text-muted-foreground">{headline}</p>
+          {/* The spinner sits with the sentence, not just on the disabled
+              button, so the page reads as working even when the button is
+              scrolled out of view on a narrow window. */}
+          <p className="flex items-center gap-2 text-muted-foreground">
+            {campaign.status === "preparing" && (
+              <Loader2 className="size-4 shrink-0 animate-spin" />
+            )}
+            {headline}
+          </p>
           {campaign.status === "enrichment_failed" && (
             <p className="mt-1 text-sm text-destructive">
               {campaign.enrichment_error ??
@@ -375,9 +405,10 @@ export function CampaignDashboardPage() {
           )}
         </div>
 
-        {/* Draft / failed → Run; enriching → wait. Once running there is nothing
-            to press: sending starts on its own and the campaign completes itself
-            when every prospect has finished their sequence. */}
+        {/* Two deliberate presses: Run prepares (contacts + emails), then Start
+            sending approves what was composed. Once running there is nothing left
+            to press — the campaign completes itself when every prospect has
+            finished their sequence. */}
         {(campaign.status === "draft" ||
           campaign.status === "enrichment_failed") &&
           campaign.setup_completed && (
@@ -393,16 +424,34 @@ export function CampaignDashboardPage() {
                   : "Run campaign"}
               </Button>
               <p className="text-xs text-muted-foreground">
-                Finds work emails, writes each prospect's sequence, then starts
-                sending.
+                Finds work emails and composes each prospect's emails. Nothing
+                sends until you approve them.
               </p>
             </div>
           )}
-        {campaign.status === "enriching_contacts" && (
+        {campaign.status === "preparing" && (
           <Button variant="outline" disabled>
             <Loader2 className="size-4 animate-spin" />
-            Enriching contacts…
+            {preparingStage(campaign) === "composing"
+              ? "Composing emails…"
+              : "Finding contact emails…"}
           </Button>
+        )}
+        {campaign.status === "ready_to_send" && (
+          <div className="flex flex-col items-end gap-1">
+            <Button onClick={startSending} disabled={busy}>
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+              Start sending
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Starts sending the emails in the Outbox, on your sending
+              schedule.
+            </p>
+          </div>
         )}
         {campaign.status === "completed" && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

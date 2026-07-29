@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,11 +41,14 @@ import { PERMISSIONS } from "@/lib/permissions"
 // renders the items with no heading (Dashboard sits on its own). An item with
 // a `permission` is only shown when the user's role grants it
 // (permission-driven, not role-based); an array means "any of these".
+// `comingSoon` keeps the item (and its route) in place but renders it as an
+// inert, badged row rather than a link.
 type NavItem = {
   to: string
   label: string
   icon: typeof LayoutDashboard
   permission?: string | string[]
+  comingSoon?: boolean
 }
 
 const navSections: { title: string | null; items: NavItem[] }[] = [
@@ -74,7 +78,7 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     title: "Campaigns",
     items: [
       { to: "/campaigns", label: "Campaigns", icon: Megaphone },
-      { to: "/inbox", label: "Inbox", icon: Mail },
+      { to: "/inbox", label: "Inbox", icon: Mail, comingSoon: true },
       {
         to: "/exclusions",
         label: "Exclusion list",
@@ -186,6 +190,24 @@ export function AppLayout() {
                   )
                   .sort((a, b) => b.to.length - a.to.length)
                 const active = matches[0]?.to === item.to
+                if (item.comingSoon) {
+                  return (
+                    <div
+                      key={item.to}
+                      aria-disabled="true"
+                      className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/60"
+                    >
+                      <item.icon className="size-4" />
+                      {item.label}
+                      <Badge
+                        variant="secondary"
+                        className="ml-auto px-1.5 py-0 text-[10px] font-normal"
+                      >
+                        Coming soon
+                      </Badge>
+                    </div>
+                  )
+                }
                 return (
                   <Link
                     key={item.to}

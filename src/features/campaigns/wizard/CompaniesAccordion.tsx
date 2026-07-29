@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  Trash2,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +25,9 @@ import type { ContactSendingStatus } from "@/types/campaign-sending"
 /** Minimal structural shapes the accordion needs — both the upload-review and
  * discovery company/contact types satisfy these. */
 export interface AccordionContact {
+  /** The saved contact's id, where the caller has one (the wizard's staged people
+   * don't exist in the database yet). Required for removal. */
+  id?: number | null
   full_name: string | null
   job_title: string | null
   email: string | null
@@ -33,6 +37,8 @@ export interface AccordionContact {
 }
 
 export interface AccordionCompany {
+  /** The saved company's id, where the caller has one. Required for removal. */
+  id?: number | null
   name: string | null
   domain: string | null
   industry: string | null
@@ -67,6 +73,8 @@ export function CompaniesAccordion({
   className,
   showEmail = true,
   onExcludeCompany,
+  onRemoveCompany,
+  onRemoveContact,
 }: {
   companies: AccordionCompany[]
   className?: string
@@ -75,6 +83,11 @@ export function CompaniesAccordion({
    * owns the confirm + the API call). Needs a domain or LinkedIn URL to match
    * by, so the action only shows for companies carrying one. */
   onExcludeCompany?: (company: AccordionCompany) => void
+  /** When given, each company row offers to take it (and its people) off the
+   * list. Only shown for saved companies — the caller owns the confirm + call. */
+  onRemoveCompany?: (company: AccordionCompany) => void
+  /** When given, each contact row offers to take that person off the list. */
+  onRemoveContact?: (contact: AccordionContact) => void
 }) {
   const [selected, setSelected] = useState<SelectedContact | null>(null)
 
@@ -92,6 +105,8 @@ export function CompaniesAccordion({
             company={company}
             showEmail={showEmail}
             onSelect={(contact) => setSelected({ contact, company })}
+            onRemove={onRemoveCompany}
+            onRemoveContact={onRemoveContact}
           />
         ))}
       </div>
@@ -116,51 +131,74 @@ function CompanyRow({
   company,
   showEmail,
   onSelect,
+  onRemove,
+  onRemoveContact,
 }: {
   company: AccordionCompany
   showEmail: boolean
   onSelect: (contact: AccordionContact) => void
+  onRemove?: (company: AccordionCompany) => void
+  onRemoveContact?: (contact: AccordionContact) => void
 }) {
   const [open, setOpen] = useState(false)
   const subtitle = [company.domain, company.industry].filter(Boolean).join(" · ")
+  // Removal targets the saved row by id; a company that was never persisted
+  // (the wizard's staged results) can't be removed.
+  const removable = onRemove != null && company.id != null
+  const label = company.name || company.domain || "Unnamed company"
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-muted/50"
-      >
-        {open ? (
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-        )}
-        <span
-          aria-hidden="true"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+      {/* The toggle is its own button so the remove action can sit beside it —
+          nesting one button inside another isn't valid markup. */}
+      <div className="flex items-center transition-colors hover:bg-muted/50">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left"
         >
-          <Building2 className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
-            {company.name || company.domain || "Unnamed company"}
-          </p>
-          {subtitle && (
-            <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+          {open ? (
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           )}
-        </div>
-        <Badge variant="secondary" className="shrink-0">
-          {company.contacts.length}{" "}
-          {company.contacts.length === 1 ? "contact" : "contacts"}
-        </Badge>
-      </button>
+          <span
+            aria-hidden="true"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+          >
+            <Building2 className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{label}</p>
+            {subtitle && (
+              <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+          <Badge variant="secondary" className="shrink-0">
+            {company.contacts.length}{" "}
+            {company.contacts.length === 1 ? "contact" : "contacts"}
+          </Badge>
+        </button>
+        {removable && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-2 shrink-0 text-muted-foreground hover:text-destructive"
+            aria-label={`Remove ${label} from this campaign`}
+            title="Remove company"
+            onClick={() => onRemove(company)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        )}
+      </div>
       {open && (
         <div className="border-t bg-muted/20">
           <ContactsTable
             contacts={company.contacts}
             showEmail={showEmail}
             onSelect={onSelect}
+            onRemove={onRemoveContact}
           />
         </div>
       )}
@@ -175,10 +213,13 @@ export function ContactsTable({
   contacts,
   showEmail = true,
   onSelect,
+  onRemove,
 }: {
   contacts: AccordionContact[]
   showEmail?: boolean
   onSelect?: (contact: AccordionContact) => void
+  /** When given, each saved contact's row offers to take them off the list. */
+  onRemove?: (contact: AccordionContact) => void
 }) {
   if (contacts.length === 0) {
     return <p className="p-3 text-xs text-muted-foreground">No contacts.</p>
@@ -218,18 +259,37 @@ export function ContactsTable({
             )}
           </>
         )
+        const removable = onRemove != null && contact.id != null
+        const name = contact.full_name || "this contact"
         return (
-          <li key={index}>
+          <li
+            key={contact.id ?? index}
+            className="flex items-center transition-colors hover:bg-muted/50"
+          >
             {onSelect ? (
               <button
                 type="button"
                 onClick={() => onSelect(contact)}
-                className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left"
               >
                 {inner}
               </button>
             ) : (
-              <div className="flex items-center gap-3 px-3 py-2.5">{inner}</div>
+              <div className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5">
+                {inner}
+              </div>
+            )}
+            {removable && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mr-2 shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label={`Remove ${name} from this campaign`}
+                title="Remove contact"
+                onClick={() => onRemove(contact)}
+              >
+                <Trash2 className="size-4" />
+              </Button>
             )}
           </li>
         )

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { AtSign, Building2, Loader2, Mail } from "lucide-react"
+import { toast } from "sonner"
 
 import { DataState } from "@/components/DataState"
 import {
@@ -9,7 +10,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { SavedSequence } from "@/features/campaigns/SavedSequence"
+import {
+  SavedSequence,
+  type SequenceEmail,
+} from "@/features/campaigns/SavedSequence"
 import { SendingStatusBadge } from "@/features/campaigns/SendingStatusBadge"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
 import { ApiError } from "@/services/http"
@@ -32,10 +36,11 @@ function initials(name: string | null): string {
 }
 
 /**
- * The campaign Emails tab: lists the reachable prospects (those with a work
- * email) and, on selecting one, slides over their outreach sequence. Each
- * prospect's whole sequence is written just before their opener is sent, so a
- * prospect still in the queue has none yet and the list fills in over time.
+ * The campaign Outbox tab: lists the reachable prospects (those with a work
+ * email) and, on selecting one, slides over their outreach sequence. Every
+ * prospect's sequence is written in one pass right after enrichment, so once the
+ * campaign reports `email_generation_status: "ready"` the whole list is readable.
+ * Anyone that pass missed is written by the dispatcher before their first send.
  */
 export function CampaignEmailsPage() {
   const { campaign } = useCampaignContext()
@@ -122,20 +127,90 @@ export function CampaignEmailsPage() {
     }
   }, [selected, campaignId])
 
+  // Save a hand-written version of one email. Throws on failure so the editor
+  // stays open with the user's words in it; on success the API returns the row it
+  // stored, which is swapped in rather than refetching the whole sequence.
+  const saveEmail = useCallback(
+    async (
+      email: SequenceEmail,
+      next: { subject: string | null; body: string },
+    ) => {
+      if (!selected) return
+      const saved = await campaignEmailService.updateForContact(
+        campaignId,
+        selected.id,
+        email.id,
+        next,
+      )
+      setEmails((prev) =>
+        (prev ?? []).map((row) => (row.id === saved.id ? saved : row)),
+      )
+      toast.success("Email saved. This is the version that will be sent.")
+    },
+    [campaignId, selected],
+  )
+
+  // Put back the email Paraden wrote. The hand-written one is archived by the
+  // API rather than destroyed, but from here it is gone, so the button confirms.
+  const revertEmail = useCallback(
+    async (email: SequenceEmail) => {
+      if (!selected) return
+      try {
+        const saved = await campaignEmailService.revertForContact(
+          campaignId,
+          selected.id,
+          email.id,
+        )
+        setEmails((prev) =>
+          (prev ?? []).map((row) => (row.id === saved.id ? saved : row)),
+        )
+        toast.success("Back to the original email.")
+      } catch (err) {
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Could not revert this email. Nothing was changed.",
+        )
+      }
+    },
+    [campaignId, selected],
+  )
+
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">Emails</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Outbox</h2>
         <p className="text-muted-foreground">
           The outreach sequence written for each reachable prospect. Select a
           prospect to read their emails.
         </p>
       </div>
 
-      <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-        A prospect's whole sequence is written just before their first email goes
-        out, so emails appear here as the campaign works through the queue.
-      </div>
+      {campaign.email_generation_status === "generating" && (
+        <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+          Composing each prospect's sequence. They appear here as they are
+          finished — this page updates on its own. Nothing sends until you start
+          the campaign.
+        </div>
+      )}
+
+      {campaign.status === "ready_to_send" && (
+        <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          These are the emails that will go out. Read them over and edit any of
+          them you want to change, then press Start sending on the Dashboard —
+          nothing leaves until you do.
+        </div>
+      )}
+
+      {campaign.email_generation_status === "failed" && (
+        <div className="rounded-lg border border-destructive/50 px-4 py-3 text-sm text-destructive">
+          {campaign.email_generation_error ||
+            "Writing the emails failed. Please try again."}{" "}
+          Prospects without a sequence still get one written just before their
+          first email is sent.
+        </div>
+      )}
 
       <DataState
         loading={loading}
@@ -220,12 +295,15 @@ export function CampaignEmailsPage() {
                     campaign={campaign}
                     emails={emails}
                     sends={sends}
+                    onSave={saveEmail}
+                    onRevert={revertEmail}
                   />
                 )}
                 {!emailsLoading && !emailsError && emails && emails.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    This prospect's emails haven't been written yet — they are
-                    generated just before their first email is sent.
+                    {campaign.email_generation_status === "generating"
+                      ? "This prospect's emails are still being written."
+                      : "This prospect's emails haven't been written yet — they are generated just before their first email is sent."}
                   </p>
                 )}
               </div>

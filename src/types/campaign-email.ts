@@ -100,7 +100,19 @@ export interface CampaignContactEmail {
   step_kind: string
   approach: string | null
   subject: string | null
+  /** The body as it will be READ and sent: the copy with the sender's sign-off
+   * and signature composed onto it. */
   body: string | null
+  /** The body as it is STORED, and the only thing an edit replaces — the copy
+   * alone, without the closing. */
+  raw_body: string | null
+  /** Set when someone has rewritten this email; null on a generated one. */
+  edited_at: string | null
+  edited_by: string | null
+  /** True when this was edited and the version Paraden wrote can be put back. */
+  can_revert: boolean
+  /** False once the step has gone out, or while the campaign is composing. */
+  editable: boolean
   created_at: string
   updated_at: string
 }
