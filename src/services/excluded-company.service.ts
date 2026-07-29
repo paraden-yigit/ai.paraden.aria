@@ -1,6 +1,7 @@
 import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
 import type {
+  ExcludedCompaniesBulkResult,
   ExcludedCompany,
   ExcludedCompanyCreate,
   ExcludedCompanyUpdate,
@@ -42,6 +43,14 @@ export const excludedCompanyService = {
 
   create(payload: ExcludedCompanyCreate): Promise<ExcludedCompany> {
     return apiClient.post<ExcludedCompany>("/api/excluded-companies/new", payload)
+  },
+
+  /** Add many domains at once; each becomes an entry named after the domain. */
+  createMany(domains: string[]): Promise<ExcludedCompaniesBulkResult> {
+    return apiClient.post<ExcludedCompaniesBulkResult>(
+      "/api/excluded-companies/bulk",
+      { domains },
+    )
   },
 
   update(id: number, payload: ExcludedCompanyUpdate): Promise<ExcludedCompany> {

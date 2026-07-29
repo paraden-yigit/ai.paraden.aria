@@ -52,6 +52,11 @@ export function SendingStatusBadge({
       label = "Opted out"
       variant = "outline"
       break
+    case "excluded":
+      // Also not a failure: the exclusion list is a decision, not a problem.
+      label = "Excluded"
+      variant = "outline"
+      break
     default:
       label = sent === 0 ? "Queued" : `Step ${sent} of ${steps_total} sent`
       variant = sent === 0 ? "secondary" : "default"
