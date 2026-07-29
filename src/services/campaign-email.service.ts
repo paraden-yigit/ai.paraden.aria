@@ -61,4 +61,33 @@ export const campaignEmailService = {
       `/api/campaigns/${campaignId}/emails/by-contact/${contactId}`,
     )
   },
+
+  /** Rewrite one prospect's email for one step. `body` is the copy only — the
+   * sign-off and signature are composed on at send time. The version it replaces
+   * is archived by the API. Rejected (409) once that step has been sent, or while
+   * the campaign is composing. */
+  updateForContact(
+    campaignId: number,
+    contactId: number,
+    emailId: number,
+    payload: { subject: string | null; body: string },
+  ): Promise<CampaignContactEmail> {
+    return apiClient.put<CampaignContactEmail>(
+      `/api/campaigns/${campaignId}/emails/by-contact/${contactId}/${emailId}`,
+      payload,
+    )
+  },
+
+  /** Put back the email Paraden wrote, discarding the hand-written one. The
+   * discarded version is archived by the API, so nothing written is destroyed —
+   * it just stops being what gets sent. Same refusals as `updateForContact`. */
+  revertForContact(
+    campaignId: number,
+    contactId: number,
+    emailId: number,
+  ): Promise<CampaignContactEmail> {
+    return apiClient.post<CampaignContactEmail>(
+      `/api/campaigns/${campaignId}/emails/by-contact/${contactId}/${emailId}/revert`,
+    )
+  },
 }
