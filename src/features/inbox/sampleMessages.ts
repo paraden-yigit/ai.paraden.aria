@@ -238,6 +238,11 @@ export const SAMPLE_MESSAGES: InboxMessage[] = [
   },
 ]
 
+/** Every campaign name in the sample set, alphabetical, for the campaign filter. */
+export const SAMPLE_CAMPAIGNS = Array.from(
+  new Set(SAMPLE_MESSAGES.map((m) => m.campaign)),
+).sort()
+
 export const FOLDERS: { key: Folder; label: string }[] = [
   { key: "received", label: "Received" },
   { key: "sent", label: "Sent" },

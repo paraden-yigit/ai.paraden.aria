@@ -1,4 +1,4 @@
-import { Clock, Lock } from "lucide-react"
+import { Clock, Lock, Sparkles } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -51,16 +51,9 @@ export function MessageView({ message }: { message: InboxMessage }) {
               {CATEGORY_LABEL[message.category]}
             </Badge>
           )}
-          {when && (
-            <span>
-              {message.folder === "outbox" ? "Scheduled for " : ""}
-              {formatDateTime(when)}
-            </span>
+          {when && message.folder !== "outbox" && (
+            <span>{formatDateTime(when)}</span>
           )}
-          <span>
-            {message.folder === "received" ? "To " : "From "}
-            {message.mailbox}
-          </span>
         </div>
 
         {message.folder === "sent" && message.tracked === false && (
@@ -70,12 +63,22 @@ export function MessageView({ message }: { message: InboxMessage }) {
           </p>
         )}
 
-        {message.folder === "outbox" && (
-          <p className="flex items-start gap-2 text-sm text-muted-foreground">
-            <Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            Not sent yet. Sends are paced inside your sending window, so the
-            exact time will vary.
-          </p>
+        {message.folder === "outbox" && message.scheduledFor && (
+          <div className="flex items-start gap-2 rounded-lg border border-sky-500/40 bg-sky-500/5 px-4 py-3 text-sm">
+            <Clock
+              className="mt-0.5 size-4 shrink-0 text-sky-600"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="font-medium text-sky-700 dark:text-sky-400">
+                Scheduled for {formatDateTime(message.scheduledFor)}
+              </p>
+              <p className="text-muted-foreground">
+                Not sent yet. Sends are paced inside your sending window, so
+                the exact time will vary.
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -83,6 +86,13 @@ export function MessageView({ message }: { message: InboxMessage }) {
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <EmailBody body={message.body} />
+
+        {message.folder === "outbox" && (
+          <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Sparkles className="size-3.5 shrink-0" aria-hidden="true" />
+            Paraden writes with AI. Always review before it sends.
+          </p>
+        )}
       </div>
 
       {message.folder === "received" && <ReplyBox />}

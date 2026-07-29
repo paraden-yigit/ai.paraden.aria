@@ -309,6 +309,11 @@ export function SequencePreview({
         </Button>
       </div>
 
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Sparkles className="size-3.5 shrink-0" aria-hidden="true" />
+        Paraden writes with AI. Always review before it sends.
+      </p>
+
       <div className="space-y-4">
         {gen.steps.map((step, index) => (
           <TouchCard

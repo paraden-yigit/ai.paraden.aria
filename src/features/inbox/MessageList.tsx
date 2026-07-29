@@ -18,14 +18,14 @@ function initials(name: string): string {
   return (first + last).toUpperCase()
 }
 
-/** The timestamp that matters for this folder. */
+/**
+ * The timestamp for the top-right corner of a row. Outbox rows carry their
+ * schedule in the prominent badge below instead, so this stays empty there
+ * rather than showing the same time twice.
+ */
 function stamp(message: InboxMessage): string | null {
   const value =
-    message.folder === "received"
-      ? message.receivedAt
-      : message.folder === "sent"
-        ? message.sentAt
-        : message.scheduledFor
+    message.folder === "received" ? message.receivedAt : message.sentAt
   return value ? formatDateTime(value) : null
 }
 
@@ -92,10 +92,10 @@ export function MessageList({
                     </Badge>
                   )}
                   {folder === "sent" && <SentState message={message} />}
-                  {folder === "outbox" && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {folder === "outbox" && message.scheduledFor && (
+                    <span className="flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-400">
                       <Clock className="size-3.5" aria-hidden="true" />
-                      Queued
+                      {formatDateTime(message.scheduledFor)}
                     </span>
                   )}
                 </span>

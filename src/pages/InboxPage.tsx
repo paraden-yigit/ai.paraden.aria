@@ -20,13 +20,13 @@ import {
 } from "@/features/inbox/SampleDataBanner"
 import {
   FOLDERS,
-  SAMPLE_MAILBOXES,
+  SAMPLE_CAMPAIGNS,
   SAMPLE_MESSAGES,
   type Folder,
   type InboxMessage,
 } from "@/features/inbox/sampleMessages"
 
-const ALL_MAILBOXES = "all"
+const ALL_CAMPAIGNS = "all"
 
 /**
  * True at the width where the reading pane sits beside the list (Tailwind lg).
@@ -64,7 +64,7 @@ function useIsWideLayout(): boolean {
  */
 export function InboxPage() {
   const [folder, setFolder] = useState<Folder>("received")
-  const [mailbox, setMailbox] = useState<string>(ALL_MAILBOXES)
+  const [campaign, setCampaign] = useState<string>(ALL_CAMPAIGNS)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [query, setQuery] = useState("")
@@ -80,7 +80,6 @@ export function InboxPage() {
       m.campaign,
       m.subject,
       m.body.replace(/<[^>]+>/g, " "),
-      m.mailbox,
     ]
       .join(" ")
       .toLowerCase()
@@ -91,12 +90,12 @@ export function InboxPage() {
   const matches = useMemo(() => {
     return SAMPLE_MESSAGES.filter(
       (m) =>
-        (mailbox === ALL_MAILBOXES || m.mailbox === mailbox) &&
+        (campaign === ALL_CAMPAIGNS || m.campaign === campaign) &&
         (terms === "" || haystack(m).includes(terms)),
     )
     // haystack is pure and stable; the inputs that matter are below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mailbox, terms])
+  }, [campaign, terms])
 
   const messages = useMemo(
     () => matches.filter((m) => m.folder === folder),
@@ -140,15 +139,15 @@ export function InboxPage() {
           </p>
         </div>
 
-        <Select value={mailbox} onValueChange={setMailbox}>
-          <SelectTrigger className="w-full sm:w-72" aria-label="Filter by mailbox">
+        <Select value={campaign} onValueChange={setCampaign}>
+          <SelectTrigger className="w-full sm:w-72" aria-label="Filter by campaign">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_MAILBOXES}>All mailboxes</SelectItem>
-            {SAMPLE_MAILBOXES.map((address) => (
-              <SelectItem key={address} value={address}>
-                {address}
+            <SelectItem value={ALL_CAMPAIGNS}>All campaigns</SelectItem>
+            {SAMPLE_CAMPAIGNS.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -194,7 +193,7 @@ export function InboxPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search people, companies, subjects"
+            placeholder="Search people, companies, subjects, campaigns"
             aria-label="Search mail"
             className="pl-8"
           />
@@ -215,10 +214,10 @@ export function InboxPage() {
               {terms
                 ? `Nothing matches "${query.trim()}" in ${FOLDERS.find((f) => f.key === folder)?.label.toLowerCase()}.`
                 : folder === "received"
-                  ? "No replies in this mailbox yet."
+                  ? "No replies yet."
                   : folder === "sent"
-                    ? "Nothing has been sent from this mailbox yet."
-                    : "Nothing is queued from this mailbox."}
+                    ? "Nothing has been sent yet."
+                    : "Nothing is queued."}
             </p>
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto">
