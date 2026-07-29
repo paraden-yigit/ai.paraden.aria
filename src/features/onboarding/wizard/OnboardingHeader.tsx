@@ -26,7 +26,7 @@ function initialsOf(name: string | undefined): string {
 }
 
 /**
- * Minimal chrome for the onboarding wizard: the Paraden ARIA logo top-left, a
+ * Minimal chrome for the onboarding wizard: the Paraden logo top-left, a
  * theme toggle + account menu top-right. No sidebar and no horizontal dividers
  * (no `border-b` / separators) — the wizard owns the whole screen.
  */
@@ -49,9 +49,9 @@ export function OnboardingHeader() {
   return (
     <header className="flex h-16 items-center justify-between px-6">
       <img
-        src={isDark ? "/paraden-aria-no-box-dark.svg" : "/paraden-aria-no-box.svg"}
-        alt="Paraden ARIA"
-        className="h-7 w-auto"
+        src={isDark ? "/paraden-wordmark-dark.svg" : "/paraden-wordmark.svg"}
+        alt="Paraden"
+        className="h-5 w-auto"
       />
       <div className="flex items-center gap-1">
         <Button

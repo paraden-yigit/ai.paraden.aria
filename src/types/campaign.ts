@@ -23,10 +23,15 @@ export type EmailGenerationStatus =
   | "failed"
 
 /**
- * Simulated performance metrics for a running/completed campaign — raw counts
- * plus the seed sequence-completion rate (0-100). The dashboard derives the
- * display percentages (open %, click %, …) from these counts. Null on the
- * campaign until it's first run.
+ * Real performance metrics for a running or completed campaign: raw counts plus
+ * the sequence-completion rate (0-100). The dashboard derives the display
+ * percentages from these counts. Null on the campaign until it is first run.
+ *
+ * These were simulated until 2026-07-28. They are now recomputed server-side
+ * from the send, open and reply logs on every campaign read. `clicks` and
+ * `unsubscribes` are the exception: nothing tracks either yet, so they are
+ * structurally zero rather than fabricated, and the dashboard does not show
+ * them.
  */
 export interface CampaignMetrics {
   sequence_completion_rate: number

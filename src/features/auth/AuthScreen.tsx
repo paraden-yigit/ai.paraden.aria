@@ -41,7 +41,7 @@ export function AuthScreen({ title, subtitle, children, alt }: AuthScreenProps) 
       <main className="login-main">
         <div className="auth" id="auth">
           <div className="auth-head">
-            <div className="auth-eyebrow">Paraden ARIA</div>
+            <div className="auth-eyebrow">Paraden</div>
             <h1>{title}</h1>
             <p>{subtitle}</p>
           </div>

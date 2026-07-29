@@ -100,14 +100,23 @@ export function SavedSequence({
   campaign,
   emails,
   sends,
+  startCollapsed = false,
 }: {
   campaign: Campaign
   emails: SavedCampaignEmail[]
   sends?: SendRecord[]
+  /**
+   * Start with every email closed rather than the first one open.
+   *
+   * The Emails tab is a reading surface, so opening the first is a helpful
+   * head start. The campaign dashboard is a summary, where the same head start
+   * costs a screen of height for something nobody came to read.
+   */
+  startCollapsed?: boolean
 }) {
   const ordered = [...emails].sort((a, b) => a.step_index - b.step_index)
   const [open, setOpen] = useState<Record<number, boolean>>(() =>
-    ordered.length > 0 ? { [ordered[0].id]: true } : {},
+    ordered.length > 0 && !startCollapsed ? { [ordered[0].id]: true } : {},
   )
   const labels = dayLabels(campaign, ordered.length)
   // Latest attempt per step: a retried step has more than one record, and the

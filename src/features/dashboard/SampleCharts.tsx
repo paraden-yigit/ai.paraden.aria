@@ -14,7 +14,7 @@ import {
 // discovery/outreach history; flagged in the PR for wiring.
 const WEEKLY_PROSPECTS = [12, 19, 9, 26, 31, 22, 38, 44]
 const SOURCES = [
-  { label: "Found by ARIA", value: 97, colorVar: "var(--series-1)" },
+  { label: "Found by Paraden", value: 97, colorVar: "var(--series-1)" },
   { label: "Uploaded by you", value: 61, colorVar: "var(--series-2)" },
 ]
 
@@ -160,7 +160,7 @@ function SourcesChart() {
         </div>
       ))}
       <p className="text-xs text-muted-foreground">
-        Prospects ARIA discovers arrive without email addresses until they are
+        Prospects Paraden discovers arrive without email addresses until they are
         enriched; uploads keep the emails you provide.
       </p>
     </div>
@@ -192,7 +192,7 @@ export function SampleCharts() {
             <Badge variant="secondary">Sample data</Badge>
           </div>
           <CardDescription>
-            Uploads versus ARIA's own discovery. Sample numbers for now.
+            Uploads versus Paraden's own discovery. Sample numbers for now.
           </CardDescription>
         </CardHeader>
         <CardContent>

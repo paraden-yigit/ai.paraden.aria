@@ -38,7 +38,7 @@ export function ProfileSettingsPage() {
         </h1>
         <p className="text-muted-foreground">
           Your profile picture, name, and the signature appended to every email
-          ARIA writes for your campaigns.
+          Paraden writes for your campaigns.
         </p>
       </div>
 

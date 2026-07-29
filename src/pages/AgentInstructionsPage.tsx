@@ -20,7 +20,7 @@ const IDEAS = [
   "Ban specific words or phrases you never want to see.",
   "Rule out openings you dislike, like starting with a question.",
   "Set limits: no exclamation marks, no buzzwords, short sentences.",
-  "Name things ARIA should always mention, like a certification.",
+  "Name things Paraden should always mention, like a certification.",
   "Add legal or compliance wording your industry requires.",
 ]
 
@@ -78,7 +78,7 @@ export function AgentInstructionsPage() {
           Agent instructions
         </h1>
         <p className="text-muted-foreground">
-          Custom rules for ARIA to follow when writing your outreach emails:
+          Custom rules for Paraden to follow when writing your outreach emails:
           banned words, phrasings to avoid, tone preferences, and anything else
           it should always or never do.
         </p>
@@ -117,7 +117,7 @@ export function AgentInstructionsPage() {
                   never this client-scoped page. Remove this line when the
                   backend wires client instructions into the prompt. */}
               <p className="text-sm text-muted-foreground">
-                Preview build: ARIA does not read these rules yet. Your list is
+                Preview build: Paraden does not read these rules yet. Your list is
                 saved for the whole company and takes effect once this page is
                 wired up.
               </p>

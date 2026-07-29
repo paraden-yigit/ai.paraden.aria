@@ -122,7 +122,7 @@ export function ProfileSettingsForm({
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                This goes at the end of every email ARIA writes for your
+                This goes at the end of every email Paraden writes for your
                 campaigns. HTML works here, so links and simple formatting are
                 fine; start from the example shown and check the live preview
                 alongside it.

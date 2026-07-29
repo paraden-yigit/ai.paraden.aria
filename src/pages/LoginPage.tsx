@@ -7,11 +7,14 @@ export function LoginPage() {
   return (
     <AuthScreen
       title="Welcome back."
-      subtitle="Log in to the ARIA platform."
+      subtitle="Log in to Paraden."
       alt={
         <>
           Don&apos;t have access yet?{" "}
-          <a href={`${config.marketingUrl}/#waitlist`}>Join the waitlist</a>
+          {/* The marketing root, not /contact: this ships independently of the
+              site rewrite, and the root is valid against both the old and new
+              site. Point it at /contact once that branch is merged. */}
+          <a href={config.marketingUrl}>Book a demo</a>
         </>
       }
     >

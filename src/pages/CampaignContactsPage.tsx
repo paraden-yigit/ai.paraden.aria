@@ -264,7 +264,7 @@ export function CampaignContactsPage() {
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Contacts</h2>
           <p className="text-muted-foreground">
-            Everyone in this campaign: contacts you uploaded, plus people ARIA
+            Everyone in this campaign: contacts you uploaded, plus people Paraden
             found to match the product's targeting profile.
           </p>
         </div>
@@ -471,7 +471,7 @@ export function CampaignContactsPage() {
           if (!open && !excluding) setCompanyToExclude(null)
         }}
         title={`Exclude ${companyToExclude?.name ?? companyToExclude?.domain ?? "this company"}?`}
-        description="Everyone at this company comes off your campaigns, and ARIA never contacts them again. You can take the company off the Exclusion list later, but people already removed stay removed."
+        description="Everyone at this company comes off your campaigns, and Paraden never contacts them again. You can take the company off the Exclusion list later, but people already removed stay removed."
         confirmLabel="Exclude company"
         destructive
         loading={excluding}

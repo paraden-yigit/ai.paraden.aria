@@ -366,7 +366,7 @@ export function StepDiscovery({
           <p className="text-sm font-medium">Find new contacts</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          ARIA finds companies matching this campaign&apos;s targeting profile
+          Paraden finds companies matching this campaign&apos;s targeting profile
           and a few contacts at each. You review and approve before anything is
           saved.
         </p>

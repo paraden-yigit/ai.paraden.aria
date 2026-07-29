@@ -86,7 +86,7 @@ export function ProductsPage() {
         isEmpty={products.length === 0}
         emptyMessage={
           canManage
-            ? "No products yet. Products teach ARIA what you sell, and every campaign starts from one."
+            ? "No products yet. Products teach Paraden what you sell, and every campaign starts from one."
             : "No products yet. You'll see products here once an owner gives you access."
         }
         emptyAction={

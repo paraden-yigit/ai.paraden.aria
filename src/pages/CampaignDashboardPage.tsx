@@ -6,11 +6,11 @@ import {
   Building2,
   CalendarRange,
   CheckCircle2,
+  Info,
   ListChecks,
   Loader2,
   MailOpen,
   MailX,
-  MousePointerClick,
   Package,
   PartyPopper,
   Play,
@@ -18,7 +18,6 @@ import {
   Send,
   ThumbsDown,
   ThumbsUp,
-  UserMinus,
   Users,
   type LucideIcon,
 } from "lucide-react"
@@ -33,11 +32,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { DataState } from "@/components/DataState"
+import { Disclosure } from "@/components/Disclosure"
 import { MetricTile } from "@/components/MetricTile"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
 import { SendingSummaryCard } from "@/features/campaigns/SendingSummaryCard"
-import { loadContactStats } from "@/features/campaigns/contactStats"
+import {
+  loadContactStats,
+  type ContactStats,
+} from "@/features/campaigns/contactStats"
 import { useAsync } from "@/hooks/useAsync"
 import { formatDateTime } from "@/lib/format"
 import { ApiError } from "@/services/http"
@@ -82,6 +90,74 @@ function rate(num: number, denom: number): string {
   return `${((num / denom) * 100).toFixed(1)}%`
 }
 
+/**
+ * The counting caveats, on an info button beside the Performance heading.
+ *
+ * A popover rather than a tooltip: this is five sentences, and a tooltip that
+ * long cannot be read on a touch screen, cannot be kept open while you look
+ * back at the numbers, and cannot have its text selected. Same affordance, same
+ * place, but it behaves like something you are meant to read.
+ */
+function CountingNote() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
+          aria-label="How these figures are counted"
+        >
+          <Info className="size-4" aria-hidden="true" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-96 text-sm">
+        <p className="font-medium">How these are counted</p>
+        <p className="mt-2 text-muted-foreground">
+          Every figure here is real, recounted from the send and reply logs each
+          time this page loads. Opens count prospects whose mail client loaded
+          the tracking image, so they undercount anyone who blocks images and
+          overcount privacy proxies that load it for them. Replies count
+          prospects who wrote back, so an out-of-office or a bounce notice is
+          not one. Success, Fail and Opt-out are how their latest reply was
+          read; a reply that fitted none of the three is counted in Replies but
+          in no outcome tile. Bounces only count rejections we see at the moment
+          of sending.
+        </p>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/** One line of campaign make-up: what the list is built from. A definition row
+ * rather than a card, because these describe setup and should not compete with
+ * the funnel above them. */
+function MakeUp({
+  icon: Icon,
+  label,
+  value,
+  caption,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  caption: string
+}) {
+  return (
+    <div>
+      <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
+        {label}
+      </dt>
+      <dd className="mt-0.5">
+        <span className="text-xl font-semibold tabular-nums">{value}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          {caption}
+        </span>
+      </dd>
+    </div>
+  )
+}
+
 /** One quiet diagnostic in the secondary bar: icon, label, value, rate. */
 function Diagnostic({
   icon: Icon,
@@ -115,6 +191,9 @@ function Diagnostic({
 function MetricsGrid({ metrics }: { metrics: CampaignMetrics }) {
   return (
     <div className="space-y-3">
+      {/* Six tiles, in this order, deliberately identical to the home
+          dashboard's PerformanceStrip so the two read as one funnel. Do not
+          reorder or relabel one without the other. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <MetricTile
           icon={Send}
@@ -160,24 +239,18 @@ function MetricsGrid({ metrics }: { metrics: CampaignMetrics }) {
           caption={`${rate(metrics.opt_out, metrics.replies)} of replies`}
         />
       </div>
+      {/* Clicks and unsubscribes used to sit here and were structurally always
+          zero: nothing tracks either yet (_METRIC_COLUMNS, api
+          campaign_service.py). Removed on the same reasoning Yigit used when he
+          dropped the permanently-zero qualified-leads and meetings-booked
+          tiles: a number that can never move teaches people to stop reading the
+          row it lives in. They come back when something feeds them. */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
-        <Diagnostic
-          icon={MousePointerClick}
-          label="Clicks"
-          value={formatCount(metrics.clicks)}
-          detail={`${rate(metrics.clicks, metrics.opens)} of opens`}
-        />
         <Diagnostic
           icon={MailX}
           label="Bounces"
           value={formatCount(metrics.bounces)}
           detail={`${rate(metrics.bounces, metrics.sent)} of sent`}
-        />
-        <Diagnostic
-          icon={UserMinus}
-          label="Unsubscribes"
-          value={formatCount(metrics.unsubscribes)}
-          detail={`${rate(metrics.unsubscribes, metrics.opens)} of opens`}
         />
         <Diagnostic
           icon={ListChecks}
@@ -197,15 +270,24 @@ export function CampaignDashboardPage() {
   )
   const [busy, setBusy] = useState(false)
 
+  // Deferred on purpose: loadContactStats pages the entire contact list, up to
+  // 25 sequential requests, and the make-up section it feeds is collapsed. The
+  // fetcher is inert until the section is opened, at which point `statsOpened`
+  // changes and useAsync re-runs it for real.
+  const [statsOpened, setStatsOpened] = useState(false)
+  const openStats = useCallback(() => setStatsOpened(true), [])
   const statsFetcher = useCallback(
-    () => loadContactStats(campaign.id),
-    [campaign.id],
+    () => (statsOpened ? loadContactStats(campaign.id) : Promise.resolve(null)),
+    [campaign.id, statsOpened],
   )
   const emailsFetcher = useCallback(
     () => campaignEmailService.saved(campaign.id),
     [campaign.id],
   )
-  const stats = useAsync(statsFetcher, [campaign.id])
+  const stats = useAsync<ContactStats | null>(statsFetcher, [
+    campaign.id,
+    statsOpened,
+  ])
   const emails = useAsync(emailsFetcher, [campaign.id])
 
   const touches = campaign.sequence_touches ?? emails.data?.length ?? 0
@@ -214,6 +296,32 @@ export function CampaignDashboardPage() {
     campaign.sequence_closer_gap,
   ])
   const spanWeeks = Math.max(1, Math.round(spanDays / 5))
+
+  // One sentence of real state, rather than "Everything this campaign has
+  // prepared, in one place", which was true of every campaign in every status
+  // and so told the reader nothing.
+  const m = campaign.metrics
+  const headline = (() => {
+    switch (campaign.status) {
+      case "draft":
+        return campaign.setup_completed
+          ? "Ready to run. Nothing sends until you start it."
+          : "Setup is not finished yet."
+      case "enriching_contacts":
+        return "Finding work email addresses, then writing each prospect's sequence."
+      case "enrichment_failed":
+        return "Something went wrong finding contact details."
+      case "completed":
+        return m && m.replies > 0
+          ? `Finished. ${formatCount(m.sent)} sent, ${formatCount(m.replies)} replied.`
+          : `Finished. ${formatCount(m?.sent ?? 0)} emails sent.`
+      case "running":
+        if (!m || m.sent === 0) return "Running. The first emails go out shortly."
+        return m.replies > 0
+          ? `${formatCount(m.sent)} sent so far, ${formatCount(m.replies)} replied.`
+          : `${formatCount(m.sent)} sent so far, no replies yet.`
+    }
+  })()
 
   const run = async () => {
     setBusy(true)
@@ -242,7 +350,7 @@ export function CampaignDashboardPage() {
               Your campaign is ready.
             </CardTitle>
             <CardDescription>
-              ARIA has researched your prospects and drafted your outreach.
+              Paraden has researched your prospects and drafted your outreach.
               Everything below is yours to review and refine: nothing is final
               until you decide it is.
             </CardDescription>
@@ -258,9 +366,7 @@ export function CampaignDashboardPage() {
               {STATUS_LABEL[campaign.status]}
             </Badge>
           </div>
-          <p className="text-muted-foreground">
-            Everything this campaign has prepared, in one place.
-          </p>
+          <p className="text-muted-foreground">{headline}</p>
           {campaign.status === "enrichment_failed" && (
             <p className="mt-1 text-sm text-destructive">
               {campaign.enrichment_error ??
@@ -312,104 +418,78 @@ export function CampaignDashboardPage() {
 
       {campaign.metrics && (
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <h3 className="text-sm font-medium text-muted-foreground">
               Performance
             </h3>
+            <CountingNote />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Sent, opens, replies, bounces and sequence completion are real. Opens
-            count prospects whose mail client loaded the tracking image, so they
-            undercount anyone who blocks images and overcount privacy proxies that
-            load it for them. Replies count prospects who wrote back — an
-            out-of-office or bounce notice is not counted — and Success, Fail and
-            Opt-out are how their latest reply was read; anything that fitted none
-            of the three is in Replies but in no outcome tile. Clicks and
-            unsubscribes stay at zero, nothing tracks those yet, and bounces only
-            count rejections we see at send time.
-          </p>
           <MetricsGrid metrics={campaign.metrics} />
         </div>
       )}
 
-      <DataState
-        loading={stats.loading}
-        error={stats.error}
-        isEmpty={false}
-        emptyMessage="No contact data yet."
-        onRetry={stats.refetch}
-        skeletonRows={2}
+      {/* Make-up is setup, not performance, so it is collapsed. It also pays for
+          itself: loadContactStats pages the whole contact list, up to 25
+          sequential requests, and this defers that until someone asks. */}
+      <Disclosure
+        id={`campaign-makeup-${campaign.id}`}
+        label="Campaign make-up"
+        icon={Building2}
+        onFirstOpen={openStats}
       >
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center gap-2">
-                <Building2 className="size-4" />
-                Companies
-              </CardDescription>
-              <CardTitle className="text-3xl">
-                {stats.data?.companies ?? 0}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              That your prospects work at.
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center gap-2">
-                <Users className="size-4" />
-                People
-              </CardDescription>
-              <CardTitle className="text-3xl">
-                {stats.data?.people ?? 0}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Prospects across those companies.
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center gap-2">
-                <AtSign className="size-4" />
-                Ready to email
-              </CardDescription>
-              <CardTitle className="text-3xl">
-                {stats.data?.reachable ?? 0}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              {stats.data && stats.data.reachable === 0
-                ? "Prospects found by discovery arrive without email addresses. Contacts you upload include theirs."
-                : "Prospects with an email address on file."}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center gap-2">
-                <CalendarRange className="size-4" />
-                Sequence
-              </CardDescription>
-              <CardTitle className="text-3xl">
-                {touches > 0 ? `${touches} emails` : "Not set"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              {touches > 0
-                ? `Spread over about ${spanWeeks} ${spanWeeks === 1 ? "week" : "weeks"}.`
-                : "Finish setup to configure the sequence."}
-            </CardContent>
-          </Card>
-        </div>
-      </DataState>
+        {statsOpened ? (
+          <DataState
+            loading={stats.loading}
+            error={stats.error}
+            isEmpty={false}
+            emptyMessage="No contact data yet."
+            onRetry={stats.refetch}
+            skeletonRows={2}
+          >
+            <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MakeUp
+                icon={Building2}
+                label="Companies"
+                value={formatCount(stats.data?.companies ?? 0)}
+                caption="That your prospects work at."
+              />
+              <MakeUp
+                icon={Users}
+                label="People"
+                value={formatCount(stats.data?.people ?? 0)}
+                caption="Prospects across those companies."
+              />
+              <MakeUp
+                icon={AtSign}
+                label="Ready to email"
+                value={formatCount(stats.data?.reachable ?? 0)}
+                caption={
+                  stats.data && stats.data.reachable === 0
+                    ? "Prospects found by discovery arrive without email addresses. Contacts you upload include theirs."
+                    : "Prospects with an email address on file."
+                }
+              />
+              <MakeUp
+                icon={CalendarRange}
+                label="Sequence"
+                value={touches > 0 ? `${touches} emails` : "Not set"}
+                caption={
+                  touches > 0
+                    ? `Spread over about ${spanWeeks} ${spanWeeks === 1 ? "week" : "weeks"}.`
+                    : "Finish setup to configure the sequence."
+                }
+              />
+            </dl>
+          </DataState>
+        ) : null}
+      </Disclosure>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Your outreach sequence</CardTitle>
             <CardDescription>
-              The emails ARIA drafted and you approved, in sending order.
+              The emails Paraden drafted and you approved, in sending order.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -425,8 +505,16 @@ export function CampaignDashboardPage() {
               onRetry={emails.refetch}
               skeletonRows={3}
             >
+              {/* SavedSequence already gives every step its own open/close
+                  toggle, so wrapping the lot in one more disclosure made
+                  reading a single email a two-click job. The steps are the
+                  disclosures; they just all start closed here. */}
               {emails.data && (
-                <SavedSequence campaign={campaign} emails={emails.data} />
+                <SavedSequence
+                  campaign={campaign}
+                  emails={emails.data}
+                  startCollapsed
+                />
               )}
             </DataState>
           </CardContent>
