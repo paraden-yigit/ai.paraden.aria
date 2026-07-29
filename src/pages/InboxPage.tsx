@@ -60,7 +60,7 @@ function useIsWideLayout(): boolean {
  * wired to.
  *
  * Layout is the usual mail-client split at desktop width and a Sheet below it,
- * matching how the campaign Emails tab already handles the same problem.
+ * matching how the campaign Outbox tab already handles the same problem.
  */
 export function InboxPage() {
   const [folder, setFolder] = useState<Folder>("received")

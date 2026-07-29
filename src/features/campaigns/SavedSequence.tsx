@@ -108,7 +108,7 @@ export function SavedSequence({
   /**
    * Start with every email closed rather than the first one open.
    *
-   * The Emails tab is a reading surface, so opening the first is a helpful
+   * The Outbox tab is a reading surface, so opening the first is a helpful
    * head start. The campaign dashboard is a summary, where the same head start
    * costs a screen of height for something nobody came to read.
    */

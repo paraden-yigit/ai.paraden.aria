@@ -40,14 +40,23 @@ export const campaignService = {
   },
 
   /**
-   * Launch the campaign: find each contact's work email, write their sequence,
-   * then queue them for sending. Refused once any email has already gone out —
-   * re-running would rewrite outreach prospects have already received.
+   * Prepare the campaign: find each contact's work email and compose their
+   * sequence. Sends nothing — the campaign is left `ready_to_send` for review.
+   * Refused once any email has already gone out, since re-running would rewrite
+   * outreach prospects have already received.
+   */
+  run(id: number): Promise<Campaign> {
+    return apiClient.post<Campaign>(`/api/campaigns/${id}/run`)
+  },
+
+  /**
+   * Approve a prepared campaign and start sending it. The only call that puts
+   * mail on the wire; refused unless the campaign is `ready_to_send`.
    *
    * There is no `complete`: a campaign marks itself completed once every
    * enrolled prospect has finished their sequence.
    */
-  run(id: number): Promise<Campaign> {
-    return apiClient.post<Campaign>(`/api/campaigns/${id}/run`)
+  startSending(id: number): Promise<Campaign> {
+    return apiClient.post<Campaign>(`/api/campaigns/${id}/start-sending`)
   },
 }

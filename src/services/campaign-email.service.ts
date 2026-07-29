@@ -52,7 +52,7 @@ export const campaignEmailService = {
     )
   },
 
-  /** One prospect's generated outreach emails (Emails tab), in sending order. */
+  /** One prospect's generated outreach emails (Outbox tab), in sending order. */
   forContact(
     campaignId: number,
     contactId: number,
