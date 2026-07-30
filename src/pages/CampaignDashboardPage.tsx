@@ -13,7 +13,6 @@ import {
   MailX,
   Package,
   PartyPopper,
-  Play,
   Reply,
   Send,
   ThumbsDown,
@@ -21,10 +20,8 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react"
-import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -40,17 +37,15 @@ import {
 import { DataState } from "@/components/DataState"
 import { Disclosure } from "@/components/Disclosure"
 import { MetricTile } from "@/components/MetricTile"
+import { CampaignLaunchActions } from "@/features/campaigns/CampaignLaunchActions"
 import { SavedSequence } from "@/features/campaigns/SavedSequence"
 import { SendingSummaryCard } from "@/features/campaigns/SendingSummaryCard"
 import {
   loadContactStats,
   type ContactStats,
 } from "@/features/campaigns/contactStats"
-import { preparingStage } from "@/features/campaigns/status"
 import { useAsync } from "@/hooks/useAsync"
 import { formatDateTime } from "@/lib/format"
-import { ApiError } from "@/services/http"
-import { campaignService } from "@/services/campaign.service"
 import type { CampaignMetrics, CampaignStatus } from "@/types/campaign"
 import { useCampaignContext } from "@/features/campaigns/useCampaignContext"
 import { campaignEmailService } from "@/services/campaign-email.service"
@@ -271,7 +266,6 @@ export function CampaignDashboardPage() {
   const justCompleted = Boolean(
     (location.state as { justCompleted?: boolean } | null)?.justCompleted,
   )
-  const [busy, setBusy] = useState(false)
 
   // Deferred on purpose: loadContactStats pages the entire contact list, up to
   // 25 sequential requests, and the make-up section it feeds is collapsed. The
@@ -308,16 +302,17 @@ export function CampaignDashboardPage() {
     switch (campaign.status) {
       case "draft":
         return campaign.setup_completed
-          ? "Ready to run. Nothing sends until you start it."
+          ? "Ready to launch. Your prospect list and sequence are saved."
           : "Setup is not finished yet."
       case "preparing":
-        return preparingStage(campaign) === "composing"
-          ? "Composing each prospect's emails. Nothing sends until you approve them."
-          : "Finding work email addresses, then composing each prospect's emails."
+        // Which half is running is the panel's job, right below this line.
+        return "Preparing your campaign. Nothing sends until you approve it."
       case "ready_to_send":
-        return "Contacts found and emails composed. Review them, then start sending."
+        // The review panel below says all of this, louder and with the actions
+        // attached. A second copy of it here is just noise.
+        return null
       case "enrichment_failed":
-        return "Something went wrong finding contact details."
+        return "Preparation stopped before it finished. Nothing has been sent."
       case "completed":
         return m && m.replies > 0
           ? `Finished. ${formatCount(m.sent)} sent, ${formatCount(m.replies)} replied.`
@@ -329,38 +324,6 @@ export function CampaignDashboardPage() {
           : `${formatCount(m.sent)} sent so far, no replies yet.`
     }
   })()
-
-  const run = async () => {
-    setBusy(true)
-    try {
-      await campaignService.run(campaign.id)
-      toast.success(
-        "Finding contact emails and composing the sequences… this can take a few minutes. Nothing sends until you approve it.",
-      )
-      refetch()
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Something went wrong.",
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const startSending = async () => {
-    setBusy(true)
-    try {
-      await campaignService.startSending(campaign.id)
-      toast.success("Sending started. The first emails go out shortly.")
-      refetch()
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Something went wrong.",
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -388,71 +351,19 @@ export function CampaignDashboardPage() {
               {STATUS_LABEL[campaign.status]}
             </Badge>
           </div>
-          {/* The spinner sits with the sentence, not just on the disabled
-              button, so the page reads as working even when the button is
-              scrolled out of view on a narrow window. */}
-          <p className="flex items-center gap-2 text-muted-foreground">
-            {campaign.status === "preparing" && (
-              <Loader2 className="size-4 shrink-0 animate-spin" />
-            )}
-            {headline}
-          </p>
-          {campaign.status === "enrichment_failed" && (
-            <p className="mt-1 text-sm text-destructive">
-              {campaign.enrichment_error ??
-                "Contact enrichment failed. Try running the campaign again."}
+          {/* The spinner sits with the sentence, not just on the panel below,
+              so the page reads as working even when the panel is scrolled out
+              of view on a narrow window. */}
+          {headline && (
+            <p className="flex items-center gap-2 text-muted-foreground">
+              {campaign.status === "preparing" && (
+                <Loader2 className="size-4 shrink-0 animate-spin" />
+              )}
+              {headline}
             </p>
           )}
         </div>
 
-        {/* Two deliberate presses: Run prepares (contacts + emails), then Start
-            sending approves what was composed. Once running there is nothing left
-            to press — the campaign completes itself when every prospect has
-            finished their sequence. */}
-        {(campaign.status === "draft" ||
-          campaign.status === "enrichment_failed") &&
-          campaign.setup_completed && (
-            <div className="flex flex-col items-end gap-1">
-              <Button onClick={run} disabled={busy}>
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Play className="size-4" />
-                )}
-                {campaign.status === "enrichment_failed"
-                  ? "Retry enrichment"
-                  : "Run campaign"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Finds work emails and composes each prospect's emails. Nothing
-                sends until you approve them.
-              </p>
-            </div>
-          )}
-        {campaign.status === "preparing" && (
-          <Button variant="outline" disabled>
-            <Loader2 className="size-4 animate-spin" />
-            {preparingStage(campaign) === "composing"
-              ? "Composing emails…"
-              : "Finding contact emails…"}
-          </Button>
-        )}
-        {campaign.status === "ready_to_send" && (
-          <div className="flex flex-col items-end gap-1">
-            <Button onClick={startSending} disabled={busy}>
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
-              Start sending
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Starts sending the emails in the Outbox, on your sending
-              schedule.
-            </p>
-          </div>
-        )}
         {campaign.status === "completed" && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle2 className="size-4" />
@@ -460,6 +371,12 @@ export function CampaignDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* The launch surface, as one panel that changes with the campaign's
+          state: the two ways to launch, then preparation, then the review
+          prompt. Once sending starts there is nothing left to press, so it
+          renders nothing. */}
+      <CampaignLaunchActions campaign={campaign} refetch={refetch} />
 
       {(campaign.status === "running" || campaign.status === "completed") && (
         <SendingSummaryCard campaignId={campaign.id} />

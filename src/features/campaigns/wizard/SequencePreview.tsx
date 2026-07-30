@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2, RefreshCw, Shuffle, Sparkles } from "lucide-react"
 
 import { EmailBody } from "@/components/EmailBody"
 import { Button } from "@/components/ui/button"
+import { ResearchSources } from "./ResearchSources"
 import { emailPlainText } from "@/lib/email-html"
 import { cn } from "@/lib/utils"
 import { campaignEmailService } from "@/services/campaign-email.service"
@@ -289,6 +290,10 @@ export function SequencePreview({
           will be filled in for each prospect.
         </p>
       )}
+
+      {/* Only with a real prospect: with no contacts the drafts are reusable
+          templates, so there is nobody to have researched. */}
+      {prospect && <ResearchSources campaignId={campaignId} />}
 
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm text-muted-foreground">

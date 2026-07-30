@@ -190,16 +190,16 @@ export function CampaignEmailsPage() {
         <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           <Loader2 className="size-4 shrink-0 animate-spin" />
           Composing each prospect's sequence. They appear here as they are
-          finished — this page updates on its own. Nothing sends until you start
-          the campaign.
+          finished, and this page updates on its own. Nothing sends until you
+          start the campaign.
         </div>
       )}
 
       {campaign.status === "ready_to_send" && (
         <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           These are the emails that will go out. Read them over and edit any of
-          them you want to change, then press Start sending on the Dashboard —
-          nothing leaves until you do.
+          them you want to change, then press Start sending on the Dashboard.
+          Nothing leaves until you do.
         </div>
       )}
 
