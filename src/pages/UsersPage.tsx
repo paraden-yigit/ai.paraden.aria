@@ -155,7 +155,7 @@ export function UsersPage() {
         {canManage && (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            New user
+            Invite User
           </Button>
         )}
       </div>
@@ -288,7 +288,7 @@ export function UsersPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New user</DialogTitle>
+            <DialogTitle>Invite User</DialogTitle>
             <DialogDescription>
               Invite a user to your company. They'll get a link to set their
               password.
