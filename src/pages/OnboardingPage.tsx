@@ -172,7 +172,7 @@ export function OnboardingPage() {
           <div className="space-y-6">
             <div className="space-y-1.5 text-center">
               <h1 className="text-2xl font-semibold tracking-tight">
-                Welcome{user?.full_name ? `, ${user.full_name.split(" ")[0]}` : ""}.
+                Welcome{user?.first_name ? `, ${user.first_name}` : ""}.
               </h1>
               <p className="text-sm text-muted-foreground">
                 Let's set up your company. Paste your website and Paraden will fill in

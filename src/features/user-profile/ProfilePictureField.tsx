@@ -10,9 +10,7 @@ import type { User } from "@/types/auth"
 const MAX_BYTES = 1024 * 1024
 
 function initialsOf(user: User): string {
-  const name =
-    [user.first_name, user.last_name].filter(Boolean).join(" ") ||
-    user.full_name
+  const name = user.display_name
   if (!name) return "U"
   return name
     .split(/\s+/)

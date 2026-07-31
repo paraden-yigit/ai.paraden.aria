@@ -67,13 +67,13 @@ export function OnboardingHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="size-8">
-                <AvatarFallback>{initialsOf(user?.full_name)}</AvatarFallback>
+                <AvatarFallback>{initialsOf(user?.display_name)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>
-              {user?.full_name ?? "My account"}
+              {user?.display_name ?? "My account"}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

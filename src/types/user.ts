@@ -23,14 +23,17 @@ export interface ClientUser extends User {
  * teams; omit it to leave team membership unchanged.
  */
 export interface UserManageUpdate {
-  full_name?: string
+  first_name?: string
+  last_name?: string
   role?: string
   team_id?: number | null
 }
 
-/** Body for POST /api/users/new — an owner inviting a new user to the client. */
+/**
+ * Body for POST /api/users/new — an owner inviting a new user to the client.
+ * No name: the invitee types their own when they set their password.
+ */
 export interface UserManageCreate {
-  full_name: string
   email: string
   role: string
   team_id?: number | null

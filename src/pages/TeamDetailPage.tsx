@@ -83,7 +83,7 @@ export function TeamDetailPage() {
     setRemovingId(member.id)
     try {
       await teamService.removeMember(teamId, member.id)
-      toast.success(`${member.full_name} removed from the team.`)
+      toast.success(`${member.display_name} removed from the team.`)
       refetchMembers()
       refetchAvailable()
     } catch (err) {
@@ -141,7 +141,7 @@ export function TeamDetailPage() {
                   <SelectContent>
                     {availableUsers.map((u) => (
                       <SelectItem key={u.id} value={String(u.id)}>
-                        {u.full_name} ({u.email})
+                        {u.display_name} ({u.email})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -179,7 +179,7 @@ export function TeamDetailPage() {
                       {(members ?? []).map((member) => (
                         <TableRow key={member.id}>
                           <TableCell className="font-medium">
-                            {member.full_name}
+                            {member.display_name}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {member.email}
@@ -227,7 +227,7 @@ export function TeamDetailPage() {
         title="Remove from this team?"
         description={
           pendingRemoval
-            ? `${pendingRemoval.full_name} will be removed from this team. Their account and their work are not affected, and you can add them back at any time.`
+            ? `${pendingRemoval.display_name} will be removed from this team. Their account and their work are not affected, and you can add them back at any time.`
             : ""
         }
         confirmLabel="Remove"

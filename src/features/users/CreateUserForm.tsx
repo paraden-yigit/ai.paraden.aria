@@ -14,8 +14,9 @@ import type { UserManageCreate } from "@/types/user"
 // Sentinel for "no team" — shadcn Select can't hold an empty string value.
 const NO_TEAM = "none"
 
+// No name: the invitee supplies their own on the set-password page, so all this
+// form decides is who is being invited and what they will be able to do.
 const schema = z.object({
-  full_name: z.string().min(1, "Name is required").max(255),
   email: z.string().min(1, "Email is required").email("Enter a valid email"),
   role: z.enum(USER_ROLES),
   team_id: z.string(),
@@ -25,7 +26,6 @@ type CreateUserFormValues = z.infer<typeof schema>
 
 function toPayload(values: CreateUserFormValues): UserManageCreate {
   return {
-    full_name: values.full_name.trim(),
     email: values.email.trim(),
     role: values.role,
     team_id: values.team_id === NO_TEAM ? null : Number(values.team_id),
@@ -53,7 +53,6 @@ export function CreateUserForm({
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      full_name: "",
       email: "",
       role: "user",
       team_id: NO_TEAM,
@@ -71,12 +70,6 @@ export function CreateUserForm({
         onSubmit={form.handleSubmit((values) => onSubmit(toPayload(values)))}
         className="space-y-6"
       >
-        <TextField
-          control={form.control}
-          name="full_name"
-          label="Name"
-          disabled={submitting}
-        />
         <TextField
           control={form.control}
           name="email"
@@ -113,7 +106,7 @@ export function CreateUserForm({
           )}
           <Button type="submit" disabled={submitting}>
             {submitting && <Loader2 className="animate-spin" />}
-            Create user
+            Send invitation
           </Button>
         </div>
       </form>

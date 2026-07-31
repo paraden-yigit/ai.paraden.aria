@@ -103,7 +103,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome{user?.full_name ? `, ${user.full_name}` : ""}.
+          Welcome{user?.display_name ? `, ${user.display_name}` : ""}.
         </h1>
         <p className="text-muted-foreground">
           {setup.loading

@@ -47,10 +47,10 @@ function inviteToastOptions(user: ClientUser) {
 /** Success toast after creating a user. */
 export function notifyUserCreated(user: ClientUser) {
   if (!inviteLink(user)) {
-    toast.success(`User "${user.full_name}" created.`)
+    toast.success(`Invitation sent to ${user.email}.`)
     return
   }
-  toast.success(`User "${user.full_name}" created.`, inviteToastOptions(user))
+  toast.success(`Invitation sent to ${user.email}.`, inviteToastOptions(user))
 }
 
 /**

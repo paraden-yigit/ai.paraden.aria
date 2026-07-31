@@ -209,7 +209,7 @@ export function ProductAccessTab({ productId }: ProductAccessTabProps) {
                       />
                       <span className="flex min-w-0 flex-1 items-center gap-2">
                         <span className="truncate text-sm font-medium">
-                          {clientUser.full_name}
+                          {clientUser.display_name}
                         </span>
                         {clientUser.role === "team_leader" && (
                           <Badge variant="secondary">Team leader</Badge>

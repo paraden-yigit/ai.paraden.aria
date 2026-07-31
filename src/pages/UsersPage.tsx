@@ -33,7 +33,6 @@ import { useAuth } from "@/features/auth/useAuth"
 import { roleLabel, statusLabel } from "@/lib/roles"
 import { PERMISSIONS } from "@/lib/permissions"
 import { isPendingInvite, notifyUserCreated, resendInvitation } from "@/lib/invite"
-import { userDisplayName } from "@/lib/format"
 import type {
   ClientUser,
   UserManageCreate,
@@ -114,7 +113,10 @@ export function UsersPage() {
     setSaving(true)
     try {
       await userService.update(userToEdit.id, payload)
-      toast.success(`${payload.full_name ?? userDisplayName(userToEdit)} updated.`)
+      const renamed = [payload.first_name, payload.last_name]
+        .filter(Boolean)
+        .join(" ")
+      toast.success(`${renamed || userToEdit.display_name} updated.`)
       setUserToEdit(null)
       refetch()
     } catch (err) {
@@ -129,7 +131,7 @@ export function UsersPage() {
     setDeleting(true)
     try {
       await userService.remove(userToDelete.id)
-      toast.success(`${userDisplayName(userToDelete)} deleted.`)
+      toast.success(`${userToDelete.display_name} deleted.`)
       setUserToDelete(null)
       // Close the edit modal too — it was opened for the now-deleted user.
       setUserToEdit(null)
@@ -184,13 +186,14 @@ export function UsersPage() {
                 // Managers edit everyone except themselves (guards against
                 // accidentally demoting the last owner / self-lockout).
                 const editable = canManage && u.id !== currentUser?.id
-                const displayName = userDisplayName(u)
-                const initials = displayName
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((part) => part[0]!.toUpperCase())
-                  .join("")
+                const displayName = u.display_name
+                // A pending user's display name is their email address, which
+                // makes a poor pair of initials — take one letter from it.
+                const initials =
+                  [u.first_name, u.last_name]
+                    .filter(Boolean)
+                    .map((part) => part![0]!.toUpperCase())
+                    .join("") || displayName[0]?.toUpperCase()
                 return (
                   <TableRow key={u.id}>
                     <TableCell>
@@ -290,8 +293,7 @@ export function UsersPage() {
           <DialogHeader>
             <DialogTitle>Invite User</DialogTitle>
             <DialogDescription>
-              Invite a user to your company. They'll get a link to set their
-              password.
+              They'll get an email with a link to set their name and password.
             </DialogDescription>
           </DialogHeader>
           <CreateUserForm
@@ -339,7 +341,7 @@ export function UsersPage() {
         title="Delete user?"
         description={
           userToDelete
-            ? `${userDisplayName(userToDelete)} will lose access immediately and be removed from your users. This can't be undone.`
+            ? `${userToDelete.display_name} will lose access immediately and be removed from your users. This can't be undone.`
             : undefined
         }
         confirmLabel="Delete"

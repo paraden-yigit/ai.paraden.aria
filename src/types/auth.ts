@@ -5,11 +5,13 @@
 export interface User {
   id: number
   client_id: number
-  full_name: string
-  // Optional structured name, edited in the email-settings profile section.
-  // Independent of full_name (the display name shown across the app).
+  // The name, in parts — null until the user accepts their invitation and types
+  // it on the set-password page. Editable afterwards in profile settings.
   first_name: string | null
   last_name: string | null
+  // The parts joined, or the email address while an invitation is still pending.
+  // Derived by the API and never empty, so it can be rendered without a guard.
+  display_name: string
   email: string
   // Where replies/notifications are forwarded; distinct from the login email.
   forwarding_email: string | null
@@ -44,7 +46,6 @@ export interface PasswordResetInfo {
 
 /** Body for PATCH /api/auth/me — the current user's self-serve profile edit. */
 export interface UserProfileUpdate {
-  full_name?: string | null
   first_name?: string | null
   last_name?: string | null
   forwarding_email?: string | null
