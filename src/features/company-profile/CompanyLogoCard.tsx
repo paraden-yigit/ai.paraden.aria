@@ -91,7 +91,7 @@ export function CompanyLogoCard() {
             <div className="flex items-center justify-center rounded-lg border bg-muted/40 p-6">
               <img
                 src={logo}
-                alt="Your company logo"
+                alt="Your workspace logo"
                 className="max-h-24 max-w-full object-contain"
               />
             </div>

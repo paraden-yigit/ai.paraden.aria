@@ -37,9 +37,9 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
 
   const signals = [
     {
-      label: "Company messaging",
+      label: "Workspace messaging",
       hint: "What you do and how you stand out.",
-      to: "/company",
+      to: "/workspace",
       done: setup.messagingDone,
     },
     {
@@ -60,7 +60,7 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
     {
       label: "Agent instructions",
       hint: "Extra guidance for how Paraden writes.",
-      to: "/company/agent-instructions",
+      to: "/workspace/agent-instructions",
       done: !instructions.error && !!instructions.data?.instructions?.trim(),
     },
   ]

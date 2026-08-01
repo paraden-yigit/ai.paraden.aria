@@ -61,14 +61,14 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     title: "Teach Paraden",
     items: [
       {
-        to: "/company",
-        label: "Company info",
+        to: "/workspace",
+        label: "Workspace info",
         icon: Briefcase,
         permission: PERMISSIONS.companyInfo,
       },
       { to: "/products", label: "Products", icon: Package },
       {
-        to: "/company/agent-instructions",
+        to: "/workspace/agent-instructions",
         label: "Agent instructions",
         icon: Bot,
         permission: PERMISSIONS.agentInstructions,
@@ -89,16 +89,16 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Your company",
+    title: "Your workspace",
     items: [
       {
-        to: "/company/teams",
+        to: "/workspace/teams",
         label: "Teams",
         icon: UsersRound,
         permission: PERMISSIONS.teams,
       },
       {
-        to: "/company/users",
+        to: "/workspace/users",
         label: "Users",
         icon: ShieldCheck,
         permission: [PERMISSIONS.usersView, PERMISSIONS.usersViewAll],

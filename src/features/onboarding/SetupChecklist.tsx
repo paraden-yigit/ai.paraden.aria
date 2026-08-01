@@ -41,9 +41,9 @@ export function SetupChecklist({ state }: { state: SetupState }) {
 
   const steps: StepDef[] = [
     {
-      title: "Tell Paraden about your company",
+      title: "Tell Paraden about your workspace",
       blurb: "What you do, your positioning, your competitors. It shapes every email.",
-      to: "/company",
+      to: "/workspace",
       done: state.messagingDone,
     },
     {

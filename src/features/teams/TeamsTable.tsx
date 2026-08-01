@@ -43,7 +43,7 @@ export function TeamsTable({ teams, onEdit, onDelete }: TeamsTableProps) {
             <TableRow
               key={team.id}
               className="cursor-pointer"
-              onClick={() => navigate(`/company/teams/${team.id}`)}
+              onClick={() => navigate(`/workspace/teams/${team.id}`)}
             >
               <TableCell>
                 <span className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export function TeamsTable({ teams, onEdit, onDelete }: TeamsTableProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
-                      onClick={() => navigate(`/company/teams/${team.id}`)}
+                      onClick={() => navigate(`/workspace/teams/${team.id}`)}
                     >
                       <Users className="size-4" />
                       Manage members

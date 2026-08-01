@@ -39,7 +39,7 @@ export function OnboardingGate() {
             Your workspace is being set up
           </h1>
           <p className="text-sm text-muted-foreground">
-            Your company owner is finishing onboarding. You'll have access as soon
+            This workspace's owner is finishing onboarding. You'll have access as soon
             as it's done — check back shortly.
           </p>
         </div>

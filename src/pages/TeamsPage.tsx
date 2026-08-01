@@ -94,7 +94,7 @@ export function TeamsPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
-          <p className="text-muted-foreground">Manage your company's teams.</p>
+          <p className="text-muted-foreground">Manage your workspace's teams.</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
@@ -131,7 +131,7 @@ export function TeamsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New team</DialogTitle>
-            <DialogDescription>Add a team to your company.</DialogDescription>
+            <DialogDescription>Add a team to your workspace.</DialogDescription>
           </DialogHeader>
           <TeamForm
             onSubmit={handleCreate}

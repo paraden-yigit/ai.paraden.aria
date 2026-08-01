@@ -122,7 +122,7 @@ function App() {
                     <RequirePermission permission={PERMISSIONS.companyInfo} />
                   }
                 >
-                  <Route path="/company" element={<CompanyInfoPage />} />
+                  <Route path="/workspace" element={<CompanyInfoPage />} />
                 </Route>
                 <Route
                   element={
@@ -130,15 +130,15 @@ function App() {
                   }
                 >
                   <Route
-                    path="/company/agent-instructions"
+                    path="/workspace/agent-instructions"
                     element={<AgentInstructionsPage />}
                   />
                 </Route>
                 <Route
                   element={<RequirePermission permission={PERMISSIONS.teams} />}
                 >
-                  <Route path="/company/teams" element={<TeamsPage />} />
-                  <Route path="/company/teams/:id" element={<TeamDetailPage />} />
+                  <Route path="/workspace/teams" element={<TeamsPage />} />
+                  <Route path="/workspace/teams/:id" element={<TeamDetailPage />} />
                 </Route>
                 <Route
                   element={
@@ -150,12 +150,20 @@ function App() {
                     />
                   }
                 >
-                  <Route path="/company/users" element={<UsersPage />} />
+                  <Route path="/workspace/users" element={<UsersPage />} />
                 </Route>
                 </Route>
               </Route>
               </Route>
             </Route>
+
+            {/* The tenant is called a workspace now. Old paths kept for a
+                release so bookmarks and any link already sent survive. */}
+            <Route path="/company" element={<Navigate to="/workspace" replace />} />
+            <Route
+              path="/company/*"
+              element={<Navigate to="/workspace" replace />}
+            />
 
             <Route path="/404" element={<NotFoundPage />} />
             <Route path="*" element={<Navigate to="/404" replace />} />

@@ -20,7 +20,7 @@ import type { OnboardingDraft } from "@/types/client"
 
 const STEPS: WizardStep[] = [
   { title: "Website" },
-  { title: "Company info" },
+  { title: "Workspace info" },
   { title: "What you do" },
   { title: "Branding" },
 ]
@@ -175,7 +175,7 @@ export function OnboardingPage() {
                 Welcome{user?.first_name ? `, ${user.first_name}` : ""}.
               </h1>
               <p className="text-sm text-muted-foreground">
-                Let's set up your company. Paste your website and Paraden will fill in
+                Let's set up your workspace. Paste your website and Paraden will fill in
                 the details for you to review.
               </p>
             </div>

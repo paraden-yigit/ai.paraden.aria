@@ -73,7 +73,7 @@ function QuickActionsCard() {
           </Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link to="/company">
+          <Link to="/workspace">
             <Briefcase className="size-4" />
             Company info
           </Link>

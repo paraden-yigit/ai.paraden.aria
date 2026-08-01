@@ -94,7 +94,7 @@ export function TeamDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link to="/company/teams">
+        <Link to="/workspace/teams">
           <ArrowLeft className="size-4" />
           Back to teams
         </Link>
