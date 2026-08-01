@@ -17,7 +17,7 @@ interface StepReviewProps {
 
 /**
  * Review the uploaded companies and contacts (expandable rows). Only shown after
- * a CSV was uploaded and mapped. Continues to the discovery step.
+ * a spreadsheet was uploaded and mapped. Continues to the discovery step.
  */
 export function StepReview({ campaignId, onContinue }: StepReviewProps) {
   const fetchReview = useCallback(
