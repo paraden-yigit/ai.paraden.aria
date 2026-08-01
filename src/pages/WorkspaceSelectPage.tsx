@@ -66,7 +66,7 @@ export function WorkspaceSelectPage() {
         </div>
 
         {workspaces.length > 0 && (
-          <Card className="divide-y p-0">
+          <Card className="divide-y p-0 gap-0">
             {workspaces.map((workspace) => (
               <button
                 key={workspace.client_id}
