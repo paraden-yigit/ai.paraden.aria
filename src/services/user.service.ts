@@ -1,5 +1,6 @@
 import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
+import type { WorkspaceInvitation } from "@/types/invitation"
 import type {
   ClientUser,
   UserManageCreate,
@@ -9,10 +10,14 @@ import { apiClient } from "./http"
 import { normalizeList } from "./normalizeList"
 
 /**
- * Users service — the client's own user roster (with teams) and their roles.
- * The API scopes every call to the session's client. Editing a user is gated on
- * the "users_manage" permission, enforced server-side. Methods are `this`-free
- * so they can be passed as references.
+ * Users service — the current workspace's roster: who belongs to it, in what
+ * role, on which teams. The API scopes every call to the session's workspace.
+ * Editing is gated on "users_manage", enforced server-side. Methods are
+ * `this`-free so they can be passed as references.
+ *
+ * Inviting lives here too, because that is where it is done from, but it returns
+ * an invitation rather than a user — nobody joins the roster until they accept.
+ * Answering invitations is `invitationService`.
  */
 export const userService = {
   async list(params: PaginationParams = {}): Promise<ListResult<ClientUser>> {
@@ -22,17 +27,9 @@ export const userService = {
     return normalizeList<ClientUser>(data)
   },
 
-  /** Invite a new user to the client (requires "users_manage"). */
-  create(payload: UserManageCreate): Promise<ClientUser> {
-    return apiClient.post<ClientUser>("/api/users/new", payload)
-  },
-
-  /**
-   * Issue a fresh invitation for a pending user and email it again (requires
-   * "users_manage"). This invalidates the previous link.
-   */
-  regenerateInvitation(id: number): Promise<ClientUser> {
-    return apiClient.post<ClientUser>(`/api/users/${id}/invitation`)
+  /** Invite an address into this workspace (requires "users_manage"). */
+  create(payload: UserManageCreate): Promise<WorkspaceInvitation> {
+    return apiClient.post<WorkspaceInvitation>("/api/users/new", payload)
   },
 
   /** Update a user's name, role and/or team (requires "users_manage"). */
@@ -40,7 +37,7 @@ export const userService = {
     return apiClient.patch<ClientUser>(`/api/users/${id}`, payload)
   },
 
-  /** Soft-delete a user (requires "users_manage"). */
+  /** Remove someone from this workspace (requires "users_manage"). */
   remove(id: number): Promise<unknown> {
     return apiClient.delete(`/api/users/${id}`)
   },

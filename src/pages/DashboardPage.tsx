@@ -19,6 +19,7 @@ import { SampleCharts } from "@/features/dashboard/SampleCharts"
 import { SetupChecklist } from "@/features/onboarding/SetupChecklist"
 import { useSetupState } from "@/features/onboarding/useSetupState"
 import { useAuth } from "@/features/auth/useAuth"
+import { roleLabel } from "@/lib/roles"
 import { useAsync } from "@/hooks/useAsync"
 import { campaignService } from "@/services/campaign.service"
 import type { Campaign } from "@/types/campaign"
@@ -33,7 +34,11 @@ function AccountCard() {
       </CardHeader>
       <CardContent className="space-y-1 text-sm text-muted-foreground">
         <div>{user?.email}</div>
-        {user?.client_id != null && <div>Client #{user.client_id}</div>}
+        {user?.active_workspace && (
+          <div>
+            {user.active_workspace.name} · {roleLabel(user.active_workspace.role)}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

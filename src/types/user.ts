@@ -6,15 +6,28 @@ export interface UserTeamRef {
   name: string
 }
 
-/** A client user as returned by GET /api/users — the roster, with their teams. */
-export interface ClientUser extends User {
+/**
+ * A member of the current workspace, as GET /api/users returns them.
+ *
+ * The person, plus the standing they have *here*: the same human appears in
+ * another workspace's roster with a different role and different teams, and
+ * neither list can see the other. Everyone on this list has accepted — people
+ * who have only been invited are `WorkspaceInvitation`s, not members.
+ */
+export interface ClientUser
+  extends Pick<
+    User,
+    | "id"
+    | "first_name"
+    | "last_name"
+    | "display_name"
+    | "email"
+    | "has_avatar"
+    | "created_at"
+    | "updated_at"
+  > {
+  role: string
   teams: UserTeamRef[]
-  /**
-   * Only on the response of POST /api/users/new: whether the invitation email
-   * actually went out. `false` (or absent) means the link has to be shared by
-   * hand.
-   */
-  invitation_email_sent?: boolean
 }
 
 /**
@@ -30,8 +43,8 @@ export interface UserManageUpdate {
 }
 
 /**
- * Body for POST /api/users/new — an owner inviting a new user to the client.
- * No name: the invitee types their own when they set their password.
+ * Body for POST /api/users/new — inviting an address into this workspace.
+ * No name: the invitee gives their own when they create their account.
  */
 export interface UserManageCreate {
   email: string

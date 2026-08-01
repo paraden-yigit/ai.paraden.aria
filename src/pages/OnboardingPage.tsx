@@ -65,7 +65,7 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob | null> {
  */
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const { user, refreshUser } = useAuth()
+  const { user, activeWorkspace, refreshUser } = useAuth()
 
   const [step, setStep] = useState(0)
   const [urlInput, setUrlInput] = useState("")
@@ -77,10 +77,10 @@ export function OnboardingPage() {
 
   // Only the owner runs the wizard; anyone who has already completed it (or lands
   // here by accident) goes to the dashboard. The route guard handles the rest.
-  if (user && user.client_onboarding_completed) {
+  if (user && activeWorkspace?.onboarding_completed) {
     return <Navigate to="/" replace />
   }
-  if (user && user.role !== "owner") {
+  if (user && activeWorkspace?.role !== "owner") {
     return <Navigate to="/" replace />
   }
 

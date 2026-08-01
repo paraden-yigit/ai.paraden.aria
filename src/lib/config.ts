@@ -14,4 +14,11 @@ export const config = {
   marketingUrl: (
     import.meta.env.VITE_MARKETING_URL ?? "http://localhost:3000"
   ).replace(/\/$/, ""),
+  // Aria's own public origin. Needed to build an invite link that can be copied
+  // out and pasted somewhere else — `window.location.origin` would work in the
+  // browser, but a configured value is what makes the link right behind a proxy
+  // or on a custom domain.
+  appUrl: (
+    import.meta.env.VITE_APP_URL ?? window.location.origin
+  ).replace(/\/$/, ""),
 } as const

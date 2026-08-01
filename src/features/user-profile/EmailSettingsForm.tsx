@@ -50,10 +50,13 @@ type EmailSettingsFormValues = z.infer<typeof emailSettingsSchema>
 // Each field maps 1:1 to a UserProfileUpdate key; all optional ("" → null).
 const FIELDS = ["email_tone", "forwarding_email"] as const
 
+// Read from the active workspace, not the person: how their outreach sounds and
+// where its replies go are per workspace, because someone selling for two
+// companies is two different senders.
 function toFormValues(user: User): EmailSettingsFormValues {
   return {
-    email_tone: user.email_tone ?? "",
-    forwarding_email: user.forwarding_email ?? "",
+    email_tone: user.active_workspace?.email_tone ?? "",
+    forwarding_email: user.active_workspace?.forwarding_email ?? "",
   }
 }
 

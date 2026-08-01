@@ -22,6 +22,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -170,6 +171,12 @@ export function AppLayout() {
           </Link>
         </div>
         <Separator />
+        {/* Above the nav, because every link below it is scoped to whichever
+            workspace this names. Renders nothing for the single-workspace
+            majority. */}
+        <div className="px-2 pt-2">
+          <WorkspaceSwitcher onNavigate={() => setSidebarOpen(false)} />
+        </div>
         <nav className="space-y-4 p-2">
           {visibleSections.map((section, i) => (
             <div key={section.title ?? `section-${i}`} className="space-y-1">

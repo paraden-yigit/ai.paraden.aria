@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 
 import { useAuth } from "@/features/auth/useAuth"
+import { landingPath } from "@/features/auth/landing"
 import { ApiError } from "@/services/http"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -24,7 +25,7 @@ export default function LoginForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const state = location.state as LoginState | null
-  const from = state?.from?.pathname ?? "/"
+  const from = state?.from?.pathname
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -44,8 +45,14 @@ export default function LoginForm() {
     }
     setSubmitting(true)
     try {
-      await login(email.trim(), password)
-      navigate(from, { replace: true })
+      const profile = await login(email.trim(), password)
+      // Where they belong is one rule, in one place — and it may not be where
+      // they were headed: someone in several workspaces has to choose first.
+      // `from` rides along so the picker can forward them on afterwards.
+      navigate(landingPath(profile, from), {
+        replace: true,
+        state: state?.from ? { from: state.from } : undefined,
+      })
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401

@@ -20,13 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { DataState } from "@/components/DataState"
 import { useAsync } from "@/hooks/useAsync"
 import { teamService } from "@/services/team.service"
 import { ApiError } from "@/services/http"
-import { roleLabel, statusLabel } from "@/lib/roles"
 import type { User } from "@/types/auth"
 
 export function TeamDetailPage() {
@@ -170,8 +168,6 @@ export function TeamDetailPage() {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead className="w-12" />
                       </TableRow>
                     </TableHeader>
@@ -183,14 +179,6 @@ export function TeamDetailPage() {
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {member.email}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{roleLabel(member.role)}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {statusLabel(member.status)}
-                            </Badge>
                           </TableCell>
                           <TableCell>
                             <Button

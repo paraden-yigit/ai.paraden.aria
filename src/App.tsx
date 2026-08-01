@@ -6,9 +6,12 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { RequirePermission } from "@/components/auth/RequirePermission"
 import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute"
 import { OnboardingGate } from "@/components/auth/OnboardingGate"
+import { RequireWorkspace } from "@/components/auth/RequireWorkspace"
 import { PERMISSIONS } from "@/lib/permissions"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/LoginPage"
+import { InvitationPage } from "@/pages/InvitationPage"
+import { WorkspaceSelectPage } from "@/pages/WorkspaceSelectPage"
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage"
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage"
 import { DashboardPage } from "@/pages/DashboardPage"
@@ -60,7 +63,18 @@ function App() {
               />
             </Route>
 
+            {/* The invitation link, outside both guards on purpose: a signed-out
+                visitor has to reach it (they may have no account at all) and so
+                does a signed-in one, so neither guard can own it. */}
+            <Route path="/invite/:token" element={<InvitationPage />} />
+
             <Route element={<ProtectedRoute />}>
+              {/* Choosing a workspace happens before there is one, so this sits
+                  outside RequireWorkspace — and outside the shell, whose every
+                  link is scoped to the workspace not yet chosen. */}
+              <Route path="/workspaces" element={<WorkspaceSelectPage />} />
+
+              <Route element={<RequireWorkspace />}>
               {/* Full-screen first-login onboarding wizard — outside AppLayout so
                   it has no sidebar/header, only its own minimal chrome. */}
               <Route path="/onboarding" element={<OnboardingPage />} />
@@ -139,6 +153,7 @@ function App() {
                   <Route path="/company/users" element={<UsersPage />} />
                 </Route>
                 </Route>
+              </Route>
               </Route>
             </Route>
 
