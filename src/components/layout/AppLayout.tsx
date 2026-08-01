@@ -62,7 +62,7 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     items: [
       {
         to: "/workspace",
-        label: "Workspace info",
+        label: "Company info",
         icon: Briefcase,
         permission: PERMISSIONS.companyInfo,
       },
