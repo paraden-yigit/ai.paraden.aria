@@ -7,20 +7,23 @@ import { OnboardingHeader } from "@/features/onboarding/wizard/OnboardingHeader"
 /**
  * Gates the authenticated app behind first-login onboarding.
  *
- * - Client already onboarded → render the app (`<Outlet/>`).
+ * Per workspace, not per person: someone can be fully set up in one and waiting
+ * on an owner in another, and switching between them switches this too.
+ *
+ * - Workspace already onboarded → render the app (`<Outlet/>`).
  * - Not onboarded + owner → send them into the onboarding wizard.
- * - Not onboarded + non-owner → they can't use the app yet; show a short "being
+ * - Not onboarded + anyone else → they can't use it yet; show a short "being
  *   set up" screen until the owner finishes.
  */
 export function OnboardingGate() {
-  const { user } = useAuth()
+  const { activeWorkspace } = useAuth()
 
-  // ProtectedRoute guarantees a user here; be defensive anyway.
-  if (!user || user.client_onboarding_completed) {
+  // RequireWorkspace guarantees one here; be defensive anyway.
+  if (!activeWorkspace || activeWorkspace.onboarding_completed) {
     return <Outlet />
   }
 
-  if (user.role === "owner") {
+  if (activeWorkspace.role === "owner") {
     return <Navigate to="/onboarding" replace />
   }
 
@@ -36,7 +39,7 @@ export function OnboardingGate() {
             Your workspace is being set up
           </h1>
           <p className="text-sm text-muted-foreground">
-            Your company owner is finishing onboarding. You'll have access as soon
+            This workspace's owner is finishing onboarding. You'll have access as soon
             as it's done — check back shortly.
           </p>
         </div>

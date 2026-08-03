@@ -9,7 +9,12 @@ import {
   CompaniesAccordion,
   ContactsTable,
 } from "@/features/campaigns/wizard/CompaniesAccordion"
-import { parseCsvFile, type ParsedCsv } from "./csv"
+import {
+  SPREADSHEET_ACCEPT,
+  isSpreadsheetFile,
+  parseCsvFile,
+  type ParsedCsv,
+} from "./csv"
 
 interface StepUploadProps {
   campaignId: number
@@ -23,7 +28,7 @@ interface StepUploadProps {
 }
 
 /**
- * Step 2 — optionally upload a CSV of contacts. Reminds the user of the required
+ * Step 2 — optionally upload a spreadsheet of contacts. Reminds the user of the required
  * columns first, validates the file, and (when resuming) shows contacts already
  * uploaded to this campaign. Can be skipped.
  */
@@ -78,8 +83,8 @@ export function StepUpload({
     if (parsing) return
     const file = event.dataTransfer.files?.[0]
     if (!file) return
-    if (!/\.csv$/i.test(file.name) && file.type !== "text/csv") {
-      toast.error("Please drop a CSV file.")
+    if (!isSpreadsheetFile(file)) {
+      toast.error("Please drop a CSV or Excel file.")
       return
     }
     void processFile(file)
@@ -90,8 +95,8 @@ export function StepUpload({
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Upload contacts</h2>
         <p className="text-sm text-muted-foreground">
-          Add a CSV of contacts to this campaign, or skip to find matching
-          contacts automatically.
+          Add a CSV or Excel file of contacts to this campaign, or skip to find
+          matching contacts automatically.
         </p>
       </div>
 
@@ -115,7 +120,7 @@ export function StepUpload({
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,text/csv"
+        accept={SPREADSHEET_ACCEPT}
         className="hidden"
         onChange={handleSelect}
       />
@@ -177,10 +182,10 @@ export function StepUpload({
             {parsing
               ? "Reading file…"
               : dragging
-                ? "Drop your CSV to upload"
+                ? "Drop your file to upload"
                 : hasUploaded
-                  ? "Upload another CSV"
-                  : "Select or drop a CSV file"}
+                  ? "Upload another file"
+                  : "Select or drop a CSV or Excel file"}
           </span>
           <span className="text-xs text-muted-foreground">
             {hasUploaded

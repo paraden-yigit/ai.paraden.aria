@@ -19,6 +19,7 @@ import { SampleCharts } from "@/features/dashboard/SampleCharts"
 import { SetupChecklist } from "@/features/onboarding/SetupChecklist"
 import { useSetupState } from "@/features/onboarding/useSetupState"
 import { useAuth } from "@/features/auth/useAuth"
+import { roleLabel } from "@/lib/roles"
 import { useAsync } from "@/hooks/useAsync"
 import { campaignService } from "@/services/campaign.service"
 import type { Campaign } from "@/types/campaign"
@@ -33,7 +34,11 @@ function AccountCard() {
       </CardHeader>
       <CardContent className="space-y-1 text-sm text-muted-foreground">
         <div>{user?.email}</div>
-        {user?.client_id != null && <div>Client #{user.client_id}</div>}
+        {user?.active_workspace && (
+          <div>
+            {user.active_workspace.name} · {roleLabel(user.active_workspace.role)}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -68,7 +73,7 @@ function QuickActionsCard() {
           </Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link to="/company">
+          <Link to="/workspace">
             <Briefcase className="size-4" />
             Company info
           </Link>
@@ -103,7 +108,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome{user?.full_name ? `, ${user.full_name}` : ""}.
+          Welcome{user?.display_name ? `, ${user.display_name}` : ""}.
         </h1>
         <p className="text-muted-foreground">
           {setup.loading

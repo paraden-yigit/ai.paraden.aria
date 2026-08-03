@@ -99,6 +99,9 @@ export function StepDiscovery({
   const [skipping, setSkipping] = useState(false)
   // Contacts already discovered + approved for this campaign (shown on resume).
   const [saved, setSaved] = useState<CampaignUploadReview | null>(null)
+  // Back from a contact list returns to the targeting questions rather than the
+  // previous wizard step, so the user can retarget without losing their place.
+  const [editingTarget, setEditingTarget] = useState(false)
   // The two targeting questions asked on this step, prefilled from the campaign.
   const [targetCompanies, setTargetCompanies] = useState(
     String(campaign.target_companies ?? DEFAULT_TARGET_COMPANIES),
@@ -154,6 +157,7 @@ export function StepDiscovery({
 
   async function handleGenerate() {
     setStarting(true)
+    setEditingTarget(false)
     try {
       setState(await campaignDiscoveryService.generate(campaignId))
     } catch (err) {
@@ -238,7 +242,7 @@ export function StepDiscovery({
   }
 
   // Ready — show the staged preview beside the targeting summary.
-  if (status === "ready" && state) {
+  if (status === "ready" && state && !editingTarget) {
     const companies = state.companies
     return (
       <div className="space-y-6">
@@ -285,7 +289,12 @@ export function StepDiscovery({
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <Button type="button" variant="ghost" onClick={onBack} disabled={busy}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setEditingTarget(true)}
+            disabled={busy}
+          >
             <ArrowLeft className="size-4" />
             Back
           </Button>
@@ -322,7 +331,7 @@ export function StepDiscovery({
 
   // Resumed with already-discovered contacts and no active run — show them,
   // with the option to find more.
-  if (saved && saved.companies.length > 0) {
+  if (saved && saved.companies.length > 0 && !editingTarget) {
     return (
       <div className="space-y-6">
         <p className="text-sm text-muted-foreground">
@@ -338,7 +347,11 @@ export function StepDiscovery({
         </p>
         <CompaniesAccordion companies={saved.companies} showEmail={false} />
         <div className="flex items-center justify-between gap-2">
-          <Button type="button" variant="ghost" onClick={onBack}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setEditingTarget(true)}
+          >
             <ArrowLeft className="size-4" />
             Back
           </Button>
@@ -391,7 +404,7 @@ export function StepDiscovery({
           <div className="space-y-2">
             <LabelWithHint
               htmlFor="list-size"
-              label="What's your list size?"
+              label="Contacts per company"
               hint="How many contacts to find at each company. If a company has fewer, we keep it as-is."
             />
             <Input

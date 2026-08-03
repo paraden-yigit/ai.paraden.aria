@@ -1,7 +1,8 @@
 /**
- * The attributes a CSV column can be mapped onto in the campaign wizard's
- * mapping step. Values are namespaced `contact:*` / `company:*` so the backend
- * (and the row builder) can route each mapped column to the right entity.
+ * The attributes a spreadsheet column can be mapped onto in the campaign
+ * wizard's mapping step. Values are namespaced `contact:*` / `company:*` so the
+ * backend (and the row builder) can route each mapped column to the right
+ * entity.
  */
 
 export interface AttributeOption {
@@ -37,6 +38,10 @@ export const COMPANY_ATTRIBUTES: AttributeOption[] = [
   { value: "company:hq_city", label: "HQ city" },
   { value: "company:hq_region", label: "HQ region" },
   { value: "company:hq_country", label: "HQ country" },
+  // Free text for whatever the uploader already knows that no other column
+  // fits — a CRM note, why the account is on the list. Stored for now; nothing
+  // reads it yet.
+  { value: "company:context", label: "Context" },
 ]
 
 /** Sentinel select value meaning "don't import this column". */
@@ -100,10 +105,17 @@ const HEADER_ALIASES: Record<string, string> = {
   country: "contact:country",
   region: "contact:region",
   state: "contact:region",
+  context: "company:context",
+  companycontext: "company:context",
+  notes: "company:context",
+  note: "company:context",
+  companynotes: "company:context",
+  comments: "company:context",
+  background: "company:context",
 }
 
 /**
- * Best-effort guess of the attribute a CSV header maps to, by matching against
+ * Best-effort guess of the attribute a header maps to, by matching against
  * attribute labels/values and a small alias table. Returns `SKIP_MAPPING` when
  * nothing matches confidently.
  */

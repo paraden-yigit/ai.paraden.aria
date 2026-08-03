@@ -22,6 +22,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -60,14 +61,14 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     title: "Teach Paraden",
     items: [
       {
-        to: "/company",
+        to: "/workspace",
         label: "Company info",
         icon: Briefcase,
         permission: PERMISSIONS.companyInfo,
       },
       { to: "/products", label: "Products", icon: Package },
       {
-        to: "/company/agent-instructions",
+        to: "/workspace/agent-instructions",
         label: "Agent instructions",
         icon: Bot,
         permission: PERMISSIONS.agentInstructions,
@@ -88,16 +89,16 @@ const navSections: { title: string | null; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Your company",
+    title: "Your workspace",
     items: [
       {
-        to: "/company/teams",
+        to: "/workspace/teams",
         label: "Teams",
         icon: UsersRound,
         permission: PERMISSIONS.teams,
       },
       {
-        to: "/company/users",
+        to: "/workspace/users",
         label: "Users",
         icon: ShieldCheck,
         permission: [PERMISSIONS.usersView, PERMISSIONS.usersViewAll],
@@ -170,6 +171,12 @@ export function AppLayout() {
           </Link>
         </div>
         <Separator />
+        {/* Above the nav, because every link below it is scoped to whichever
+            workspace this names. Renders nothing for the single-workspace
+            majority. */}
+        <div className="px-2 pt-2">
+          <WorkspaceSwitcher onNavigate={() => setSidebarOpen(false)} />
+        </div>
         <nav className="space-y-4 p-2">
           {visibleSections.map((section, i) => (
             <div key={section.title ?? `section-${i}`} className="space-y-1">
@@ -261,12 +268,12 @@ export function AppLayout() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="size-8">
-                  <AvatarFallback>{initialsOf(user?.full_name)}</AvatarFallback>
+                  <AvatarFallback>{initialsOf(user?.display_name)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{user?.full_name ?? "My account"}</DropdownMenuLabel>
+              <DropdownMenuLabel>{user?.display_name ?? "My account"}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/account-settings">

@@ -20,13 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { DataState } from "@/components/DataState"
 import { useAsync } from "@/hooks/useAsync"
 import { teamService } from "@/services/team.service"
 import { ApiError } from "@/services/http"
-import { roleLabel, statusLabel } from "@/lib/roles"
 import type { User } from "@/types/auth"
 
 export function TeamDetailPage() {
@@ -83,7 +81,7 @@ export function TeamDetailPage() {
     setRemovingId(member.id)
     try {
       await teamService.removeMember(teamId, member.id)
-      toast.success(`${member.full_name} removed from the team.`)
+      toast.success(`${member.display_name} removed from the team.`)
       refetchMembers()
       refetchAvailable()
     } catch (err) {
@@ -96,7 +94,7 @@ export function TeamDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link to="/company/teams">
+        <Link to="/workspace/teams">
           <ArrowLeft className="size-4" />
           Back to teams
         </Link>
@@ -141,7 +139,7 @@ export function TeamDetailPage() {
                   <SelectContent>
                     {availableUsers.map((u) => (
                       <SelectItem key={u.id} value={String(u.id)}>
-                        {u.full_name} ({u.email})
+                        {u.display_name} ({u.email})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -170,8 +168,6 @@ export function TeamDetailPage() {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead className="w-12" />
                       </TableRow>
                     </TableHeader>
@@ -179,18 +175,10 @@ export function TeamDetailPage() {
                       {(members ?? []).map((member) => (
                         <TableRow key={member.id}>
                           <TableCell className="font-medium">
-                            {member.full_name}
+                            {member.display_name}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {member.email}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{roleLabel(member.role)}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {statusLabel(member.status)}
-                            </Badge>
                           </TableCell>
                           <TableCell>
                             <Button
@@ -227,7 +215,7 @@ export function TeamDetailPage() {
         title="Remove from this team?"
         description={
           pendingRemoval
-            ? `${pendingRemoval.full_name} will be removed from this team. Their account and their work are not affected, and you can add them back at any time.`
+            ? `${pendingRemoval.display_name} will be removed from this team. Their account and their work are not affected, and you can add them back at any time.`
             : ""
         }
         confirmLabel="Remove"

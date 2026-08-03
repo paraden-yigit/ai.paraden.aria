@@ -41,7 +41,7 @@ interface StepMappingProps {
 }
 
 /**
- * Step 3 — map each CSV column onto a contact/company attribute. Enforces the
+ * Step 3 — map each spreadsheet column onto a contact/company attribute. Enforces the
  * step-2 rule (a full name plus a company domain or LinkedIn URL must be mapped)
  * before the mapped rows can be saved to the campaign.
  */
@@ -229,7 +229,7 @@ interface AttributeSelectProps {
   disabled?: boolean
 }
 
-/** A grouped select of contact/company attributes for one CSV column. Attributes
+/** A grouped select of contact/company attributes for one spreadsheet column. Attributes
  * already mapped by another column are disabled to prevent duplicates. */
 function AttributeSelect({
   value,

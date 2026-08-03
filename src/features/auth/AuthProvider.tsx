@@ -35,8 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     await authService.login(email, password)
-    // Login sets the cookies; load the profile to populate session state.
-    setUser(await authService.me())
+    // Login sets the cookies; load the profile to populate session state. The
+    // profile is returned as well as stored, because the caller has to decide
+    // where to send them and cannot see the state update it just triggered.
+    const profile = await authService.me()
+    setUser(profile)
+    return profile
   }, [])
 
   const logout = useCallback(async () => {
@@ -51,8 +55,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(await authService.me())
   }, [])
 
+  const switchWorkspace = useCallback(async (clientId: number) => {
+    // The API re-mints the session cookies; re-reading the profile is what
+    // brings the new workspace's permissions and onboarding state with it.
+    await authService.switchWorkspace(clientId)
+    setUser(await authService.me())
+  }, [])
+
+  // Permissions belong to the workspace, not the person: the same user is an
+  // owner in one and a sales person in another, so a page can be theirs here
+  // and not there.
   const hasPermission = useCallback(
-    (permission: string) => user?.permissions?.includes(permission) ?? false,
+    (permission: string) =>
+      user?.active_workspace?.permissions?.includes(permission) ?? false,
     [user],
   )
 
@@ -61,12 +76,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isAuthenticated: user !== null,
       isInitializing,
+      activeWorkspace: user?.active_workspace ?? null,
+      workspaces: user?.workspaces ?? [],
+      pendingInvitations: user?.pending_invitations ?? [],
       hasPermission,
       login,
+      switchWorkspace,
       logout,
       refreshUser,
     }),
-    [user, isInitializing, hasPermission, login, logout, refreshUser],
+    [
+      user,
+      isInitializing,
+      hasPermission,
+      login,
+      switchWorkspace,
+      logout,
+      refreshUser,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

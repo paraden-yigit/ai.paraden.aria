@@ -26,7 +26,8 @@ function toFormValues(user: User): ProfileSettingsFormValues {
   return {
     first_name: user.first_name ?? "",
     last_name: user.last_name ?? "",
-    email_signature: user.email_signature ?? "",
+    // Per workspace — the signature carries a company name.
+    email_signature: user.active_workspace?.email_signature ?? "",
   }
 }
 

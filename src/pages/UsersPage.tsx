@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react"
-import { Pencil, Plus, Send } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -30,10 +30,12 @@ import { userService } from "@/services/user.service"
 import { teamService } from "@/services/team.service"
 import { ApiError } from "@/services/http"
 import { useAuth } from "@/features/auth/useAuth"
-import { roleLabel, statusLabel } from "@/lib/roles"
+import { roleLabel } from "@/lib/roles"
 import { PERMISSIONS } from "@/lib/permissions"
-import { isPendingInvite, notifyUserCreated, resendInvitation } from "@/lib/invite"
-import { userDisplayName } from "@/lib/format"
+import { notifyInvited, resendInvitation } from "@/lib/invite"
+import { invitationService } from "@/services/invitation.service"
+import { InvitationsCard } from "@/features/users/InvitationsCard"
+import type { WorkspaceInvitation } from "@/types/invitation"
 import type {
   ClientUser,
   UserManageCreate,
@@ -72,6 +74,16 @@ export function UsersPage() {
   )
   const teams = teamsResult?.items ?? []
 
+  // Invitations are a separate list because an invitee is not a member: nobody
+  // is on the roster until they have said yes.
+  const { data: invitations, refetch: refetchInvitations } = useAsync(
+    () =>
+      canManage
+        ? invitationService.listForWorkspace()
+        : Promise.resolve([] as WorkspaceInvitation[]),
+    [canManage],
+  )
+
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [userToEdit, setUserToEdit] = useState<ClientUser | null>(null)
@@ -85,27 +97,41 @@ export function UsersPage() {
   async function handleCreate(payload: UserManageCreate) {
     setCreating(true)
     try {
-      const created = await userService.create(payload)
-      notifyUserCreated(created)
+      const invitation = await userService.create(payload)
+      notifyInvited(invitation)
       setCreateOpen(false)
-      refetch()
+      refetchInvitations()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to create user.")
+      toast.error(
+        err instanceof ApiError ? err.message : "Failed to send the invitation.",
+      )
     } finally {
       setCreating(false)
     }
   }
 
-  async function handleResendInvite(user: ClientUser) {
-    setResendingId(user.id)
+  async function handleResendInvite(invitation: WorkspaceInvitation) {
+    setResendingId(invitation.id)
     try {
-      // Refetch either way: on success the row is carrying a stale token, and on
-      // failure the user may have accepted in the meantime (a 409), which the
-      // fresh list will show as active.
-      await resendInvitation(user)
-      refetch()
+      // Refetch either way: on success the old row is carrying a dead token, and
+      // on failure the person may have answered in the meantime, which the fresh
+      // list will show.
+      await resendInvitation(invitation)
+      refetchInvitations()
     } finally {
       setResendingId(null)
+    }
+  }
+
+  async function handleRevokeInvite(invitation: WorkspaceInvitation) {
+    try {
+      await invitationService.revoke(invitation.id)
+      toast.success(`Invitation to ${invitation.email} withdrawn.`)
+      refetchInvitations()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Failed to withdraw the invitation.",
+      )
     }
   }
 
@@ -114,7 +140,10 @@ export function UsersPage() {
     setSaving(true)
     try {
       await userService.update(userToEdit.id, payload)
-      toast.success(`${payload.full_name ?? userDisplayName(userToEdit)} updated.`)
+      const renamed = [payload.first_name, payload.last_name]
+        .filter(Boolean)
+        .join(" ")
+      toast.success(`${renamed || userToEdit.display_name} updated.`)
       setUserToEdit(null)
       refetch()
     } catch (err) {
@@ -129,13 +158,13 @@ export function UsersPage() {
     setDeleting(true)
     try {
       await userService.remove(userToDelete.id)
-      toast.success(`${userDisplayName(userToDelete)} deleted.`)
+      toast.success(`${userToDelete.display_name} removed from this workspace.`)
       setUserToDelete(null)
       // Close the edit modal too — it was opened for the now-deleted user.
       setUserToEdit(null)
       refetch()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to delete user.")
+      toast.error(err instanceof ApiError ? err.message : "Failed to remove user.")
     } finally {
       setDeleting(false)
     }
@@ -155,7 +184,7 @@ export function UsersPage() {
         {canManage && (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            New user
+            Invite User
           </Button>
         )}
       </div>
@@ -174,7 +203,6 @@ export function UsersPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Teams</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead className="w-40">Role</TableHead>
                 {canManage && <TableHead className="w-56" />}
               </TableRow>
@@ -184,13 +212,14 @@ export function UsersPage() {
                 // Managers edit everyone except themselves (guards against
                 // accidentally demoting the last owner / self-lockout).
                 const editable = canManage && u.id !== currentUser?.id
-                const displayName = userDisplayName(u)
-                const initials = displayName
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((part) => part[0]!.toUpperCase())
-                  .join("")
+                const displayName = u.display_name
+                // A pending user's display name is their email address, which
+                // makes a poor pair of initials — take one letter from it.
+                const initials =
+                  [u.first_name, u.last_name]
+                    .filter(Boolean)
+                    .map((part) => part![0]!.toUpperCase())
+                    .join("") || displayName[0]?.toUpperCase()
                 return (
                   <TableRow key={u.id}>
                     <TableCell>
@@ -219,41 +248,11 @@ export function UsersPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {u.status === "active" ? (
-                        <Badge variant="outline" className="gap-1.5">
-                          <span
-                            aria-hidden="true"
-                            className="size-1.5 rounded-full bg-primary"
-                          />
-                          {statusLabel(u.status)}
-                        </Badge>
-                      ) : u.status === "pending" ? (
-                        <Badge variant="secondary">{statusLabel(u.status)}</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          {statusLabel(u.status)}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
                       <Badge variant="outline">{roleLabel(u.role)}</Badge>
                     </TableCell>
                     {canManage && (
                       <TableCell>
                         <span className="flex items-center justify-end gap-1">
-                          {isPendingInvite(u) && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={resendingId === u.id}
-                              onClick={() => handleResendInvite(u)}
-                            >
-                              <Send className="size-4" />
-                              {resendingId === u.id
-                                ? "Sending…"
-                                : "Re-send invitation"}
-                            </Button>
-                          )}
                           {editable && (
                             <Button
                               variant="ghost"
@@ -285,13 +284,21 @@ export function UsersPage() {
         />
       </DataState>
 
+      {canManage && (
+        <InvitationsCard
+          invitations={invitations ?? []}
+          resendingId={resendingId}
+          onResend={handleResendInvite}
+          onRevoke={handleRevokeInvite}
+        />
+      )}
+
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New user</DialogTitle>
+            <DialogTitle>Invite User</DialogTitle>
             <DialogDescription>
-              Invite a user to your company. They'll get a link to set their
-              password.
+              They'll get an email with a link to set their name and password.
             </DialogDescription>
           </DialogHeader>
           <CreateUserForm
@@ -336,13 +343,13 @@ export function UsersPage() {
       <ConfirmDialog
         open={userToDelete !== null}
         onOpenChange={(open) => !open && setUserToDelete(null)}
-        title="Delete user?"
+        title="Remove from workspace?"
         description={
           userToDelete
-            ? `${userDisplayName(userToDelete)} will lose access immediately and be removed from your users. This can't be undone.`
+            ? `${userToDelete.display_name} will lose access to this workspace immediately. Their account and any other workspaces they belong to are unaffected, and you can invite them back.`
             : undefined
         }
-        confirmLabel="Delete"
+        confirmLabel="Remove"
         destructive
         loading={deleting}
         onConfirm={handleDelete}

@@ -1,11 +1,17 @@
 import { config } from "@/lib/config"
-import type { PasswordResetInfo, User, UserProfileUpdate } from "@/types/auth"
+import type {
+  ActiveWorkspace,
+  PasswordResetInfo,
+  User,
+  UserProfileUpdate,
+} from "@/types/auth"
 import { apiClient } from "./http"
 
 /**
- * Auth service — wraps the /api/auth/* endpoints. Aria has no login of its own
- * (the marketing site owns that); these cover session bootstrap and logout.
- * The session itself lives in httpOnly cookies the browser carries automatically.
+ * Auth service — wraps the /api/auth/* endpoints: sign in, session bootstrap,
+ * choosing a workspace, and sign out. The session lives in httpOnly cookies the
+ * browser carries automatically, and the workspace it is pointed at is part of
+ * it — which is why switching is a server call rather than local state.
  */
 export const authService = {
   /** Authenticate with email + password; the API sets the session cookies. */
@@ -18,6 +24,19 @@ export const authService = {
   /** Resolve the current session's user, or throw 401 if there is none. */
   async me(): Promise<User> {
     return apiClient.get<User>("/api/auth/me")
+  },
+
+  /**
+   * Point the session at one of the user's workspaces.
+   *
+   * The API checks the membership and re-issues the cookies, so the workspace a
+   * request runs in is only ever something the server said — there is no local
+   * state to disagree with it, and nothing to keep in sync across tabs.
+   */
+  async switchWorkspace(clientId: number): Promise<ActiveWorkspace> {
+    return apiClient.post<ActiveWorkspace>("/api/auth/workspace", {
+      client_id: clientId,
+    })
   },
 
   /** Update the current user's own profile (email voice + HTML signature). */

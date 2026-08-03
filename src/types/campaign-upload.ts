@@ -1,7 +1,8 @@
 /**
- * Types for the campaign wizard's CSV contact upload. The client parses the CSV,
- * maps its columns onto contact/company attributes, and posts the mapped rows;
- * the API normalises them into the campaign's companies and contacts.
+ * Types for the campaign wizard's contact upload. The client parses the
+ * spreadsheet — CSV or xlsx — maps its columns onto contact/company attributes,
+ * and posts the mapped rows; the API normalises them into the campaign's
+ * companies and contacts.
  */
 
 export interface UploadedContactInput {
@@ -32,6 +33,8 @@ export interface UploadedCompanyInput {
   hq_city?: string | null
   hq_region?: string | null
   hq_country?: string | null
+  /** Free text the uploader brought with them; stored, not yet read. */
+  context?: string | null
 }
 
 export interface UploadedRow {
@@ -53,7 +56,7 @@ export interface UploadResult {
 /** A contact as returned by the step-4 review. */
 export interface CampaignUploadedContact {
   id: number
-  /** "uploaded" (CSV) or "discovered" (FullEnrich). */
+  /** "uploaded" (spreadsheet) or "discovered" (FullEnrich). */
   source: string
   full_name: string | null
   first_name: string | null
@@ -73,7 +76,7 @@ export interface CampaignUploadedContact {
 /** A company (with its people) as returned by the step-4 review. */
 export interface CampaignCompanyReview {
   id: number
-  /** "uploaded" (CSV) or "discovered" (FullEnrich). */
+  /** "uploaded" (spreadsheet) or "discovered" (FullEnrich). */
   source: string
   name: string | null
   domain: string | null
@@ -87,6 +90,7 @@ export interface CampaignCompanyReview {
   hq_city: string | null
   hq_region: string | null
   hq_country: string | null
+  context: string | null
   contacts: CampaignUploadedContact[]
 }
 

@@ -10,7 +10,7 @@ import { ApiError } from "@/services/http"
 import { roleLabel } from "@/lib/roles"
 
 export function AccountSettingsPage() {
-  const { user } = useAuth()
+  const { user, activeWorkspace } = useAuth()
   const [saving, setSaving] = useState(false)
 
   async function handleChangePassword(payload: {
@@ -62,7 +62,7 @@ export function AccountSettingsPage() {
               <div className="space-y-2">
                 <p className="text-sm font-medium leading-none">Role</p>
                 <p className="text-sm text-muted-foreground">
-                  {roleLabel(user.role)}
+                  {roleLabel(activeWorkspace?.role ?? "")}
                 </p>
               </div>
             </div>

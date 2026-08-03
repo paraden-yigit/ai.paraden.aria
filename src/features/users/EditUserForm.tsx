@@ -14,8 +14,12 @@ import type { ClientUser, UserManageUpdate } from "@/types/user"
 // Sentinel for "no team" — shadcn Select can't hold an empty string value.
 const NO_TEAM = "none"
 
+// The name is optional here: a user who has not accepted their invitation yet
+// has none, and a manager editing their team or role should not have to invent
+// one to save the form.
 const schema = z.object({
-  full_name: z.string().min(1, "Name is required").max(255),
+  first_name: z.string().max(255),
+  last_name: z.string().max(255),
   role: z.enum(USER_ROLES),
   team_id: z.string(),
 })
@@ -24,7 +28,8 @@ type EditUserFormValues = z.infer<typeof schema>
 
 function toFormValues(user: ClientUser): EditUserFormValues {
   return {
-    full_name: user.full_name,
+    first_name: user.first_name ?? "",
+    last_name: user.last_name ?? "",
     role: user.role as (typeof USER_ROLES)[number],
     // The modal models one team per user; show the first if they're on several.
     team_id: user.teams[0] ? String(user.teams[0].id) : NO_TEAM,
@@ -33,7 +38,8 @@ function toFormValues(user: ClientUser): EditUserFormValues {
 
 function toPayload(values: EditUserFormValues): UserManageUpdate {
   return {
-    full_name: values.full_name.trim(),
+    first_name: values.first_name.trim(),
+    last_name: values.last_name.trim(),
     role: values.role,
     team_id: values.team_id === NO_TEAM ? null : Number(values.team_id),
   }
@@ -78,12 +84,20 @@ export function EditUserForm({
         onSubmit={form.handleSubmit((values) => onSubmit(toPayload(values)))}
         className="space-y-6"
       >
-        <TextField
-          control={form.control}
-          name="full_name"
-          label="Name"
-          disabled={submitting}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            control={form.control}
+            name="first_name"
+            label="First name"
+            disabled={submitting}
+          />
+          <TextField
+            control={form.control}
+            name="last_name"
+            label="Last name"
+            disabled={submitting}
+          />
+        </div>
         <SelectField
           control={form.control}
           name="team_id"

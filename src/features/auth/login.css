@@ -358,3 +358,46 @@
 .login-page .login-foot a:hover {
   color: var(--ink-2);
 }
+
+/* Invitation summary — the four facts that make an invitation recognisable.
+   Same type scale as .field labels so it reads as part of the same form. */
+.invite-summary {
+  margin: 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.invite-summary > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.invite-summary dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.invite-summary dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+}
+
+/* A button that has to look like a link: declining is an answer, not an action
+   bar, so it sits in .auth-alt where an anchor would. */
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.link-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
