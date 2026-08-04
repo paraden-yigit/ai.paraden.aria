@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { campaignUploadService } from "@/services/campaign-upload.service"
 import { ApiError } from "@/services/http"
 import type {
+  UploadResult,
   UploadedCompanyInput,
   UploadedContactInput,
   UploadedRow,
@@ -23,11 +24,8 @@ import type {
 import {
   COMPANY_ATTRIBUTES,
   COMPANY_DOMAIN_ATTR,
+  COMPANY_LINKEDIN_ATTR,
   CONTACT_ATTRIBUTES,
-  FIRST_NAME_ATTR,
-  FULL_NAME_ATTR,
-  LAST_NAME_ATTR,
-  LINKEDIN_ATTRS,
   SKIP_MAPPING,
   guessAttribute,
 } from "./attributes"
@@ -36,14 +34,15 @@ import type { ParsedCsv } from "./csv"
 interface StepMappingProps {
   campaignId: number
   parsed: ParsedCsv
-  onSaved: () => void
+  onSaved: (result: UploadResult) => void
   onBack: () => void
 }
 
 /**
- * Step 3 — map each spreadsheet column onto a contact/company attribute. Enforces the
- * step-2 rule (a full name plus a company domain or LinkedIn URL must be mapped)
- * before the mapped rows can be saved to the campaign.
+ * Step 3 — map each spreadsheet column onto a contact/company attribute. A company
+ * domain or LinkedIn URL is all that's required: contacts may arrive without
+ * addresses, or the file may name no people at all, and the step that follows
+ * fills in whichever is missing.
  */
 export function StepMapping({ campaignId, parsed, onSaved, onBack }: StepMappingProps) {
   const [mapping, setMapping] = useState<string[]>(() =>
@@ -55,15 +54,10 @@ export function StepMapping({ campaignId, parsed, onSaved, onBack }: StepMapping
     () => new Set(mapping.filter((m) => m && m !== SKIP_MAPPING)),
     [mapping],
   )
-  // A full name is covered either directly, or by mapping first + last name
-  // (combined into full_name when the rows are built below).
-  const hasFullName =
-    mappedSet.has(FULL_NAME_ATTR) ||
-    (mappedSet.has(FIRST_NAME_ATTR) && mappedSet.has(LAST_NAME_ATTR))
-  const hasCompanyIdentity =
-    mappedSet.has(COMPANY_DOMAIN_ATTR) ||
-    LINKEDIN_ATTRS.some((attr) => mappedSet.has(attr))
-  const valid = hasFullName && hasCompanyIdentity
+  // Identifying the company is the whole requirement — it is what everything
+  // downstream searches on, and without it a row can't be filled in.
+  const valid =
+    mappedSet.has(COMPANY_DOMAIN_ATTR) || mappedSet.has(COMPANY_LINKEDIN_ATTR)
 
   function setColumn(index: number, value: string) {
     setMapping((prev) => {
@@ -114,18 +108,9 @@ export function StepMapping({ campaignId, parsed, onSaved, onBack }: StepMapping
     }
     setSaving(true)
     try {
-      const result = await campaignUploadService.upload(campaignId, { rows })
-      // Say when rows were dropped: a file that quietly imports short looks
-      // like a broken upload rather than the exclusion list doing its job.
-      const skipped = result.excluded_skipped
-        ? ` ${result.excluded_skipped} row${
-            result.excluded_skipped === 1 ? " was" : "s were"
-          } skipped — on your exclusion list.`
-        : ""
-      toast.success(
-        `Imported ${result.contacts_created} contacts across ${result.companies_created} companies.${skipped}`,
-      )
-      onSaved()
+      // The next step reports what landed — including any rows the exclusion
+      // list dropped — so there's no toast to duplicate it here.
+      onSaved(await campaignUploadService.upload(campaignId, { rows }))
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to save contacts.",
@@ -179,14 +164,15 @@ export function StepMapping({ campaignId, parsed, onSaved, onBack }: StepMapping
         <p className="mb-2 font-medium">Required to continue</p>
         <ul className="space-y-1">
           <RequirementRow
-            met={hasFullName}
-            label="A contact full name (or first + last name)"
-          />
-          <RequirementRow
-            met={hasCompanyIdentity}
+            met={valid}
             label="A company domain or LinkedIn URL"
           />
         </ul>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Names and email addresses are optional. We&apos;ll find work email
+          addresses for contacts without one, and find contacts for companies
+          that arrive with none.
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-2">

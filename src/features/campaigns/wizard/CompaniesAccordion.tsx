@@ -31,9 +31,37 @@ export interface AccordionContact {
   full_name: string | null
   job_title: string | null
   email: string | null
+  /** How the search for their work email went, where the caller tracks it:
+   * "found", "not_found", "unenrichable", or absent for never-attempted. */
+  email_enrichment_status?: string | null
   linkedin_url: string | null
   /** Sending-queue state. Absent in the wizard (nothing is queued yet). */
   sending?: ContactSendingStatus | null
+}
+
+/**
+ * How much of a contact's email to show.
+ *
+ * - `address` — the address itself (the default, and what most views want).
+ * - `status` — whether one was found, but never the address. What the upload
+ *   review shows: the user is checking that the right people landed, not
+ *   collecting the addresses, and a list of freshly-found emails on screen is
+ *   more than that review needs.
+ * - `hidden` — nothing at all, for staged people who have no address yet and
+ *   nothing has looked for one.
+ */
+export type EmailDisplay = "address" | "status" | "hidden"
+
+/** What to say about a contact's email when only the status is shown. */
+function emailStatusLabel(contact: AccordionContact): string {
+  if (contact.email || contact.email_enrichment_status === "found") {
+    return "Email found"
+  }
+  if (contact.email_enrichment_status === "unenrichable") {
+    return "Not enough detail to search"
+  }
+  if (contact.email_enrichment_status === "not_found") return "No email found"
+  return "No email yet"
 }
 
 export interface AccordionCompany {
@@ -65,20 +93,19 @@ function initialsOf(name: string | null): string {
 /** A list of companies as expandable rows; expanding one reveals its contacts,
  * and clicking a contact opens a detail panel. The list scrolls within a
  * bounded height by default (the wizard needs to fit the page); pass a
- * `max-h-*` class via className to change or lift the bound. ``showEmail``
- * hides the email line where it isn't meaningful (discovered contacts have no
- * email yet). */
+ * `max-h-*` class via className to change or lift the bound. ``emailDisplay``
+ * chooses how much of each contact's email to show (see :type:`EmailDisplay`). */
 export function CompaniesAccordion({
   companies,
   className,
-  showEmail = true,
+  emailDisplay = "address",
   onExcludeCompany,
   onRemoveCompany,
   onRemoveContact,
 }: {
   companies: AccordionCompany[]
   className?: string
-  showEmail?: boolean
+  emailDisplay?: EmailDisplay
   /** When given, the contact panel offers "Exclude this company" (the caller
    * owns the confirm + the API call). Needs a domain or LinkedIn URL to match
    * by, so the action only shows for companies carrying one. */
@@ -103,7 +130,7 @@ export function CompaniesAccordion({
           <CompanyRow
             key={`${company.domain ?? company.name ?? "co"}-${index}`}
             company={company}
-            showEmail={showEmail}
+            emailDisplay={emailDisplay}
             onSelect={(contact) => setSelected({ contact, company })}
             onRemove={onRemoveCompany}
             onRemoveContact={onRemoveContact}
@@ -112,6 +139,7 @@ export function CompaniesAccordion({
       </div>
       <ContactSheet
         selected={selected}
+        emailDisplay={emailDisplay}
         onOpenChange={(open) => {
           if (!open) setSelected(null)
         }}
@@ -129,13 +157,13 @@ export function CompaniesAccordion({
 
 function CompanyRow({
   company,
-  showEmail,
+  emailDisplay,
   onSelect,
   onRemove,
   onRemoveContact,
 }: {
   company: AccordionCompany
-  showEmail: boolean
+  emailDisplay: EmailDisplay
   onSelect: (contact: AccordionContact) => void
   onRemove?: (company: AccordionCompany) => void
   onRemoveContact?: (contact: AccordionContact) => void
@@ -196,7 +224,7 @@ function CompanyRow({
         <div className="border-t bg-muted/20">
           <ContactsTable
             contacts={company.contacts}
-            showEmail={showEmail}
+            emailDisplay={emailDisplay}
             onSelect={onSelect}
             onRemove={onRemoveContact}
           />
@@ -207,16 +235,16 @@ function CompanyRow({
 }
 
 /** Contact rows: monogram, name and title, email state. With `onSelect` each
- * row is clickable and opens the caller's detail panel; ``showEmail`` hides
- * the email line (discovered contacts arrive without one). */
+ * row is clickable and opens the caller's detail panel; ``emailDisplay`` chooses
+ * how much of the email to show (see :type:`EmailDisplay`). */
 export function ContactsTable({
   contacts,
-  showEmail = true,
+  emailDisplay = "address",
   onSelect,
   onRemove,
 }: {
   contacts: AccordionContact[]
-  showEmail?: boolean
+  emailDisplay?: EmailDisplay
   onSelect?: (contact: AccordionContact) => void
   /** When given, each saved contact's row offers to take them off the list. */
   onRemove?: (contact: AccordionContact) => void
@@ -243,10 +271,12 @@ export function ContactsTable({
                 {contact.job_title || "No title"}
               </span>
             </span>
-            {showEmail && (
+            {emailDisplay !== "hidden" && (
               <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
                 <AtSign className="size-3.5" />
-                {contact.email || "No email yet"}
+                {emailDisplay === "status"
+                  ? emailStatusLabel(contact)
+                  : contact.email || "No email yet"}
               </span>
             )}
             {contact.sending && (
@@ -301,10 +331,12 @@ export function ContactsTable({
 /** Slide-over with everything known about one contact. */
 function ContactSheet({
   selected,
+  emailDisplay,
   onOpenChange,
   onExcludeCompany,
 }: {
   selected: SelectedContact | null
+  emailDisplay: EmailDisplay
   onOpenChange: (open: boolean) => void
   onExcludeCompany?: (company: AccordionCompany) => void
 }) {
@@ -339,16 +371,25 @@ function ContactSheet({
                 <h3 className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
                   Contact
                 </h3>
-                <p className="flex items-center gap-2 text-sm">
-                  <AtSign className="size-4 shrink-0 text-muted-foreground" />
-                  {contact.email ? (
-                    <span className="break-all">{contact.email}</span>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      No email address yet
-                    </span>
-                  )}
-                </p>
+                {/* The panel honours the same setting as the list it opened
+                    from, so an address hidden in one place isn't revealed by
+                    clicking through to the other. */}
+                {emailDisplay !== "hidden" && (
+                  <p className="flex items-center gap-2 text-sm">
+                    <AtSign className="size-4 shrink-0 text-muted-foreground" />
+                    {emailDisplay === "status" ? (
+                      <span className="text-muted-foreground">
+                        {emailStatusLabel(contact)}
+                      </span>
+                    ) : contact.email ? (
+                      <span className="break-all">{contact.email}</span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        No email address yet
+                      </span>
+                    )}
+                  </p>
+                )}
                 {contact.linkedin_url && (
                   <Button variant="outline" size="sm" asChild>
                     <a

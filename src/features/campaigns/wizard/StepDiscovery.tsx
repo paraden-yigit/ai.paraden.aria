@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import {
   ArrowLeft,
   Check,
-  Info,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -11,13 +10,8 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { CompaniesAccordion } from "@/features/campaigns/wizard/CompaniesAccordion"
+import { LabelWithHint } from "@/features/campaigns/wizard/LabelWithHint"
 import { campaignService } from "@/services/campaign.service"
 import { campaignDiscoveryService } from "@/services/campaign-discovery.service"
 import { campaignUploadService } from "@/services/campaign-upload.service"
@@ -37,35 +31,6 @@ interface StepDiscoveryProps {
   /** `skipped` is true when the user skipped discovery rather than approving. */
   onFinish: (skipped?: boolean) => void
   onBack: () => void
-}
-
-/** A field label with an info icon that explains the field on hover. */
-function LabelWithHint({
-  htmlFor,
-  label,
-  hint,
-}: {
-  htmlFor: string
-  label: string
-  hint: string
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Label htmlFor={htmlFor}>{label}</Label>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground"
-            aria-label={hint}
-          >
-            <Info className="size-3.5" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs">{hint}</TooltipContent>
-      </Tooltip>
-    </div>
-  )
 }
 
 const POLL_MS = 2500
@@ -285,7 +250,7 @@ export function StepDiscovery({
         )}
 
         {companies.length > 0 && (
-          <CompaniesAccordion companies={companies} showEmail={false} />
+          <CompaniesAccordion companies={companies} emailDisplay="hidden" />
         )}
 
         <div className="flex items-center justify-between gap-2">
@@ -345,7 +310,7 @@ export function StepDiscovery({
           </span>
           . Find more, or continue.
         </p>
-        <CompaniesAccordion companies={saved.companies} showEmail={false} />
+        <CompaniesAccordion companies={saved.companies} emailDisplay="hidden" />
         <div className="flex items-center justify-between gap-2">
           <Button
             type="button"

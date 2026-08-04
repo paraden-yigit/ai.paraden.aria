@@ -47,14 +47,16 @@ export const COMPANY_ATTRIBUTES: AttributeOption[] = [
 /** Sentinel select value meaning "don't import this column". */
 export const SKIP_MAPPING = "__skip__"
 
-/** The required-identity attributes: a mapping must cover a full name (or a first
- * name + last name pair) plus a way to identify the company (a domain or any
- * LinkedIn URL). */
-export const FULL_NAME_ATTR = "contact:full_name"
-export const FIRST_NAME_ATTR = "contact:first_name"
-export const LAST_NAME_ATTR = "contact:last_name"
+/** The one thing a mapping must cover: a way to identify the company, which is
+ * either its domain or its LinkedIn URL. Everything else is optional — a file of
+ * people missing their addresses, or of companies with nobody named on them at
+ * all, is a file we can work with, and the wizard fills in the rest afterwards.
+ *
+ * Note this is the *company's* LinkedIn URL, not the contact's: a row that names
+ * no person has no contact profile to offer, and it is the company we search on.
+ */
 export const COMPANY_DOMAIN_ATTR = "company:domain"
-export const LINKEDIN_ATTRS = ["company:linkedin_url", "contact:linkedin_url"]
+export const COMPANY_LINKEDIN_ATTR = "company:linkedin_url"
 
 const ALL_ATTRIBUTES = [...CONTACT_ATTRIBUTES, ...COMPANY_ATTRIBUTES]
 
