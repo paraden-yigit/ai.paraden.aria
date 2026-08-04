@@ -51,6 +51,27 @@ export interface UploadResult {
   contacts_created: number
   /** Rows dropped because the company or address is on the exclusion list. */
   excluded_skipped: number
+  /** A named contact who already has an email address — nothing left to do. */
+  contacts_ready: number
+  /** A named contact with no address, so one has to be found for them. */
+  contacts_needing_email: number
+  /** Companies that arrived with nobody attached, so contacts have to be found. */
+  companies_without_contacts: number
+}
+
+/** Which post-upload phase a job belongs to. */
+export type ImportJobKind = "enrich_emails" | "fetch_contacts"
+
+/** Progress for one post-upload phase, polled while it runs. */
+export interface CampaignImportJob {
+  kind: string
+  status: "idle" | "running" | "ready" | "failed"
+  total: number
+  completed: number
+  error: string | null
+  /** Phase-specific counts once it finishes: `{found, attempted}` for
+   * enrichment, `{contacts_created}` for the contact search. */
+  result: Record<string, number> | null
 }
 
 /** A contact as returned by the step-4 review. */
@@ -70,6 +91,9 @@ export interface CampaignUploadedContact {
   country: string | null
   email: string | null
   phone: string | null
+  /** How the search for their work email went: null (never looked), "found",
+   * "not_found" or "unenrichable" (too sparse to look up). */
+  email_enrichment_status: string | null
   created_at: string
 }
 

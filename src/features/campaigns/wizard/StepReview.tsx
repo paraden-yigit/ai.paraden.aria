@@ -18,6 +18,10 @@ interface StepReviewProps {
 /**
  * Review the uploaded companies and contacts (expandable rows). Only shown after
  * a spreadsheet was uploaded and mapped. Continues to the discovery step.
+ *
+ * Email addresses are deliberately not shown, only whether one was found: the
+ * point of this screen is confirming the right people landed, and by the time
+ * the user gets here the list can be mostly addresses we just looked up.
  */
 export function StepReview({ campaignId, onContinue }: StepReviewProps) {
   const fetchReview = useCallback(
@@ -53,7 +57,10 @@ export function StepReview({ campaignId, onContinue }: StepReviewProps) {
               . Expand a company to see its contacts.
             </p>
 
-            <CompaniesAccordion companies={data.companies} />
+            <CompaniesAccordion
+              companies={data.companies}
+              emailDisplay="status"
+            />
 
             {data.unassigned_contacts.length > 0 && (
               <div className="space-y-2">
@@ -61,7 +68,10 @@ export function StepReview({ campaignId, onContinue }: StepReviewProps) {
                   Contacts without a company ({data.unassigned_contacts.length})
                 </p>
                 <div className="rounded-lg border">
-                  <ContactsTable contacts={data.unassigned_contacts} />
+                  <ContactsTable
+                    contacts={data.unassigned_contacts}
+                    emailDisplay="status"
+                  />
                 </div>
               </div>
             )}

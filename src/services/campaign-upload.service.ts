@@ -1,5 +1,7 @@
 import type {
+  CampaignImportJob,
   CampaignUploadReview,
+  ImportJobKind,
   UploadedContactsPayload,
   UploadResult,
 } from "@/types/campaign-upload"
@@ -27,6 +29,31 @@ export const campaignUploadService = {
   ): Promise<CampaignUploadReview> {
     return apiClient.get<CampaignUploadReview>(
       `/api/campaigns/${campaignId}/uploaded-contacts/review?source=${source}`,
+    )
+  },
+
+  /** Start finding work email addresses for the uploaded contacts without one.
+   * Runs in the background — poll `job("enrich_emails")` for progress. */
+  startEnrichment(campaignId: number): Promise<CampaignImportJob> {
+    return apiClient.post<CampaignImportJob>(
+      `/api/campaigns/${campaignId}/uploaded-contacts/enrich`,
+      {},
+    )
+  },
+
+  /** Start finding up to `listSize` people at each uploaded company that came
+   * with none. Also a background job — poll `job("fetch_contacts")`. */
+  startFetch(campaignId: number, listSize: number): Promise<CampaignImportJob> {
+    return apiClient.post<CampaignImportJob>(
+      `/api/campaigns/${campaignId}/uploaded-contacts/fetch-contacts`,
+      { list_size: listSize },
+    )
+  },
+
+  /** One post-upload phase's progress. */
+  job(campaignId: number, kind: ImportJobKind): Promise<CampaignImportJob> {
+    return apiClient.get<CampaignImportJob>(
+      `/api/campaigns/${campaignId}/uploaded-contacts/job?kind=${kind}`,
     )
   },
 }

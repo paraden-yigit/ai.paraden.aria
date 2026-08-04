@@ -11,6 +11,7 @@ import { StepDetails } from "@/features/campaigns/wizard/StepDetails"
 import { StepIcp } from "@/features/campaigns/wizard/StepIcp"
 import { StepUpload } from "@/features/campaigns/wizard/StepUpload"
 import { StepMapping } from "@/features/campaigns/wizard/StepMapping"
+import { StepImport } from "@/features/campaigns/wizard/StepImport"
 import { StepReview } from "@/features/campaigns/wizard/StepReview"
 import { StepDiscovery } from "@/features/campaigns/wizard/StepDiscovery"
 import {
@@ -21,6 +22,7 @@ import { SequencePreview } from "@/features/campaigns/wizard/SequencePreview"
 import { StepCta } from "@/features/campaigns/wizard/StepCta"
 import type { ParsedCsv } from "@/features/campaigns/wizard/csv"
 import type { Campaign } from "@/types/campaign"
+import type { UploadResult } from "@/types/campaign-upload"
 import { campaignEmailService } from "@/services/campaign-email.service"
 import { ApiError } from "@/services/http"
 import type { EmailSelection } from "@/types/campaign-email"
@@ -39,7 +41,9 @@ const STEPS: WizardStep[] = [
 ]
 
 type MainStep = 0 | 1 | 2 | 3 | 4 | 5 | 6
-type SubStep = "upload" | "mapping" | "review"
+// "import" is the work the file left behind: finding missing email addresses,
+// and finding contacts for companies that arrived with none.
+type SubStep = "upload" | "mapping" | "import" | "review"
 
 // The last top-level step index (Preview), used to clamp a resumed setup_step.
 const LAST_STEP: MainStep = 6
@@ -62,6 +66,7 @@ export function NewCampaignPage() {
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [parsed, setParsed] = useState<ParsedCsv | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
   const [sequenceConfig, setSequenceConfig] = useState<SequenceConfig | null>(null)
   const [loadingCampaign, setLoadingCampaign] = useState(Boolean(resumeId))
 
@@ -309,8 +314,21 @@ export function NewCampaignPage() {
           <StepMapping
             campaignId={campaign.id}
             parsed={parsed}
-            onSaved={() => setSubStep("review")}
+            onSaved={(result) => {
+              setUploadResult(result)
+              setSubStep("import")
+            }}
             onBack={() => setSubStep("upload")}
+          />
+        ) : null
+      case "import":
+        // Only reachable straight after a save, which is what supplies the
+        // buckets; without them there is nothing to report or act on.
+        return uploadResult ? (
+          <StepImport
+            campaignId={campaign.id}
+            result={uploadResult}
+            onDone={() => setSubStep("review")}
           />
         ) : null
       case "review":
@@ -326,8 +344,12 @@ export function NewCampaignPage() {
   }
 
   // Focused form steps read best narrow; list-heavy steps use the width.
+  // ``subStep`` only means anything on step 2, which is where the narrow
+  // upload/import screens live.
   const narrowStep =
-    mainStep === 0 || mainStep === 5 || (mainStep === 1 && subStep === "upload")
+    mainStep === 0 ||
+    mainStep === 5 ||
+    (mainStep === 2 && (subStep === "upload" || subStep === "import"))
 
   return (
     <div className="min-h-screen bg-background">
