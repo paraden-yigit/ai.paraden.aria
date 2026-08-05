@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 
-import { campaignService } from "@/services/campaign.service"
 import { clientService } from "@/services/client.service"
 import { icpService } from "@/services/icp.service"
 import { productService } from "@/services/product.service"
@@ -35,10 +34,9 @@ export function useSetupState(): SetupState {
   useEffect(() => {
     let active = true
     const load = async () => {
-      const [company, products, campaigns] = await Promise.allSettled([
+      const [company, products] = await Promise.allSettled([
         clientService.get(),
         productService.list({ limit: MAX_ICP_PROBES }),
-        campaignService.list({ limit: 1 }),
       ])
 
       // Company messaging lives on the client: any core answer counts as started.
@@ -54,9 +52,8 @@ export function useSetupState(): SetupState {
       const productDone = productItems.length > 0
       const firstProductId = productItems[0]?.id ?? null
 
-      const campaignDone =
-        campaigns.status === "fulfilled" &&
-        (campaigns.value.items.length > 0 || (campaigns.value.total ?? 0) > 0)
+      // There is no campaign to have created while campaigns are rebuilt.
+      const campaignDone = false
 
       // A targeting profile counts once any probed product has one ready.
       const probes = await Promise.allSettled(
@@ -74,7 +71,10 @@ export function useSetupState(): SetupState {
         targetingDone,
         campaignDone,
         firstProductId,
-        allDone: messagingDone && productDone && targetingDone && campaignDone,
+        // ``campaignDone`` is deliberately out of this conjunction for now:
+        // it cannot become true, and gating on it would trap everyone on the
+        // setup checklist forever. Put it back when campaigns return.
+        allDone: messagingDone && productDone && targetingDone,
       })
     }
     void load()

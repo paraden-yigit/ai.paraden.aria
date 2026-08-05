@@ -1,8 +1,6 @@
-import { useCallback } from "react"
 import { Link } from "react-router-dom"
-import { ArrowRight, AtSign, Building2, CalendarRange, Users } from "lucide-react"
+import { ArrowRight, Megaphone } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -12,130 +10,43 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { loadContactStats } from "@/features/campaigns/contactStats"
-import { ResumeCampaignDialog } from "@/features/campaigns/ResumeCampaignDialog"
-import { useResumeCampaign } from "@/features/campaigns/useResumeCampaign"
-import { useAsync } from "@/hooks/useAsync"
-import { campaignService } from "@/services/campaign.service"
-import { formatDateTime } from "@/lib/format"
-import type { Campaign } from "@/types/campaign"
 
-interface Spotlight {
-  campaign: Campaign
-  stats: { people: number; companies: number; reachable: number }
-}
-
-/** The newest campaign plus its headline numbers, or null when none exist. */
-async function loadSpotlight(): Promise<Spotlight | null> {
-  const res = await campaignService.list({ limit: 100 })
-  if (res.items.length === 0) return null
-  const latest = [...res.items].sort((a, b) =>
-    b.created_at.localeCompare(a.created_at),
-  )[0]!
-  const stats = await loadContactStats(latest.id)
-  return { campaign: latest, stats }
-}
-
-const statTiles = [
-  { key: "companies", label: "Companies", icon: Building2 },
-  { key: "people", label: "People", icon: Users },
-  { key: "reachable", label: "Ready to email", icon: AtSign },
-] as const
-
-/** Dashboard hero: what the most recent campaign has prepared, at a glance. */
+/**
+ * Dashboard hero: what the most recent campaign has prepared, at a glance.
+ *
+ * Stubbed while campaigns are rebuilt. The old version fetched the newest
+ * campaign and showed its company / people / reachable counts; it was wired
+ * entirely to the removed campaign model, so rather than leave a broken import
+ * this holds the slot and says what is happening.
+ *
+ * To restore: fetch the newest campaign and its contact stats again, and put the
+ * three stat tiles back in `CardContent`.
+ */
 export function CampaignSpotlight() {
-  const fetcher = useCallback(() => loadSpotlight(), [])
-  const spotlight = useAsync(fetcher, [])
-  const resume = useResumeCampaign()
-
-  if (spotlight.loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-4 w-36" />
-          <Skeleton className="h-7 w-64" />
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <Skeleton className="h-20" />
-          <Skeleton className="h-20" />
-          <Skeleton className="h-20" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // No campaigns (or the probe failed): the dashboard's setup path covers this.
-  if (spotlight.error || !spotlight.data) return null
-
-  const { campaign, stats } = spotlight.data
-  const touches = campaign.sequence_touches ?? 0
-
   return (
-    <>
     <Card>
       <CardHeader>
-        <CardDescription className="font-mono text-[11px] tracking-widest uppercase">
-          Latest campaign
-        </CardDescription>
-        <div className="flex flex-wrap items-center gap-3">
-          <CardTitle className="text-xl">{campaign.name}</CardTitle>
-          {campaign.setup_completed ? (
-            <Badge variant="outline">Ready</Badge>
-          ) : (
-            <Badge variant="secondary">Setup incomplete</Badge>
-          )}
-        </div>
-        <CardDescription>
-          {campaign.product_name ? `For ${campaign.product_name}. ` : ""}
-          Created {formatDateTime(campaign.created_at)}.
-        </CardDescription>
+        <CardDescription>Campaigns</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Megaphone className="size-5 text-muted-foreground" aria-hidden="true" />
+          Being rebuilt
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {statTiles.map((tile) => (
-            <div key={tile.key} className="rounded-lg border bg-muted/40 p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <tile.icon className="size-4" />
-                {tile.label}
-              </div>
-              <div className="mt-1 text-3xl font-semibold tracking-tight">
-                {stats[tile.key]}
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <CalendarRange className="size-4" />
-          {touches > 0
-            ? `${touches}-email sequence saved and ready for review.`
-            : "No sequence saved yet."}
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          The engine that writes the emails is unchanged and fully tested. The
+          workflow around it — building a list, choosing an approach, launching —
+          is being put back together.
         </p>
       </CardContent>
       <CardFooter>
-        {campaign.setup_completed ? (
-          <Button asChild>
-            <Link to={`/campaigns/${campaign.id}`}>
-              Open campaign
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        ) : (
-          <Button onClick={() => resume.open(campaign)}>
-            Finish setup
+        <Button variant="outline" asChild>
+          <Link to="/campaigns">
+            Go to campaigns
             <ArrowRight className="size-4" />
-          </Button>
-        )}
+          </Link>
+        </Button>
       </CardFooter>
     </Card>
-
-    <ResumeCampaignDialog
-      campaign={resume.incomplete}
-      resetting={resume.resetting}
-      onClose={resume.close}
-      onContinue={resume.continueSetup}
-      onStartOver={resume.startOver}
-    />
-    </>
   )
 }

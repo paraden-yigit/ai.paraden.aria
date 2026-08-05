@@ -63,8 +63,8 @@ export function SetupChecklist({ state }: { state: SetupState }) {
     },
     {
       title: "Create your first campaign",
-      blurb: "Paraden finds prospects and drafts the emails. You approve everything.",
-      to: "/campaigns/new",
+      blurb: "Being rebuilt — the outreach engine is unchanged, the workflow around it is coming back.",
+      to: "/campaigns",
       done: state.campaignDone,
     },
   ]

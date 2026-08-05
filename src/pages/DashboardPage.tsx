@@ -1,6 +1,5 @@
-import { useCallback } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Briefcase, Megaphone, Package, Plus } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Briefcase, Megaphone, Package } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -10,8 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { DataState } from "@/components/DataState"
-import { CampaignCards } from "@/features/campaigns/CampaignCards"
 import { CampaignSpotlight } from "@/features/dashboard/CampaignSpotlight"
 import { KnowledgeMeter } from "@/features/dashboard/KnowledgeMeter"
 import { PerformanceStrip } from "@/features/dashboard/PerformanceStrip"
@@ -20,9 +17,6 @@ import { SetupChecklist } from "@/features/onboarding/SetupChecklist"
 import { useSetupState } from "@/features/onboarding/useSetupState"
 import { useAuth } from "@/features/auth/useAuth"
 import { roleLabel } from "@/lib/roles"
-import { useAsync } from "@/hooks/useAsync"
-import { campaignService } from "@/services/campaign.service"
-import type { Campaign } from "@/types/campaign"
 
 function AccountCard() {
   const { user } = useAuth()
@@ -54,22 +48,19 @@ function QuickActionsCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
+        {/* "New campaign" is gone with the wizard — a button leading to a
+            removed route is worse than one fewer button. Restore it when the
+            new campaign flow lands. */}
         <Button asChild>
-          <Link to="/campaigns/new">
-            <Plus className="size-4" />
-            New campaign
+          <Link to="/products">
+            <Package className="size-4" />
+            Products
           </Link>
         </Button>
         <Button variant="outline" asChild>
           <Link to="/campaigns">
             <Megaphone className="size-4" />
             Campaigns
-          </Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link to="/products">
-            <Package className="size-4" />
-            Products
           </Link>
         </Button>
         <Button variant="outline" asChild>
@@ -85,24 +76,12 @@ function QuickActionsCard() {
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const setup = useSetupState()
 
-  // The API scopes this to the caller's role: an owner sees the whole client, a
-  // team leader their team's campaigns, a sales person only their own. Pull a
-  // generous page so every campaign lands in its section.
-  const fetcher = useCallback(() => campaignService.list({ limit: 200 }), [])
-  const { data, loading, error, refetch } = useAsync(fetcher, [])
-  const campaigns = data?.items ?? []
-
-  function handleOpen(campaign: Campaign) {
-    // A finished campaign opens its dashboard; an unfinished one resumes setup.
-    if (campaign.setup_completed) {
-      navigate(`/campaigns/${campaign.id}`)
-    } else {
-      navigate(`/campaigns/new?resume=${campaign.id}&mode=continue`)
-    }
-  }
+  // No campaign list while campaigns are rebuilt. PerformanceStrip renders
+  // nothing on an empty set, so the results band collapses on its own rather
+  // than showing a funnel of zeros.
+  const campaigns: never[] = []
 
   return (
     <div className="space-y-6">
@@ -128,21 +107,6 @@ export function DashboardPage() {
             <PerformanceStrip campaigns={campaigns} />
             <SampleCharts />
             <CampaignSpotlight />
-            <DataState
-              loading={loading}
-              error={error}
-              isEmpty={campaigns.length === 0}
-              emptyMessage="No campaigns in your view yet. When you start one, Paraden finds matching prospects and drafts the outreach for you."
-              emptyAction={
-                <Button onClick={() => navigate("/campaigns/new")}>
-                  <Plus className="size-4" />
-                  Start a campaign
-                </Button>
-              }
-              onRetry={refetch}
-            >
-              <CampaignCards campaigns={campaigns} onOpen={handleOpen} grouped />
-            </DataState>
           </div>
           <div className="space-y-6">
             <QuickActionsCard />
