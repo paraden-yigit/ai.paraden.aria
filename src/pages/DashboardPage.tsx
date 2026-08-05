@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Briefcase, Megaphone, Package } from "lucide-react"
+import { Briefcase, Megaphone, Package, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -48,10 +48,13 @@ function QuickActionsCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        {/* "New campaign" is gone with the wizard — a button leading to a
-            removed route is worse than one fewer button. Restore it when the
-            new campaign flow lands. */}
         <Button asChild>
+          <Link to="/campaigns/new">
+            <Plus className="size-4" />
+            New campaign
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
           <Link to="/products">
             <Package className="size-4" />
             Products

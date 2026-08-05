@@ -20,6 +20,7 @@ import { ProfileSettingsPage } from "@/pages/ProfileSettingsPage"
 import { EmailSettingsPage } from "@/pages/EmailSettingsPage"
 import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
+import { NewOutreachPage } from "@/pages/NewOutreachPage"
 import { InboxPage } from "@/pages/InboxPage"
 import { OnboardingPage } from "@/pages/OnboardingPage"
 import { ProductsPage } from "@/pages/ProductsPage"
@@ -73,8 +74,10 @@ function App() {
               {/* Full-screen first-login onboarding wizard — outside AppLayout so
                   it has no sidebar/header, only its own minimal chrome. */}
               <Route path="/onboarding" element={<OnboardingPage />} />
-              {/* Full-page product creation wizard — outside AppLayout: its own
-                  minimal chrome, no app shell. */}
+              {/* Full-page wizards — outside AppLayout: their own minimal
+                  chrome, no app shell. Building one is a task with an end, not a
+                  place in the app. */}
+              <Route path="/campaigns/new" element={<NewOutreachPage />} />
               <Route path="/products/new" element={<NewProductPage />} />
               {/* Everything under the app shell first passes the onboarding gate:
                   unonboarded owners go to the wizard, other users wait. */}
