@@ -4,7 +4,8 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { ICPForm } from "@/features/products/ICPForm"
-import { campaignIcpService, icpService } from "@/services/icp.service"
+import { campaignIcpService } from "@/services/campaign-icp.service"
+import { icpService } from "@/services/icp.service"
 import { ApiError } from "@/services/http"
 import type { Icp, IcpUpdate } from "@/types/icp"
 

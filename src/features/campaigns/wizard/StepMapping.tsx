@@ -29,7 +29,7 @@ import {
   SKIP_MAPPING,
   guessAttribute,
 } from "./attributes"
-import type { ParsedCsv } from "./csv"
+import type { ParsedCsv } from "@/lib/spreadsheet"
 
 interface StepMappingProps {
   campaignId: number

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { WizardStepper, type WizardStep } from "@/features/campaigns/wizard/WizardStepper"
+import { WizardStepper, type WizardStep } from "@/components/WizardStepper"
 import { StepFrame } from "@/features/products/wizard/StepFrame"
 import { PainPointModal } from "@/features/products/wizard/PainPointModal"
 import { FileCategoryModal } from "@/features/products/wizard/FileCategoryModal"

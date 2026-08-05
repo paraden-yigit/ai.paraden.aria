@@ -14,7 +14,7 @@ import {
   isSpreadsheetFile,
   parseCsvFile,
   type ParsedCsv,
-} from "./csv"
+} from "@/lib/spreadsheet"
 
 interface StepUploadProps {
   campaignId: number
