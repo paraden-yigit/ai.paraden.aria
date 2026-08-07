@@ -18,8 +18,13 @@ import {
 } from "@/components/ui/table"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { formatDateTime } from "@/lib/format"
+import { CAMPAIGN_TYPES } from "@/features/outreach/campaignTypes"
 import { outreachService } from "@/services/outreach.service"
-import type { OutreachRun, OutreachRunStatus } from "@/types/outreach"
+import type {
+  CampaignType,
+  OutreachRun,
+  OutreachRunStatus,
+} from "@/types/outreach"
 
 /** What each status means, in the reader's terms rather than the model's. */
 const STATUS_LABELS: Record<OutreachRunStatus, string> = {
@@ -28,6 +33,20 @@ const STATUS_LABELS: Record<OutreachRunStatus, string> = {
   ready: "Ready to launch",
   launched: "Launched",
   failed: "Needs attention",
+}
+
+/** Strategic or Flow, with the same icon the wizard offered it under. Runs
+ * started before the choice existed have no type; they are not broken, they
+ * were simply never asked. */
+function TypeBadge({ type }: { type: CampaignType | null }) {
+  const option = CAMPAIGN_TYPES.find((o) => o.value === type)
+  if (!option) return <span className="text-muted-foreground">—</span>
+  return (
+    <Badge variant="outline" className="gap-1.5 font-normal">
+      <option.icon className="size-3.5" aria-hidden />
+      {option.label}
+    </Badge>
+  )
 }
 
 function StatusBadge({ status }: { status: OutreachRunStatus }) {
@@ -101,6 +120,7 @@ export function CampaignsPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Product</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Prospects</TableHead>
                 <TableHead>Created</TableHead>
@@ -117,6 +137,9 @@ export function CampaignsPage() {
                   <TableCell className="font-medium">{run.name}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {run.product_name ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <TypeBadge type={run.campaign_type} />
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={run.status} />

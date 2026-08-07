@@ -19,9 +19,11 @@ export function StepFrame({
 }) {
   return (
     <div className="space-y-6">
+      {/* Same heading/subline treatment as the product wizard's StepFrame, so
+        * the two wizards read as one thing. */}
       <div className="space-y-1">
         <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-        <p className="text-sm text-muted-foreground">{blurb}</p>
+        <p className="text-muted-foreground">{blurb}</p>
       </div>
       {children}
     </div>

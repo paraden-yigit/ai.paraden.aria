@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
@@ -64,42 +63,42 @@ export function StepSequence({
         })}
       </div>
 
-      <Card>
-        <CardContent className="grid gap-4 pt-6 sm:grid-cols-2">
-          {touches === 3 && (
-            <div className="space-y-2">
-              <Label htmlFor="advancer-gap">
-                Working days before the second email
-              </Label>
-              <Input
-                id="advancer-gap"
-                type="number"
-                min={1}
-                max={60}
-                value={run.sequence_advancer_gap ?? 3}
-                onChange={(e) =>
-                  onChange({ sequence_advancer_gap: Number(e.target.value) })
-                }
-              />
-            </div>
-          )}
+      {/* A bordered panel rather than a Card: the wizard already puts the whole
+        * step in one, and a card inside a card reads as two boxes. */}
+      <div className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
+        {touches === 3 && (
           <div className="space-y-2">
-            <Label htmlFor="closer-gap">
-              Working days before the {touches === 3 ? "third" : "second"} email
+            <Label htmlFor="advancer-gap">
+              Working days before the second email
             </Label>
             <Input
-              id="closer-gap"
+              id="advancer-gap"
               type="number"
               min={1}
               max={60}
-              value={run.sequence_closer_gap ?? 4}
+              value={run.sequence_advancer_gap ?? 3}
               onChange={(e) =>
-                onChange({ sequence_closer_gap: Number(e.target.value) })
+                onChange({ sequence_advancer_gap: Number(e.target.value) })
               }
             />
           </div>
-        </CardContent>
-      </Card>
+        )}
+        <div className="space-y-2">
+          <Label htmlFor="closer-gap">
+            Working days before the {touches === 3 ? "third" : "second"} email
+          </Label>
+          <Input
+            id="closer-gap"
+            type="number"
+            min={1}
+            max={60}
+            value={run.sequence_closer_gap ?? 4}
+            onChange={(e) =>
+              onChange({ sequence_closer_gap: Number(e.target.value) })
+            }
+          />
+        </div>
+      </div>
     </StepFrame>
   )
 }

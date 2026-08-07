@@ -6,6 +6,13 @@
  * the run becomes a record — `campaign_id` is what it produced.
  */
 
+/**
+ * How a campaign runs, and so where its list comes from: `strategic` is a list
+ * the user uploads, `flow` is a pool we keep filled from an ideal customer
+ * profile. Mirrors the API's own literal.
+ */
+export type CampaignType = "strategic" | "flow"
+
 /** `draft` → `composing` → `ready` → `launched`, or `failed` if composing broke. */
 export type OutreachRunStatus =
   | "draft"
@@ -19,6 +26,8 @@ export interface OutreachRun {
   name: string
   product_id: number | null
   product_name: string | null
+  /** How the campaign runs. Null until the second step is answered. */
+  campaign_type: CampaignType | null
   status: OutreachRunStatus
   /** The wizard step last reached, so a half-built run resumes where it stopped. */
   step: number
@@ -52,11 +61,72 @@ export interface OutreachRunCreate {
 export interface OutreachRunUpdate {
   name?: string
   product_id?: number
+  campaign_type?: CampaignType
   step?: number
   sequence_touches?: number
   sequence_advancer_gap?: number
   sequence_closer_gap?: number
   cta_type?: CtaOption | null
+}
+
+/**
+ * The profile a Flow run builds its contact pool from.
+ *
+ * Held in the wizard only for now — nothing on the API stores it yet, so it does
+ * not survive a reload or a resumed run.
+ */
+export interface OutreachIcpDraft {
+  /** From the industries taxonomy. */
+  industries: string[]
+  /** Free text: countries, regions or cities the company is based in. */
+  company_locations: string[]
+  headcount_min: number
+  headcount_max: number
+  /** Main job functions, from the job-functions taxonomy. */
+  departments: string[]
+  /** Free text, in the prospect's own words. */
+  job_titles: string[]
+  /** From the seniority taxonomy. */
+  seniority: string[]
+  /** Free text: where the person is, not their company. */
+  locations: string[]
+}
+
+/** The profile as the contact-pool endpoint wants it: null headcount ends mean
+ * "no floor" / "no ceiling" and are left out of the provider search. */
+export interface ContactPoolFilters {
+  industries: string[]
+  company_locations: string[]
+  headcount_min: number | null
+  headcount_max: number | null
+  departments: string[]
+  job_titles: string[]
+  seniority: string[]
+  locations: string[]
+}
+
+/** One anonymous person from the pool — enough to judge the aim of a profile,
+ * nothing that identifies them. */
+export interface ContactPoolSample {
+  company_name: string | null
+  company_industry: string | null
+  company_headcount: number | null
+  company_headcount_range: string | null
+  job_title: string | null
+  job_function: string | null
+  seniority: string | null
+  location: string | null
+  /** True when `location` is the company's HQ standing in for an unknown one. */
+  location_is_company: boolean
+}
+
+export interface ContactPoolSize {
+  /** People matching the profile. */
+  total: number
+  /** False when nothing was asked for, so `total` is not a pool. */
+  filtered: boolean
+  /** The first page of the same search the total came from. */
+  samples: ContactPoolSample[]
 }
 
 export interface OutreachCompanyIn {
