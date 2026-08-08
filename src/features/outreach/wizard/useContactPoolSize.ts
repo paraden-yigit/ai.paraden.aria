@@ -19,6 +19,7 @@ const DEBOUNCE_MS = 700
  * as one would quietly exclude every company whose headcount is unknown. */
 export function toPoolFilters(icp: OutreachIcpDraft): ContactPoolFilters {
   return {
+    company_domains: icp.company_domains,
     industries: icp.industries,
     company_locations: icp.company_locations,
     headcount_min: icp.headcount_min > HEADCOUNT_MIN ? icp.headcount_min : null,
@@ -30,14 +31,29 @@ export function toPoolFilters(icp: OutreachIcpDraft): ContactPoolFilters {
   }
 }
 
-function isEmpty(filters: ContactPoolFilters): boolean {
-  return Object.values(filters).every((value) =>
-    Array.isArray(value) ? value.length === 0 : value === null,
-  )
+/** The fields this step owns. Company filters and uploaded domains reach the
+ * search too, but on their own they are the *previous* step's answer. */
+const CONTACT_FIELDS = [
+  "departments",
+  "job_titles",
+  "seniority",
+  "locations",
+] as const
+
+/**
+ * Whether this step has been answered at all.
+ *
+ * A pool sized from company filters alone is "everyone at these companies",
+ * which is a number nobody asked for and a provider search nobody needs — and
+ * showing it on the contacts step reads as if the contact fields had been taken
+ * into account when they are all still blank.
+ */
+function hasContactFilter(filters: ContactPoolFilters): boolean {
+  return CONTACT_FIELDS.some((field) => filters[field].length > 0)
 }
 
 export interface ContactPoolState {
-  /** Nothing has been asked for yet, so there is no pool to size. */
+  /** No contact filter has been set yet, so there is nothing to size. */
   empty: boolean
   /** A search is in flight. The last total stays on screen while it runs. */
   loading: boolean
@@ -58,7 +74,7 @@ export interface ContactPoolState {
  */
 export function useContactPoolSize(icp: OutreachIcpDraft): ContactPoolState {
   const filters = useMemo(() => toPoolFilters(icp), [icp])
-  const empty = isEmpty(filters)
+  const empty = !hasContactFilter(filters)
 
   const [total, setTotal] = useState<number | null>(null)
   const [samples, setSamples] = useState<ContactPoolSample[]>([])

@@ -20,13 +20,17 @@ import { StepApproach } from "@/features/outreach/wizard/StepApproach"
 import { StepCta } from "@/features/outreach/wizard/StepCta"
 import { StepCompanies } from "@/features/outreach/wizard/StepCompanies"
 import { StepContacts } from "@/features/outreach/wizard/StepContacts"
+import { StepDomains } from "@/features/outreach/wizard/StepDomains"
 import {
   HEADCOUNT_MAX,
   HEADCOUNT_MIN,
 } from "@/features/outreach/wizard/headcountScale"
-import { StepList } from "@/features/outreach/wizard/StepList"
 import { StepReview } from "@/features/outreach/wizard/StepReview"
 import { StepSequence } from "@/features/outreach/wizard/StepSequence"
+import {
+  DEFAULT_ADVANCER_GAP,
+  DEFAULT_CLOSER_GAP,
+} from "@/features/outreach/wizard/sequenceGaps"
 import { StepType } from "@/features/outreach/wizard/StepType"
 import type { CampaignType } from "@/features/outreach/campaignTypes"
 import { useProductOptions } from "@/hooks/useProductOptions"
@@ -42,7 +46,7 @@ import type {
 type StepKey =
   | "details"
   | "type"
-  | "list"
+  | "domains"
   | "companies"
   | "contacts"
   | "sequence"
@@ -50,19 +54,19 @@ type StepKey =
   | "approach"
   | "review"
 
-/** Where the audience comes from depends on the type: a Strategic run is handed
- * a list in one step, a Flow run is asked for a profile in two — the companies
- * to look inside, then the people at them. */
+/** Both types answer the same two questions — which companies, then who at them
+ * — and only the first is asked differently: a Flow run describes the companies
+ * it wants, a Strategic run uploads the ones it already knows. */
 function steps(campaignType: CampaignType | null): (WizardStep & {
   key: StepKey
 })[] {
-  const audience: (WizardStep & { key: StepKey })[] =
-    campaignType === "flow"
-      ? [
-          { key: "companies", title: "Companies" },
-          { key: "contacts", title: "Contacts" },
-        ]
-      : [{ key: "list", title: "List" }]
+  const audience: (WizardStep & { key: StepKey })[] = [
+    {
+      key: campaignType === "flow" ? "companies" : "domains",
+      title: "Companies",
+    },
+    { key: "contacts", title: "Contacts" },
+  ]
   return [
     { key: "details", title: "Details" },
     { key: "type", title: "Type" },
@@ -76,11 +80,12 @@ function steps(campaignType: CampaignType | null): (WizardStep & {
 
 /** Steps whose content is a table or several drafts side by side, and so get the
  * full width rather than the reading-width column the rest sit in. */
-const WIDE_STEPS = new Set<StepKey>(["list", "approach", "review"])
+const WIDE_STEPS = new Set<StepKey>(["approach", "review"])
 
 /** A run's profile starts empty: what a campaign is aiming at is a decision to
  * make here, not one to inherit from the product and leave unread. */
 const EMPTY_ICP: OutreachIcpDraft = {
+  company_domains: [],
   industries: [],
   company_locations: [],
   headcount_min: HEADCOUNT_MIN,
@@ -207,8 +212,20 @@ export function NewOutreachPage() {
         name: name.trim() || run.name,
         step: Math.min(step + 2, wizardSteps.length),
         sequence_touches: run.sequence_touches ?? undefined,
-        sequence_advancer_gap: run.sequence_advancer_gap ?? undefined,
-        sequence_closer_gap: run.sequence_closer_gap ?? undefined,
+        // Leaving the sequence step stores the gaps the timeline was showing,
+        // touched or not — it states "wait 4 working days" from the moment it
+        // renders, and a run that saved null there would quietly mean something
+        // else.
+        ...(stepKey === "sequence"
+          ? {
+              sequence_advancer_gap:
+                run.sequence_advancer_gap ?? DEFAULT_ADVANCER_GAP,
+              sequence_closer_gap: run.sequence_closer_gap ?? DEFAULT_CLOSER_GAP,
+            }
+          : {
+              sequence_advancer_gap: run.sequence_advancer_gap ?? undefined,
+              sequence_closer_gap: run.sequence_closer_gap ?? undefined,
+            }),
         campaign_type: run.campaign_type ?? undefined,
         cta_type: run.cta_type,
       })
@@ -249,9 +266,13 @@ export function NewOutreachPage() {
     // so either half can carry it — industries alone is a profile, and so is a
     // job title alone. Size does not count: it starts at the full range, so it
     // is not a choice anyone has made yet.
+    // A Strategic run's companies are the uploaded list, so there is nothing to
+    // continue with until something has been read out of a file or a paste.
+    if (stepKey === "domains") return icp.company_domains.length > 0
     if (stepKey === "contacts") {
       return Boolean(
-        icp.industries.length ||
+        icp.company_domains.length ||
+          icp.industries.length ||
           icp.company_locations.length ||
           icp.departments.length ||
           icp.job_titles.length ||
@@ -359,7 +380,9 @@ export function NewOutreachPage() {
               onChange={(type) => patch({ campaign_type: type })}
             />
           )}
-          {stepKey === "list" && run && <StepList runId={run.id} />}
+          {stepKey === "domains" && (
+            <StepDomains value={icp} onChange={setIcp} />
+          )}
           {stepKey === "companies" && (
             <StepCompanies value={icp} onChange={setIcp} />
           )}

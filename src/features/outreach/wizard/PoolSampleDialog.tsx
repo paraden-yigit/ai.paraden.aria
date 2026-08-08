@@ -48,9 +48,10 @@ export function PoolSampleDialog({
         <DialogHeader>
           <DialogTitle>A sample of the pool</DialogTitle>
           <DialogDescription>
-            All {samples.length} people on the first page of this profile's
-            matches, as the provider describes them. No names — this is a sample
-            of who is out there, not a list to write to.
+            {samples.length} people from the first page of this profile's
+            matches, as the provider describes them — anyone whose company it
+            could not name is left out. No names: this is a sample of who is out
+            there, not a list to write to.
           </DialogDescription>
         </DialogHeader>
 
@@ -62,6 +63,7 @@ export function PoolSampleDialog({
             <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow>
                 <TableHead>Company</TableHead>
+                <TableHead>Domain</TableHead>
                 <TableHead>Sector</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead>Job title</TableHead>
@@ -75,6 +77,9 @@ export function PoolSampleDialog({
                 <TableRow key={index}>
                   <TableCell className="font-medium">
                     {sample.company_name ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {sample.company_domain ?? "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {sample.company_industry ?? "—"}

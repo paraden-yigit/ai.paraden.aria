@@ -76,6 +76,11 @@ export interface OutreachRunUpdate {
  * not survive a reload or a resumed run.
  */
 export interface OutreachIcpDraft {
+  /**
+   * Companies named outright, by domain — how a Strategic run says who it is
+   * for, in place of the industry/location/size filters a Flow run describes.
+   */
+  company_domains: string[]
   /** From the industries taxonomy. */
   industries: string[]
   /** Free text: countries, regions or cities the company is based in. */
@@ -95,6 +100,7 @@ export interface OutreachIcpDraft {
 /** The profile as the contact-pool endpoint wants it: null headcount ends mean
  * "no floor" / "no ceiling" and are left out of the provider search. */
 export interface ContactPoolFilters {
+  company_domains: string[]
   industries: string[]
   company_locations: string[]
   headcount_min: number | null
@@ -109,6 +115,7 @@ export interface ContactPoolFilters {
  * nothing that identifies them. */
 export interface ContactPoolSample {
   company_name: string | null
+  company_domain: string | null
   company_industry: string | null
   company_headcount: number | null
   company_headcount_range: string | null

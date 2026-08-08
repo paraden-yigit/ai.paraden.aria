@@ -54,6 +54,11 @@ interface StepContactsProps {
  * rather than how many companies they work at. It is the only honest feedback
  * this step can give: a profile that matches eleven people is a mistake worth
  * seeing here, not after a launch.
+ *
+ * Nothing is counted until one of the fields below is answered. Sized from the
+ * previous step alone the number would be "everyone at those companies", which
+ * reads as though these fields had been taken into account while they are all
+ * still blank.
  */
 export function StepContacts({ value, onChange }: StepContactsProps) {
   const pool = useContactPoolSize(value)
@@ -148,14 +153,17 @@ function PoolSize({
 
   return (
     <div className="rounded-lg border bg-muted/30 p-4">
-      <div className="flex items-center gap-2 text-sm font-medium">
+      {/* Every state keeps this row the same height: the button stays mounted
+        * and is disabled while a count runs, rather than vanishing and taking
+        * the row's height with it. */}
+      <div className="flex h-8 items-center gap-2 text-sm font-medium">
         <Users className="size-4" aria-hidden />
         Pool size
         {loading && (
-          <Loader2
-            className="size-3.5 animate-spin text-muted-foreground"
-            aria-label="Counting"
-          />
+          <span className="flex items-center gap-1.5 font-normal text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            Populating…
+          </span>
         )}
         {samples.length > 0 && !error && (
           <>
@@ -164,6 +172,8 @@ function PoolSize({
               variant="outline"
               size="sm"
               className="ml-auto"
+              // The sample on hand answers the last search, not the one running.
+              disabled={loading}
               onClick={() => setShowSample(true)}
             >
               <Table2 className="size-4" />
@@ -179,27 +189,31 @@ function PoolSize({
       </div>
       <p
         aria-live="polite"
+        // min-h holds the row that the number occupies, so clearing the number
+        // for a recount leaves the panel exactly where it was — nothing below it
+        // jumps while the answer changes.
         className={cn(
-          "mt-2 text-sm text-muted-foreground",
-          // The number itself carries the weight; the states around it do not.
-          total !== null && !error && "text-foreground",
+          "mt-2 flex min-h-8 items-baseline text-sm text-muted-foreground",
+          total !== null && !loading && !error && "text-foreground",
         )}
       >
         {error ? (
           error
         ) : empty ? (
-          "Add a filter above — or on the previous step — and we will count how many people it reaches."
-        ) : total === null ? (
-          "Counting…"
+          "Add a department, job title, seniority or location above, and we will count how many people this profile reaches."
         ) : (
           <>
+            {/* A stale count under a spinner is worse than no count: it looks
+              * like the answer to the filters now on screen. */}
             <span className="text-2xl font-semibold tabular-nums">
-              {formatPoolSize(total)}
-            </span>{" "}
-            <span className="text-muted-foreground">
-              {total === 1 ? "person matches" : "people match"} this profile
-              {total === 0 && " — try loosening a filter"}
+              {loading || total === null ? "—" : formatPoolSize(total)}
             </span>
+            {!loading && total !== null && (
+              <span className="ml-2 text-muted-foreground">
+                {total === 1 ? "person matches" : "people match"} this profile
+                {total === 0 && " — try loosening a filter"}
+              </span>
+            )}
           </>
         )}
       </p>

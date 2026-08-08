@@ -14,6 +14,40 @@ export function isSpreadsheetFile(file: File): boolean {
   )
 }
 
+/**
+ * Every cell in the first column of a spreadsheet, header row included.
+ *
+ * Unlike `parseCsvFile`, this assumes nothing about a header: a file of domains
+ * usually has none, and whichever it has, a row that is not a domain is dropped
+ * by whoever reads these values. Blank cells are skipped.
+ */
+export async function readFirstColumn(file: File): Promise<string[]> {
+  const buffer = await file.arrayBuffer()
+
+  let sheet: XLSX.WorkSheet | undefined
+  try {
+    const workbook = XLSX.read(buffer, { type: "array" })
+    sheet = workbook.Sheets[workbook.SheetNames[0]]
+  } catch {
+    sheet = undefined
+  }
+  if (!sheet) {
+    throw new Error(
+      "We couldn't read this file. Please upload a CSV or Excel file.",
+    )
+  }
+
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+    header: 1,
+    blankrows: false,
+    defval: "",
+  })
+
+  return matrix
+    .map((row) => String((row as unknown[])[0] ?? "").trim())
+    .filter(Boolean)
+}
+
 export interface ParsedCsv {
   /** Trimmed header cells from the first row. */
   headers: string[]
