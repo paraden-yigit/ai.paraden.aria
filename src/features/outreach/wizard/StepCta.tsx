@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useAsync } from "@/hooks/useAsync"
+import { formatSlug } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ctaTypeService } from "@/services/ctaType.service"
 import type { CtaFriction, CtaTypeOption } from "@/types/ctaType"
@@ -105,8 +106,10 @@ export function StepCta({
           <SelectContent>
             {options.map((option) => (
               <SelectItem key={option.id} value={option.type}>
+                {/* The stored value is a slug (`one_word_reply`); nobody should
+                  * have to read it that way. */}
                 <span className="flex items-center gap-2">
-                  {option.type}
+                  {formatSlug(option.type)}
                   <FrictionTag friction={option.friction} />
                 </span>
               </SelectItem>

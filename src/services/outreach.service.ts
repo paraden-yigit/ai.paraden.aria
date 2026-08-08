@@ -1,6 +1,7 @@
 import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
 import type {
+  CompanyDomains,
   OutreachDraft,
   OutreachEmail,
   OutreachImport,
@@ -51,6 +52,17 @@ export const outreachService = {
 
   // --- the list ------------------------------------------------------------
 
+  /** Store the Strategic run's company domains — the whole list, not a delta. */
+  saveCompanyDomains(id: number, domains: string[]): Promise<CompanyDomains> {
+    return apiClient.put<CompanyDomains>(`/api/outreach-runs/${id}/companies`, {
+      domains,
+    })
+  },
+
+  listCompanyDomains(id: number): Promise<CompanyDomains> {
+    return apiClient.get<CompanyDomains>(`/api/outreach-runs/${id}/companies`)
+  },
+
   importProspects(
     id: number,
     payload: OutreachImport,
@@ -83,8 +95,13 @@ export const outreachService = {
   // --- phase one: three approaches per step --------------------------------
 
   /** Kicks off writing in the background; poll `getDraft` for the result. */
-  startDraft(id: number): Promise<OutreachDraft> {
-    return apiClient.post<OutreachDraft>(`/api/outreach-runs/${id}/draft`)
+  /** Start writing the approaches. `prospectIndex` walks the candidate order —
+   * what "try another prospect" asks for; omitted writes against the fullest
+   * record. */
+  startDraft(id: number, prospectIndex?: number): Promise<OutreachDraft> {
+    return apiClient.post<OutreachDraft>(`/api/outreach-runs/${id}/draft`, {
+      prospect_index: prospectIndex ?? null,
+    })
   },
 
   getDraft(id: number): Promise<OutreachDraft> {

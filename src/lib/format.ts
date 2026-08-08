@@ -11,3 +11,15 @@ export function formatDateTime(iso: string | null | undefined): string {
     minute: "2-digit",
   })
 }
+
+/**
+ * A snake_case identifier as a person would read it: `one_word_reply` becomes
+ * "One word reply".
+ *
+ * Sentence case, not title case — these are phrases ("Permission to send"), and
+ * capitalising every word would make them read like product names.
+ */
+export function formatSlug(slug: string): string {
+  const words = slug.replace(/[_-]+/g, " ").trim()
+  return words ? words[0].toUpperCase() + words.slice(1) : words
+}

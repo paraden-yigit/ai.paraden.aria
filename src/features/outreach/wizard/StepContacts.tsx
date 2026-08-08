@@ -7,7 +7,7 @@ import { JOB_FUNCTIONS } from "@/features/companies/job-functions"
 import { SENIORITY } from "@/features/companies/seniority"
 import { cn } from "@/lib/utils"
 import { placeService } from "@/services/place.service"
-import type { OutreachIcpDraft } from "@/types/outreach"
+import type { OutreachIcpDraft, RunPoolSample } from "@/types/outreach"
 import { PoolSampleDialog } from "./PoolSampleDialog"
 import { ProfileField } from "./ProfileField"
 import { StepFrame } from "./StepFrame"
@@ -43,6 +43,9 @@ function formatPoolSize(total: number): string {
 interface StepContactsProps {
   value: OutreachIcpDraft
   onChange: (next: OutreachIcpDraft) => void
+  /** Each completed pool answer, so the page can save the snapshot with the
+   * profile. Stable reference. */
+  onPool: (pool: RunPoolSample) => void
 }
 
 /**
@@ -60,8 +63,8 @@ interface StepContactsProps {
  * reads as though these fields had been taken into account while they are all
  * still blank.
  */
-export function StepContacts({ value, onChange }: StepContactsProps) {
-  const pool = useContactPoolSize(value)
+export function StepContacts({ value, onChange, onPool }: StepContactsProps) {
+  const pool = useContactPoolSize(value, onPool)
 
   function set<K extends keyof OutreachIcpDraft>(
     key: K,

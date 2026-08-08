@@ -33,9 +33,11 @@ interface PoolSampleDialogProps {
 /**
  * A page of the people the profile currently matches.
  *
- * Nameless by design — the point is to check the aim ("these are agency
- * marketing managers, not enterprise CMOs") before anyone commits to writing to
- * them, and a name adds nothing to that judgement.
+ * The role and the company rather than the name: the point is to check the aim
+ * ("these are agency marketing managers, not enterprise CMOs") before anyone
+ * commits to writing to them, and a name adds nothing to that judgement. The
+ * rows do carry one — the Approach step's preview writes against a real person
+ * — but nothing here can contact them.
  */
 export function PoolSampleDialog({
   open,
@@ -50,8 +52,8 @@ export function PoolSampleDialog({
           <DialogDescription>
             {samples.length} people from the first page of this profile's
             matches, as the provider describes them — anyone whose company it
-            could not name is left out. No names: this is a sample of who is out
-            there, not a list to write to.
+            could not name is left out. Nothing here can contact them: this is a
+            sample of who is out there, not a list to write to.
           </DialogDescription>
         </DialogHeader>
 

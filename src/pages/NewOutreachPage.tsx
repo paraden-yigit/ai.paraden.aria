@@ -25,7 +25,7 @@ import {
   HEADCOUNT_MAX,
   HEADCOUNT_MIN,
 } from "@/features/outreach/wizard/headcountScale"
-import { StepReview } from "@/features/outreach/wizard/StepReview"
+import { toRunIcp } from "@/features/outreach/wizard/useContactPoolSize"
 import { StepSequence } from "@/features/outreach/wizard/StepSequence"
 import {
   DEFAULT_ADVANCER_GAP,
@@ -39,6 +39,7 @@ import type {
   DraftStep,
   OutreachIcpDraft,
   OutreachRun,
+  RunPoolSample,
 } from "@/types/outreach"
 
 /** Every step the wizard can show. Steps are addressed by key rather than by
@@ -52,7 +53,6 @@ type StepKey =
   | "sequence"
   | "cta"
   | "approach"
-  | "review"
 
 /** Both types answer the same two questions — which companies, then who at them
  * — and only the first is asked differently: a Flow run describes the companies
@@ -74,13 +74,12 @@ function steps(campaignType: CampaignType | null): (WizardStep & {
     { key: "sequence", title: "Sequence" },
     { key: "cta", title: "Call to action" },
     { key: "approach", title: "Approach" },
-    { key: "review", title: "Review" },
   ]
 }
 
 /** Steps whose content is a table or several drafts side by side, and so get the
  * full width rather than the reading-width column the rest sit in. */
-const WIDE_STEPS = new Set<StepKey>(["approach", "review"])
+const WIDE_STEPS = new Set<StepKey>(["approach"])
 
 /** A run's profile starts empty: what a campaign is aiming at is a decision to
  * make here, not one to inherit from the product and leave unread. */
@@ -125,6 +124,10 @@ export function NewOutreachPage() {
   // nowhere to keep it yet — unlike the campaign type, which lives on the run.
   const [icp, setIcp] = useState<OutreachIcpDraft>(EMPTY_ICP)
 
+  // The last pool answer the Contacts step got, saved beside the profile it
+  // answers. `setState` is a stable reference, which is what the hook needs.
+  const [pool, setPool] = useState<RunPoolSample | null>(null)
+
   // The approach chosen per step, kept locally so the choice shows immediately
   // and is written on the way out of the step.
   const [chosen, setChosen] = useState<Record<number, string>>({})
@@ -148,6 +151,24 @@ export function NewOutreachPage() {
             steps(existing.campaign_type).length - 1,
           ),
         )
+        const saved = existing.icp
+        if (saved) {
+          setIcp((current) => ({
+            ...current,
+            ...saved,
+            // Null means "no floor" / "no ceiling"; the slider works in numbers.
+            headcount_min: saved.headcount_min ?? HEADCOUNT_MIN,
+            headcount_max: saved.headcount_max ?? HEADCOUNT_MAX,
+          }))
+        }
+        if (existing.campaign_type === "strategic") {
+          const companies = await outreachService.listCompanyDomains(resumeId)
+          if (!active) return
+          setIcp((current) => ({
+            ...current,
+            company_domains: companies.domains,
+          }))
+        }
         const selections = await outreachService.getSelections(resumeId)
         if (!active) return
         setChosen(
@@ -177,6 +198,7 @@ export function NewOutreachPage() {
   const campaignType = run?.campaign_type ?? null
   const wizardSteps = steps(campaignType)
   const stepKey = wizardSteps[step]?.key ?? "details"
+  const isLastStep = step === wizardSteps.length - 1
 
   /** Persist the current step, creating the run on the first one. */
   async function save(): Promise<OutreachRun | null> {
@@ -193,6 +215,25 @@ export function NewOutreachPage() {
         })
         setRun(created)
         return created
+      }
+      // The Companies step of a Strategic run owns rows of its own: the domains
+      // become the run's companies, which is what everything downstream reads.
+      // Sent whole — a domain removed in the browser is removed here.
+      if (stepKey === "domains") {
+        const saved = await outreachService.saveCompanyDomains(
+          run.id,
+          icp.company_domains,
+        )
+        if (saved.excluded > 0) {
+          toast.warning(
+            `${saved.excluded} ${
+              saved.excluded === 1 ? "domain is" : "domains are"
+            } on your exclusion list and were not saved.`,
+          )
+        }
+        // Take back what was actually stored, so the list on screen and the
+        // list on the run cannot drift.
+        setIcp((current) => ({ ...current, company_domains: saved.domains }))
       }
       // The approach step writes selections rather than run fields.
       if (stepKey === "approach") {
@@ -227,6 +268,16 @@ export function NewOutreachPage() {
               sequence_closer_gap: run.sequence_closer_gap ?? undefined,
             }),
         campaign_type: run.campaign_type ?? undefined,
+        // The Contacts step is where the profile is finished, so that is where
+        // it is stored. Both halves go together: they are one profile and one
+        // search, and the company half of a Flow run has no other home.
+        // The snapshot goes with the profile it answers. Omitted when no search
+        // has completed, which leaves whatever was stored before rather than
+        // wiping it — a resumed run that walks past this step should not lose
+        // the number it was set up against.
+        ...(stepKey === "contacts"
+          ? { icp: toRunIcp(icp), ...(pool ? { pool_sample: pool } : {}) }
+          : {}),
         cta_type: run.cta_type,
       })
       setRun(updated)
@@ -243,6 +294,15 @@ export function NewOutreachPage() {
     const saved = await save()
     if (!saved) return
     setStep((s) => Math.min(s + 1, wizardSteps.length - 1))
+  }
+
+  /** The last step. Saves like any other and then leaves the wizard — the run
+   * is a campaign from here, and the rest of its life happens outside setup. */
+  async function finish() {
+    const saved = await save()
+    if (!saved) return
+    toast.success("Campaign created.")
+    navigate("/campaigns")
   }
 
   function handleChoose(
@@ -387,7 +447,7 @@ export function NewOutreachPage() {
             <StepCompanies value={icp} onChange={setIcp} />
           )}
           {stepKey === "contacts" && (
-            <StepContacts value={icp} onChange={setIcp} />
+            <StepContacts value={icp} onChange={setIcp} onPool={setPool} />
           )}
           {stepKey === "sequence" && run && (
             <StepSequence run={run} onChange={patch} />
@@ -399,9 +459,6 @@ export function NewOutreachPage() {
               chosen={chosen}
               onChoose={handleChoose}
             />
-          )}
-          {stepKey === "review" && run && (
-            <StepReview run={run} onRunChange={setRun} />
           )}
 
           <div className="flex items-center justify-between gap-2 border-t pt-4">
@@ -417,24 +474,23 @@ export function NewOutreachPage() {
                 Back
               </Button>
             )}
-            {step < wizardSteps.length - 1 ? (
-              <Button
-                onClick={() => void next()}
-                disabled={!canAdvance || saving}
-              >
-                {saving ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ArrowRight className="size-4" />
-                )}
-                {saving ? "Saving…" : "Continue"}
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={() => navigate("/campaigns")}>
+            <Button
+              onClick={() => void (isLastStep ? finish() : next())}
+              disabled={!canAdvance || saving}
+            >
+              {saving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : isLastStep ? (
                 <Rocket className="size-4" />
-                Done
-              </Button>
-            )}
+              ) : (
+                <ArrowRight className="size-4" />
+              )}
+              {saving
+                ? "Saving…"
+                : isLastStep
+                  ? "Create campaign"
+                  : "Continue"}
+            </Button>
           </div>
         </div>
       </main>

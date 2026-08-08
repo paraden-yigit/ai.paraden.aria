@@ -28,6 +28,10 @@ export interface OutreachRun {
   product_name: string | null
   /** How the campaign runs. Null until the second step is answered. */
   campaign_type: CampaignType | null
+  /** The targeting profile, as the wizard last saved it. Null until then. */
+  icp: RunIcp | null
+  /** The last pool answer for that profile. Null until a search has run. */
+  pool_sample: RunPoolSample | null
   status: OutreachRunStatus
   /** The wizard step last reached, so a half-built run resumes where it stopped. */
   step: number
@@ -62,6 +66,8 @@ export interface OutreachRunUpdate {
   name?: string
   product_id?: number
   campaign_type?: CampaignType
+  icp?: RunIcp
+  pool_sample?: RunPoolSample
   step?: number
   sequence_touches?: number
   sequence_advancer_gap?: number
@@ -70,10 +76,40 @@ export interface OutreachRunUpdate {
 }
 
 /**
- * The profile a Flow run builds its contact pool from.
+ * The targeting profile as the run stores it (`outreach_runs.icp`).
  *
- * Held in the wizard only for now — nothing on the API stores it yet, so it does
- * not survive a reload or a resumed run.
+ * The wizard's own draft carries one more field — `company_domains` — which
+ * lives as `outreach_companies` rows instead, because those are companies rather
+ * than a description of companies.
+ */
+export interface RunIcp {
+  industries: string[]
+  company_locations: string[]
+  headcount_min: number | null
+  headcount_max: number | null
+  departments: string[]
+  job_titles: string[]
+  seniority: string[]
+  locations: string[]
+}
+
+/**
+ * The last contact-pool answer for a run's profile, stored beside it.
+ *
+ * A snapshot of a provider search — anonymous by construction, and stale the
+ * moment the provider's index moves. Kept so the number a run was set up
+ * against is recoverable, not as a record of anybody.
+ */
+export interface RunPoolSample {
+  total: number
+  samples: ContactPoolSample[]
+}
+
+/**
+ * The profile as the wizard holds it while it is being edited.
+ *
+ * Saved on the way out of the Contacts step: the company/contact filters become
+ * `run.icp`, and a Strategic run's domains become the run's companies.
  */
 export interface OutreachIcpDraft {
   /**
@@ -114,6 +150,9 @@ export interface ContactPoolFilters {
 /** One anonymous person from the pool — enough to judge the aim of a profile,
  * nothing that identifies them. */
 export interface ContactPoolSample {
+  first_name: string | null
+  last_name: string | null
+  full_name: string | null
   company_name: string | null
   company_domain: string | null
   company_industry: string | null
@@ -167,6 +206,12 @@ export interface OutreachImport {
   replace: boolean
 }
 
+/** What the run has stored, and what its exclusion list kept out. */
+export interface CompanyDomains {
+  domains: string[]
+  excluded: number
+}
+
 export interface OutreachImportResult {
   companies_created: number
   prospects_created: number
@@ -200,6 +245,18 @@ export interface Approach {
   body: string
 }
 
+/** Who a preview was written against, and their place in the candidate order —
+ * which is what lets the step offer the next one. */
+export interface DraftProspect {
+  first_name?: string | null
+  last_name?: string | null
+  job_title?: string | null
+  company_name?: string | null
+  company_domain?: string | null
+  index: number
+  total: number
+}
+
 export interface DraftStep {
   step_index: number
   step_kind: "opener" | "advancer" | "closer"
@@ -211,12 +268,7 @@ export interface OutreachDraft {
   status: "idle" | "generating" | "ready" | "failed"
   error: string | null
   /** Who the preview was written against, so the copy reads in context. */
-  prospect: {
-    first_name?: string | null
-    last_name?: string | null
-    job_title?: string | null
-    company_name?: string | null
-  } | null
+  prospect: DraftProspect | null
   steps: DraftStep[]
 }
 

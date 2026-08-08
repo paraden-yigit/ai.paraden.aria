@@ -5,12 +5,30 @@ import type {
   ContactPoolFilters,
   ContactPoolSample,
   OutreachIcpDraft,
+  RunIcp,
+  RunPoolSample,
 } from "@/types/outreach"
 import { HEADCOUNT_MAX, HEADCOUNT_MIN } from "./headcountScale"
 
 // One request per pause in editing, not one per keystroke: each is a billed
 // FullEnrich search.
 const DEBOUNCE_MS = 700
+
+/** The profile as the run stores it: everything except the uploaded domains,
+ * which are companies in their own right (`outreach_companies`) rather than a
+ * description of companies. */
+export function toRunIcp(icp: OutreachIcpDraft): RunIcp {
+  return {
+    industries: icp.industries,
+    company_locations: icp.company_locations,
+    headcount_min: icp.headcount_min > HEADCOUNT_MIN ? icp.headcount_min : null,
+    headcount_max: icp.headcount_max < HEADCOUNT_MAX ? icp.headcount_max : null,
+    departments: icp.departments,
+    job_titles: icp.job_titles,
+    seniority: icp.seniority,
+    locations: icp.locations,
+  }
+}
 
 /** The wizard's profile in the shape the endpoint wants.
  *
@@ -72,7 +90,12 @@ export interface ContactPoolState {
  * while the next one runs — a number that blinks to nothing on every keystroke
  * is harder to read than one that is briefly a beat behind.
  */
-export function useContactPoolSize(icp: OutreachIcpDraft): ContactPoolState {
+export function useContactPoolSize(
+  icp: OutreachIcpDraft,
+  /** Called with each completed answer, so the page can store the snapshot the
+   * step was set up against. Must be a stable reference. */
+  onResult?: (result: RunPoolSample) => void,
+): ContactPoolState {
   const filters = useMemo(() => toPoolFilters(icp), [icp])
   const empty = !hasContactFilter(filters)
 
@@ -93,6 +116,7 @@ export function useContactPoolSize(icp: OutreachIcpDraft): ContactPoolState {
           setTotal(result.total)
           setSamples(result.samples)
           setError(null)
+          onResult?.({ total: result.total, samples: result.samples })
         })
         .catch((err: unknown) => {
           if (controller.signal.aborted) return
@@ -110,7 +134,7 @@ export function useContactPoolSize(icp: OutreachIcpDraft): ContactPoolState {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [filters, empty])
+  }, [filters, empty, onResult])
 
   return {
     empty,
