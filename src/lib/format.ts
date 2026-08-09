@@ -21,6 +21,91 @@ export function formatDateTime(iso: string | null | undefined): string {
  */
 const POOL_NUMBER = new Intl.NumberFormat("en-GB")
 
+/** A date on its own, no time: "9 Aug 2026". */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "Not set"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+// Each unit, and how many of it make one of the unit after it.
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["minute", 60],
+  ["hour", 24],
+  ["day", 7],
+  ["week", 4.348],
+  ["month", 12],
+  ["year", Infinity],
+]
+
+const RELATIVE = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" })
+
+/**
+ * How long ago, in the largest unit that still says something: "3 minutes ago",
+ * "yesterday", "3 weeks ago".
+ *
+ * For a column nobody reads for precision — "was this today or last month" is
+ * the question, and an exact timestamp answers it more slowly. Pair it with the
+ * real date on hover, which is what `formatDate` is for.
+ */
+export function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return "Not set"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+
+  const seconds = (date.getTime() - Date.now()) / 1000
+  // Below a minute there is no unit worth naming, and "0 minutes ago" is worse
+  // than saying so.
+  if (Math.abs(seconds) < 60) return "just now"
+
+  let value = seconds / 60
+  for (const [unit, perNext] of RELATIVE_UNITS) {
+    if (Math.abs(value) < perNext) return RELATIVE.format(Math.round(value), unit)
+    value /= perNext
+  }
+  return RELATIVE.format(Math.round(value), "year")
+}
+
+/**
+ * How long something has been going, in the largest unit that still says
+ * something: "6 hours", "3 days", "2 weeks".
+ *
+ * A duration rather than a point in time — "running for 3 days" is the question
+ * a campaign's status answers, not "started on the 6th".
+ */
+export function formatDuration(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+
+  const minutes = Math.max(0, (Date.now() - date.getTime()) / 60000)
+  if (minutes < 60) {
+    const value = Math.max(1, Math.round(minutes))
+    return `${value} minute${value === 1 ? "" : "s"}`
+  }
+  const scale: [string, number][] = [
+    ["hour", 24],
+    ["day", 7],
+    ["week", 4.348],
+    ["month", 12],
+  ]
+  let value = minutes / 60
+  for (const [unit, perNext] of scale) {
+    if (value < perNext) {
+      const rounded = Math.round(value)
+      return `${rounded} ${unit}${rounded === 1 ? "" : "s"}`
+    }
+    value /= perNext
+  }
+  const years = Math.round(value)
+  return `${years} year${years === 1 ? "" : "s"}`
+}
+
 export function formatSlug(slug: string): string {
   const words = slug.replace(/[_-]+/g, " ").trim()
   return words ? words[0].toUpperCase() + words.slice(1) : words

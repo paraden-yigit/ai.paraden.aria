@@ -2,6 +2,7 @@ import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
 import type {
   CompanyDomains,
+  OutreachCompany,
   OutreachDraft,
   OutreachEmail,
   OutreachImport,
@@ -59,8 +60,14 @@ export const outreachService = {
     })
   },
 
-  listCompanyDomains(id: number): Promise<CompanyDomains> {
-    return apiClient.get<CompanyDomains>(`/api/outreach-runs/${id}/companies`)
+  /** Start a Flow campaign running, from now. */
+  start(id: number): Promise<OutreachRun> {
+    return apiClient.post<OutreachRun>(`/api/outreach-runs/${id}/start`)
+  },
+
+  /** The campaign's companies, as the Companies tab shows them. */
+  listCompanies(id: number): Promise<OutreachCompany[]> {
+    return apiClient.get<OutreachCompany[]>(`/api/outreach-runs/${id}/companies`)
   },
 
   importProspects(

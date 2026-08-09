@@ -13,11 +13,16 @@
  */
 export type CampaignType = "strategic" | "flow"
 
-/** `draft` → `composing` → `ready` → `launched`, or `failed` if composing broke. */
+/**
+ * `draft` → `composing` → `ready`, then either `running` (a Flow campaign
+ * working its pool) or `launched` (a Strategic one handed to the sending
+ * queue). `failed` if composing broke.
+ */
 export type OutreachRunStatus =
   | "draft"
   | "composing"
   | "ready"
+  | "running"
   | "launched"
   | "failed"
 
@@ -294,6 +299,23 @@ export interface OutreachImportResult {
   prospects_created: number
   prospect_count: number
   reachable_count: number
+}
+
+/** A company on a campaign's list, enrichment included. */
+export interface OutreachCompany {
+  id: number
+  name: string | null
+  domain: string | null
+  industry: string | null
+  headcount: number | null
+  headcount_range: string | null
+  hq_city: string | null
+  hq_country: string | null
+  linkedin_url: string | null
+  description: string | null
+  context: string | null
+  /** When it joined the campaign. */
+  created_at: string
 }
 
 export interface OutreachProspect {

@@ -33,6 +33,7 @@ const STATUS_LABELS: Record<OutreachRunStatus, string> = {
   draft: "Draft",
   composing: "Writing",
   ready: "Ready to launch",
+  running: "Running",
   launched: "Launched",
   failed: "Needs attention",
 }
@@ -52,7 +53,8 @@ function TypeBadge({ type }: { type: CampaignType | null }) {
 }
 
 function StatusBadge({ status }: { status: OutreachRunStatus }) {
-  if (status === "launched") return <Badge>{STATUS_LABELS[status]}</Badge>
+  if (status === "running" || status === "launched")
+    return <Badge>{STATUS_LABELS[status]}</Badge>
   if (status === "failed")
     return <Badge variant="destructive">{STATUS_LABELS[status]}</Badge>
   return <Badge variant="outline">{STATUS_LABELS[status]}</Badge>
