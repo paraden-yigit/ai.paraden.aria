@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import type { OutreachRun } from "@/types/outreach"
+import type { CampaignSetup } from "@/types/outreach"
 import {
   DEFAULT_ADVANCER_GAP,
   DEFAULT_CLOSER_GAP,
@@ -33,15 +33,15 @@ interface Touch {
   title: string
   blurb: string
   /** The wait before the *next* email, or null on the last one. */
-  gap: { value: number; field: keyof OutreachRun; before: string } | null
+  gap: { value: number; field: keyof CampaignSetup; before: string } | null
 }
 
 export function StepSequence({
   run,
   onChange,
 }: {
-  run: OutreachRun
-  onChange: (patch: Partial<OutreachRun>) => void
+  run: CampaignSetup
+  onChange: (patch: Partial<CampaignSetup>) => void
 }) {
   const touches = run.sequence_touches ?? 2
   const advancerGap = run.sequence_advancer_gap ?? DEFAULT_ADVANCER_GAP

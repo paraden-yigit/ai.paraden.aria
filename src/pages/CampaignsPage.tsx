@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, formatPoolSize } from "@/lib/format"
 import { CAMPAIGN_TYPES } from "@/features/outreach/campaignTypes"
 import { outreachService } from "@/services/outreach.service"
 import type {
@@ -25,6 +25,8 @@ import type {
   OutreachRun,
   OutreachRunStatus,
 } from "@/types/outreach"
+
+const NUMBER = new Intl.NumberFormat("en-GB")
 
 /** What each status means, in the reader's terms rather than the model's. */
 const STATUS_LABELS: Record<OutreachRunStatus, string> = {
@@ -66,9 +68,10 @@ export function CampaignsPage() {
   const [toDelete, setToDelete] = useState<OutreachRun | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  /** A launched run is a record; anything else reopens where it stopped. */
+  /** Campaigns are created finished, so a row opens the campaign itself —
+   * there is no half-built wizard to return to. */
   function open(run: OutreachRun) {
-    navigate(`/campaigns/new?resume=${run.id}`)
+    navigate(`/campaigns/${run.id}`)
   }
 
   async function confirmDelete() {
@@ -122,6 +125,7 @@ export function CampaignsPage() {
                 <TableHead>Product</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Reach</TableHead>
                 <TableHead>Prospects</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="w-10" />
@@ -144,8 +148,24 @@ export function CampaignsPage() {
                   <TableCell>
                     <StatusBadge status={run.status} />
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {run.reachable_count} of {run.prospect_count} reachable
+                  <TableCell className="text-muted-foreground tabular-nums">
+                    {run.monthly_reach == null ? (
+                      // Never allocated, which is not the same as none.
+                      "—"
+                    ) : (
+                      <>
+                        {NUMBER.format(run.monthly_reach)}
+                        <span className="ml-1 text-xs">/mo</span>
+                      </>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">
+                    {/* The pool the profile matched, read the same way the
+                      * wizard reads it — there is no reachable/unreachable
+                      * split to make: the pool is the prospects. */}
+                    {run.pool_total == null
+                      ? "—"
+                      : formatPoolSize(run.pool_total)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDateTime(run.created_at)}

@@ -28,10 +28,15 @@ export interface OutreachRun {
   product_name: string | null
   /** How the campaign runs. Null until the second step is answered. */
   campaign_type: CampaignType | null
+  /** Contacts this campaign may spend of the sender's monthly reach. Null means
+   * it was never allocated — which is not the same as none, or as all of it. */
+  monthly_reach: number | null
   /** The targeting profile, as the wizard last saved it. Null until then. */
   icp: RunIcp | null
-  /** The last pool answer for that profile. Null until a search has run. */
-  pool_sample: RunPoolSample | null
+  /** How many people the profile last matched — the run's prospect count. Null
+   * until a search has run. The sample rows behind it are not sent with a run;
+   * only the step that made them holds those. */
+  pool_total: number | null
   status: OutreachRunStatus
   /** The wizard step last reached, so a half-built run resumes where it stopped. */
   step: number
@@ -50,6 +55,22 @@ export interface OutreachRun {
   reachable_count: number
 }
 
+/**
+ * The parts of a campaign the wizard edits before one exists.
+ *
+ * The steps that own these fields read them from here rather than from an
+ * `OutreachRun`: there is no run while the wizard is being filled in, and one
+ * created halfway through would be the draft this flow deliberately does not
+ * keep.
+ */
+export interface CampaignSetup {
+  campaign_type: CampaignType | null
+  sequence_touches: number | null
+  sequence_advancer_gap: number | null
+  sequence_closer_gap: number | null
+  cta_type: CtaOption | null
+}
+
 export interface CtaOption {
   type?: string
   friction?: string
@@ -57,15 +78,71 @@ export interface CtaOption {
   example_closing_line?: string
 }
 
+/**
+ * A whole campaign, in one request.
+ *
+ * The wizard keeps no drafts — nothing is written while it is being filled in —
+ * so everything it collected is sent together and the campaign is born
+ * finished.
+ */
 export interface OutreachRunCreate {
   name: string
   product_id: number
+  monthly_reach?: number | null
+  campaign_type?: CampaignType | null
+  icp?: RunIcp | null
+  pool_sample?: RunPoolSample | null
+  company_domains?: string[]
+  sequence_touches?: number | null
+  sequence_advancer_gap?: number | null
+  sequence_closer_gap?: number | null
+  cta_type?: CtaOption | null
+  /** Where the chosen copy is read back from — the browser sends the angle, not
+   * the words. */
+  preview_token?: string | null
+  selections?: { step_index: number; approach: string | null }[]
+}
+
+/** The Approach step's emails, written before any campaign exists. */
+export interface OutreachPreview {
+  token: string
+  status: "generating" | "ready" | "failed"
+  error: string | null
+  prospect: DraftProspect | null
+  steps: DraftStep[]
+}
+
+/** Everything the preview generator needs, since there is no campaign to read
+ * it from. */
+export interface PreviewStart {
+  product_id: number
+  sequence_touches: number
+  sequence_advancer_gap?: number | null
+  sequence_closer_gap?: number | null
+  cta_type?: CtaOption | null
+  icp?: RunIcp | null
+  samples: ContactPoolSample[]
+  prospect_index?: number
+}
+
+/** What one seat may reach in a month, from the client's current plan plus its
+ * add-ons. `unlimited` carries the catalog's 0-means-unlimited convention, so a
+ * client with no plan at all (also 0) is not mistaken for an unlimited one. */
+export interface ReachAllowance {
+  monthly_reach: number
+  /** What this sender's other campaigns already claim. */
+  allocated: number
+  /** What is left for this one — never negative. */
+  available: number
+  unlimited: boolean
+  plan_name: string | null
 }
 
 export interface OutreachRunUpdate {
   name?: string
   product_id?: number
   campaign_type?: CampaignType
+  monthly_reach?: number | null
   icp?: RunIcp
   pool_sample?: RunPoolSample
   step?: number

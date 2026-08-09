@@ -6,8 +6,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EmailBody } from "@/components/EmailBody"
-import { outreachService } from "@/services/outreach.service"
-import type { DraftProspect, DraftStep, OutreachDraft } from "@/types/outreach"
+import { outreachPreviewService } from "@/services/outreachPreview.service"
+import type {
+  DraftProspect,
+  DraftStep,
+  OutreachPreview,
+  PreviewStart,
+} from "@/types/outreach"
 import { StepFrame } from "./StepFrame"
 
 const POLL_MS = 3000
@@ -49,16 +54,23 @@ const STEP_LABELS: Record<string, string> = {
  * polls for it.
  */
 export function StepApproach({
-  runId,
+  brief,
   chosen,
   onChoose,
+  onToken,
 }: {
-  runId: number
+  /** Everything the generator needs. There is no campaign to read it from: this
+   * step runs before anything has been written. */
+  brief: PreviewStart
   /** `{step_index: approach name}` — what has been picked so far. */
   chosen: Record<number, string>
   onChoose: (step: DraftStep, approachName: string) => void
+  /** The preview the copy came from, so creating the campaign can read the
+   * bodies back from it rather than posting them up from the browser. */
+  onToken: (token: string) => void
 }) {
-  const [draft, setDraft] = useState<OutreachDraft | null>(null)
+  const [draft, setDraft] = useState<OutreachPreview | null>(null)
+  const [token, setToken] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const timer = useRef<number | null>(null)
 
@@ -73,7 +85,7 @@ export function StepApproach({
    * confirm — so a freshly written draft arrives already chosen, and the step
    * can be left without touching anything. */
   const seedChoices = useCallback(
-    (next: OutreachDraft | null) => {
+    (next: OutreachPreview | null) => {
       if (next?.status !== "ready") return
       for (const step of next.steps) {
         const first = step.approaches[0]
@@ -86,20 +98,24 @@ export function StepApproach({
   )
 
   const load = useCallback(async () => {
+    if (!token) return null
     try {
-      const next = await outreachService.getDraft(runId)
+      const next = await outreachPreviewService.get(token)
       setDraft(next)
       seedChoices(next)
       return next
     } catch {
       return null
     }
-  }, [runId, seedChoices])
+  }, [token, seedChoices])
 
   // Poll only while there is something to wait for, and always clear on the way
   // out: a wizard step that keeps polling after it unmounts is a request every
   // three seconds for as long as the tab is open.
+  // Only a token has anything to poll for; before the first press there is
+  // nothing written anywhere to ask about.
   useEffect(() => {
+    if (!token) return
     let active = true
     const tick = async () => {
       const next = await load()
@@ -113,18 +129,32 @@ export function StepApproach({
       active = false
       if (timer.current) window.clearTimeout(timer.current)
     }
-  }, [load])
+  }, [load, token])
 
-  /** Start writing. `prospectIndex` is what "try another prospect" asks for. */
+  /** Start writing. `prospectIndex` is what "rewrite" asks for — the next
+   * person along. */
   async function start(prospectIndex?: number) {
     setStarting(true)
     try {
-      await outreachService.startDraft(runId, prospectIndex)
-      setDraft({ status: "generating", error: null, prospect: null, steps: [] })
+      const started = await outreachPreviewService.start({
+        ...brief,
+        prospect_index: prospectIndex ?? 0,
+      })
+      setToken(started.token)
+      onToken(started.token)
+      setDraft({ ...started, status: "generating", prospect: null, steps: [] })
+      // Poll this token rather than whatever `load` closes over: the state
+      // above has not landed yet.
       const tick = async () => {
-        const next = await load()
-        if (next?.status === "generating") {
-          timer.current = window.setTimeout(tick, POLL_MS)
+        try {
+          const next = await outreachPreviewService.get(started.token)
+          setDraft(next)
+          seedChoices(next)
+          if (next.status === "generating") {
+            timer.current = window.setTimeout(tick, POLL_MS)
+          }
+        } catch {
+          /* a failed poll is retried by the next tick */
         }
       }
       timer.current = window.setTimeout(tick, POLL_MS)

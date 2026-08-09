@@ -42,9 +42,27 @@
   --sidebar-ring: oklch(0.56 0.09 175);
 }
 
+/* Chart series colours, in a fixed order — slot 1 is always the first series a
+ * chart draws, never reassigned when a series is filtered out. Validated
+ * against both surfaces (CVD ΔE 9.1 light / 8.4 dark, normal-vision 22.9 /
+ * 19.8); the dark row is the same four hues stepped for the dark surface rather
+ * than an automatic flip. The light aqua and yellow sit under 3:1 on their
+ * surface, so every chart using them carries visible labels — a legend and the
+ * figures beneath it — rather than relying on the colour alone. */
+:root {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+}
+
 /* Dark twin (no toggle in the app yet; kept brand-true for when one lands):
  * backgrounds follow the marketing site's deep greens, mint leads actions. */
 .dark {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
   --background: oklch(0.19 0.015 178);
   --foreground: oklch(0.955 0.01 170);
   --card: oklch(0.23 0.018 178);

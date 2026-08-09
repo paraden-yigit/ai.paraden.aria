@@ -20,6 +20,7 @@ import { ProfileSettingsPage } from "@/pages/ProfileSettingsPage"
 import { EmailSettingsPage } from "@/pages/EmailSettingsPage"
 import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
+import { CampaignDashboardPage } from "@/pages/CampaignDashboardPage"
 import { NewOutreachPage } from "@/pages/NewOutreachPage"
 import { InboxPage } from "@/pages/InboxPage"
 import { OnboardingPage } from "@/pages/OnboardingPage"
@@ -101,6 +102,10 @@ function App() {
                   <Route path="/exclusions" element={<ExclusionListPage />} />
                 </Route>
                 <Route path="/campaigns" element={<CampaignsPage />} />
+                {/* Below /campaigns/new, which is a static segment and so wins
+                    the match — the wizard is its own full-page route outside
+                    this shell. */}
+                <Route path="/campaigns/:id" element={<CampaignDashboardPage />} />
                 {/* Ungated, like /products: everyone with a mailbox has an
                     inbox, and there is no inbox permission in the API catalog to
                     gate it on. */}

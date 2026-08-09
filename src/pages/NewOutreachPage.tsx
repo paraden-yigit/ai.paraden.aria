@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useCallback, useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { ArrowLeft, ArrowRight, Loader2, Rocket, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { WizardStepper, type WizardStep } from "@/components/WizardStepper"
 import { StepFrame } from "@/features/outreach/wizard/StepFrame"
 import { StepApproach } from "@/features/outreach/wizard/StepApproach"
@@ -21,6 +22,7 @@ import { StepCta } from "@/features/outreach/wizard/StepCta"
 import { StepCompanies } from "@/features/outreach/wizard/StepCompanies"
 import { StepContacts } from "@/features/outreach/wizard/StepContacts"
 import { StepDomains } from "@/features/outreach/wizard/StepDomains"
+import { ReachSlider } from "@/features/outreach/wizard/ReachSlider"
 import {
   HEADCOUNT_MAX,
   HEADCOUNT_MIN,
@@ -33,12 +35,14 @@ import {
 } from "@/features/outreach/wizard/sequenceGaps"
 import { StepType } from "@/features/outreach/wizard/StepType"
 import type { CampaignType } from "@/features/outreach/campaignTypes"
+import { useAsync } from "@/hooks/useAsync"
 import { useProductOptions } from "@/hooks/useProductOptions"
 import { outreachService } from "@/services/outreach.service"
+import { reachService } from "@/services/reach.service"
 import type {
+  CampaignSetup,
   DraftStep,
   OutreachIcpDraft,
-  OutreachRun,
   RunPoolSample,
 } from "@/types/outreach"
 
@@ -65,7 +69,7 @@ function steps(campaignType: CampaignType | null): (WizardStep & {
       key: campaignType === "flow" ? "companies" : "domains",
       title: "Companies",
     },
-    { key: "contacts", title: "Contacts" },
+    { key: "contacts", title: "Prospects" },
   ]
   return [
     { key: "details", title: "Details" },
@@ -80,6 +84,18 @@ function steps(campaignType: CampaignType | null): (WizardStep & {
 /** Steps whose content is a table or several drafts side by side, and so get the
  * full width rather than the reading-width column the rest sit in. */
 const WIDE_STEPS = new Set<StepKey>(["approach"])
+
+const NUMBER = new Intl.NumberFormat("en-GB")
+
+/** Nothing is chosen until the second step answers it, and nothing at all is
+ * written until the last one. */
+const EMPTY_SETUP: CampaignSetup = {
+  campaign_type: null,
+  sequence_touches: null,
+  sequence_advancer_gap: null,
+  sequence_closer_gap: null,
+  cta_type: null,
+}
 
 /** A run's profile starts empty: what a campaign is aiming at is a decision to
  * make here, not one to inherit from the product and leave unread. */
@@ -108,17 +124,29 @@ const EMPTY_ICP: OutreachIcpDraft = {
  */
 export function NewOutreachPage() {
   const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const resumeId = Number(params.get("resume")) || null
 
-  const [run, setRun] = useState<OutreachRun | null>(null)
+  // Everything lives here until "Create campaign" is pressed. The wizard keeps
+  // no drafts, so there is nothing on the server to hold any of it.
+  const [setup, setSetup] = useState<CampaignSetup>(EMPTY_SETUP)
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  // Set once the campaign exists, so the guard below stops warning about work
+  // that is no longer at risk.
+  const [leaving, setLeaving] = useState(false)
+  const [confirmClose, setConfirmClose] = useState(false)
 
   // Details, before the run exists.
   const [name, setName] = useState("")
   const [productId, setProductId] = useState<string>("")
+  const [reach, setReach] = useState<number | null>(null)
   const products = useProductOptions()
+
+  // What the allocation is measured against: this seat's monthly reach, from
+  // the client's current plan and its add-ons.
+  // Excluding this run, so editing a campaign does not count its own claim
+  // against itself.
+  const fetchAllowance = useCallback(() => reachService.allowance(), [])
+  const { data: allowance } = useAsync(fetchAllowance, [fetchAllowance])
 
   // The profile a Flow run builds its pool from. Local, because the API has
   // nowhere to keep it yet — unlike the campaign type, which lives on the run.
@@ -131,157 +159,90 @@ export function NewOutreachPage() {
   // The approach chosen per step, kept locally so the choice shows immediately
   // and is written on the way out of the step.
   const [chosen, setChosen] = useState<Record<number, string>>({})
-  const chosenBodies = useRef<Record<number, DraftStep["approaches"][number]>>(
-    {},
-  )
+  // Which preview the chosen angles came from. The campaign is created with
+  // this rather than with the copy itself — the browser picks the angle, the
+  // server keeps the words.
+  const [previewToken, setPreviewToken] = useState<string | null>(null)
 
+  // Anything typed is only in this tab. A refresh, a closed tab or a Back
+  // gesture takes all of it, so the browser is asked to check first — the one
+  // warning it will show without being called from a click.
+  const started = Boolean(name.trim() || productId)
   useEffect(() => {
-    if (!resumeId) return
-    let active = true
-    void (async () => {
-      try {
-        const existing = await outreachService.get(resumeId)
-        if (!active) return
-        setRun(existing)
-        setName(existing.name)
-        setProductId(existing.product_id ? String(existing.product_id) : "")
-        setStep(
-          Math.min(
-            Math.max(existing.step - 1, 0),
-            steps(existing.campaign_type).length - 1,
-          ),
-        )
-        const saved = existing.icp
-        if (saved) {
-          setIcp((current) => ({
-            ...current,
-            ...saved,
-            // Null means "no floor" / "no ceiling"; the slider works in numbers.
-            headcount_min: saved.headcount_min ?? HEADCOUNT_MIN,
-            headcount_max: saved.headcount_max ?? HEADCOUNT_MAX,
-          }))
-        }
-        if (existing.campaign_type === "strategic") {
-          const companies = await outreachService.listCompanyDomains(resumeId)
-          if (!active) return
-          setIcp((current) => ({
-            ...current,
-            company_domains: companies.domains,
-          }))
-        }
-        const selections = await outreachService.getSelections(resumeId)
-        if (!active) return
-        setChosen(
-          Object.fromEntries(
-            selections
-              .filter((s) => s.approach)
-              .map((s) => [s.step_index, s.approach as string]),
-          ),
-        )
-      } catch {
-        toast.error("That run could not be opened.")
-        navigate("/campaigns")
-      }
-    })()
-    return () => {
-      active = false
-    }
-  }, [resumeId, navigate])
+    if (!started || leaving) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener("beforeunload", warn)
+    return () => window.removeEventListener("beforeunload", warn)
+  }, [started, leaving])
 
-  const patch = useCallback((changes: Partial<OutreachRun>) => {
-    setRun((current) => (current ? { ...current, ...changes } : current))
+  const patch = useCallback((changes: Partial<CampaignSetup>) => {
+    setSetup((current) => ({ ...current, ...changes }))
   }, [])
 
   // A Flow run finds its own people over two profile steps; a Strategic run is
   // handed a spreadsheet in one. Everything below asks the current step what it
   // *is* rather than where it sits, because the two flows are different lengths.
-  const campaignType = run?.campaign_type ?? null
+  const campaignType = setup.campaign_type
   const wizardSteps = steps(campaignType)
   const stepKey = wizardSteps[step]?.key ?? "details"
   const isLastStep = step === wizardSteps.length - 1
 
-  /** Persist the current step, creating the run on the first one. */
-  async function save(): Promise<OutreachRun | null> {
+  // Null means "not allocated", which the API stores as null — a different
+  // thing from allocating none.
+  const reachValue = reach
+  // What this campaign can still take. An unlimited plan has no ceiling to draw
+  // a slider against, so it gets a generous one; a workspace with no plan gets
+  // a nominal one rather than a slider with nowhere to go.
+  const reachCeiling = allowance
+    ? allowance.unlimited
+      ? Math.max(100_000, (reachValue ?? 0) * 2)
+      : Math.max(allowance.available, reachValue ?? 0, 1)
+    : 1
+  // What would be left after this campaign takes its share. `available` already
+  // excludes this run's stored claim, so the subtraction is of the figure on
+  // screen rather than of anything already counted.
+  const remainingReach = Math.max(
+    0,
+    (allowance?.available ?? 0) - (reachValue ?? 0),
+  )
+
+  /** Write the whole campaign, once, at the end.
+   *
+   * Everything the wizard collected goes in one request and comes back
+   * finished — there is no half-saved state to reconcile, because there was
+   * never any half-saved state.
+   */
+  async function create() {
     setSaving(true)
     try {
-      if (!run) {
-        if (!name.trim() || !productId) {
-          toast.error("Give the run a name and choose a product.")
-          return null
-        }
-        const created = await outreachService.create({
-          name: name.trim(),
-          product_id: Number(productId),
-        })
-        setRun(created)
-        return created
-      }
-      // The Companies step of a Strategic run owns rows of its own: the domains
-      // become the run's companies, which is what everything downstream reads.
-      // Sent whole — a domain removed in the browser is removed here.
-      if (stepKey === "domains") {
-        const saved = await outreachService.saveCompanyDomains(
-          run.id,
-          icp.company_domains,
-        )
-        if (saved.excluded > 0) {
-          toast.warning(
-            `${saved.excluded} ${
-              saved.excluded === 1 ? "domain is" : "domains are"
-            } on your exclusion list and were not saved.`,
-          )
-        }
-        // Take back what was actually stored, so the list on screen and the
-        // list on the run cannot drift.
-        setIcp((current) => ({ ...current, company_domains: saved.domains }))
-      }
-      // The approach step writes selections rather than run fields.
-      if (stepKey === "approach") {
-        const selections = Object.entries(chosenBodies.current).map(
-          ([stepIndex, approach]) => ({
-            step_index: Number(stepIndex),
-            approach: approach.name,
-            subject: approach.subject || null,
-            body: approach.body,
-          }),
-        )
-        if (selections.length) {
-          await outreachService.saveSelections(run.id, selections)
-        }
-      }
-      const updated = await outreachService.update(run.id, {
-        name: name.trim() || run.name,
-        step: Math.min(step + 2, wizardSteps.length),
-        sequence_touches: run.sequence_touches ?? undefined,
-        // Leaving the sequence step stores the gaps the timeline was showing,
-        // touched or not — it states "wait 4 working days" from the moment it
-        // renders, and a run that saved null there would quietly mean something
-        // else.
-        ...(stepKey === "sequence"
-          ? {
-              sequence_advancer_gap:
-                run.sequence_advancer_gap ?? DEFAULT_ADVANCER_GAP,
-              sequence_closer_gap: run.sequence_closer_gap ?? DEFAULT_CLOSER_GAP,
-            }
-          : {
-              sequence_advancer_gap: run.sequence_advancer_gap ?? undefined,
-              sequence_closer_gap: run.sequence_closer_gap ?? undefined,
-            }),
-        campaign_type: run.campaign_type ?? undefined,
-        // The Contacts step is where the profile is finished, so that is where
-        // it is stored. Both halves go together: they are one profile and one
-        // search, and the company half of a Flow run has no other home.
-        // The snapshot goes with the profile it answers. Omitted when no search
-        // has completed, which leaves whatever was stored before rather than
-        // wiping it — a resumed run that walks past this step should not lose
-        // the number it was set up against.
-        ...(stepKey === "contacts"
-          ? { icp: toRunIcp(icp), ...(pool ? { pool_sample: pool } : {}) }
-          : {}),
-        cta_type: run.cta_type,
+      const created = await outreachService.create({
+        name: name.trim(),
+        product_id: Number(productId),
+        monthly_reach: reachValue,
+        campaign_type: setup.campaign_type,
+        icp: toRunIcp(icp),
+        pool_sample: pool,
+        company_domains: icp.company_domains,
+        sequence_touches: setup.sequence_touches,
+        // The timeline states "wait 4 working days" from the moment it renders,
+        // so those are the gaps the campaign is created with, touched or not.
+        sequence_advancer_gap:
+          setup.sequence_advancer_gap ?? DEFAULT_ADVANCER_GAP,
+        sequence_closer_gap: setup.sequence_closer_gap ?? DEFAULT_CLOSER_GAP,
+        cta_type: setup.cta_type,
+        // The angle per step; the copy is read back from the preview it was
+        // picked from rather than posted up from here.
+        preview_token: previewToken,
+        selections: Object.entries(chosen).map(([stepIndex, approach]) => ({
+          step_index: Number(stepIndex),
+          approach,
+        })),
       })
-      setRun(updated)
-      return updated
+      toast.success("Campaign created.")
+      // Past the guard: there is nothing left to lose.
+      setLeaving(true)
+      navigate("/campaigns")
+      return created
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save.")
       return null
@@ -290,28 +251,11 @@ export function NewOutreachPage() {
     }
   }
 
-  async function next() {
-    const saved = await save()
-    if (!saved) return
+  function next() {
     setStep((s) => Math.min(s + 1, wizardSteps.length - 1))
   }
 
-  /** The last step. Saves like any other and then leaves the wizard — the run
-   * is a campaign from here, and the rest of its life happens outside setup. */
-  async function finish() {
-    const saved = await save()
-    if (!saved) return
-    toast.success("Campaign created.")
-    navigate("/campaigns")
-  }
-
-  function handleChoose(
-    draftStep: DraftStep,
-    approachName: string,
-  ) {
-    const approach = draftStep.approaches.find((a) => a.name === approachName)
-    if (!approach) return
-    chosenBodies.current[draftStep.step_index] = approach
+  function handleChoose(draftStep: DraftStep, approachName: string) {
     setChosen((current) => ({
       ...current,
       [draftStep.step_index]: approachName,
@@ -340,10 +284,10 @@ export function NewOutreachPage() {
           icp.locations.length,
       )
     }
-    if (stepKey === "sequence") return Boolean(run?.sequence_touches)
-    if (stepKey === "cta") return Boolean(run?.cta_type?.type)
+    if (stepKey === "sequence") return Boolean(setup.sequence_touches)
+    if (stepKey === "cta") return Boolean(setup.cta_type?.type)
     if (stepKey === "approach") {
-      const needed = run?.sequence_touches ?? 0
+      const needed = setup.sequence_touches ?? 0
       return Object.keys(chosen).length >= needed && needed > 0
     }
     return true
@@ -357,9 +301,9 @@ export function NewOutreachPage() {
             <h1 className="text-lg font-semibold tracking-tight">
               New outreach
             </h1>
-            {(run?.name || name) && (
+            {name && (
               <span className="truncate text-sm text-muted-foreground">
-                {run?.name || name}
+                {name}
               </span>
             )}
           </div>
@@ -367,7 +311,7 @@ export function NewOutreachPage() {
             variant="ghost"
             size="icon-sm"
             aria-label="Close and return to campaigns"
-            onClick={() => navigate("/campaigns")}
+            onClick={() => (started ? setConfirmClose(true) : navigate("/campaigns"))}
           >
             <X className="size-4" />
           </Button>
@@ -410,7 +354,6 @@ export function NewOutreachPage() {
                   <Select
                     value={productId}
                     onValueChange={setProductId}
-                    disabled={Boolean(run)}
                   >
                     <SelectTrigger id="run-product">
                       <SelectValue placeholder="Choose a product" />
@@ -423,18 +366,68 @@ export function NewOutreachPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {run && (
-                    <p className="text-xs text-muted-foreground">
-                      The product is fixed once a run starts — its targeting was
-                      copied onto this run when it was created.
+                  <p className="text-xs text-muted-foreground">
+                    Its value proposition, differentiator and pain points are
+                    most of what the emails are written from.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <Label htmlFor="run-reach">Reach</Label>
+                    {/* The two figures the allocation is judged against: what
+                      * the seat gets in a month, and what is left once this
+                      * campaign has taken its share. Available counts down as
+                      * the slider moves, so the cost of the choice is visible
+                      * while it is being made. Both numbers are fixed-width and
+                      * right-aligned: they change on every notch, and a label
+                      * that jumps sideways is harder to read than one that
+                      * does not. */}
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      Total{" "}
+                      <span className="inline-block min-w-14 text-right font-medium text-foreground">
+                        {allowance == null
+                          ? "—"
+                          : allowance.unlimited
+                            ? "unlimited"
+                            : NUMBER.format(allowance.monthly_reach)}
+                      </span>{" "}
+                      · Available{" "}
+                      <span className="inline-block min-w-14 text-right font-medium text-foreground">
+                        {allowance == null
+                          ? "—"
+                          : allowance.unlimited
+                            ? "unlimited"
+                            : NUMBER.format(remainingReach)}
+                      </span>
                     </p>
-                  )}
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="min-w-20 text-2xl font-semibold tabular-nums">
+                      {NUMBER.format(reachValue ?? 0)}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      contacts a month
+                    </span>
+                  </div>
+                  <ReachSlider
+                    id="run-reach"
+                    value={reachValue}
+                    onChange={setReach}
+                    max={reachCeiling}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {allowance != null &&
+                    !allowance.unlimited &&
+                    allowance.monthly_reach === 0
+                      ? "No plan is active on this workspace, so there is no reach to allocate yet."
+                      : "How many contacts of your monthly reach this campaign may spend."}
+                  </p>
                 </div>
               </div>
             </StepFrame>
           )}
 
-          {stepKey === "type" && run && (
+          {stepKey === "type" && (
             <StepType
               value={campaignType}
               onChange={(type) => patch({ campaign_type: type })}
@@ -449,15 +442,26 @@ export function NewOutreachPage() {
           {stepKey === "contacts" && (
             <StepContacts value={icp} onChange={setIcp} onPool={setPool} />
           )}
-          {stepKey === "sequence" && run && (
-            <StepSequence run={run} onChange={patch} />
+          {stepKey === "sequence" && (
+            <StepSequence run={setup} onChange={patch} />
           )}
-          {stepKey === "cta" && run && <StepCta run={run} onChange={patch} />}
-          {stepKey === "approach" && run && (
+          {stepKey === "cta" && <StepCta run={setup} onChange={patch} />}
+          {stepKey === "approach" && (
             <StepApproach
-              runId={run.id}
+              brief={{
+                product_id: Number(productId),
+                sequence_touches: setup.sequence_touches ?? 2,
+                sequence_advancer_gap:
+                  setup.sequence_advancer_gap ?? DEFAULT_ADVANCER_GAP,
+                sequence_closer_gap:
+                  setup.sequence_closer_gap ?? DEFAULT_CLOSER_GAP,
+                cta_type: setup.cta_type,
+                icp: toRunIcp(icp),
+                samples: pool?.samples ?? [],
+              }}
               chosen={chosen}
               onChoose={handleChoose}
+              onToken={setPreviewToken}
             />
           )}
 
@@ -475,7 +479,7 @@ export function NewOutreachPage() {
               </Button>
             )}
             <Button
-              onClick={() => void (isLastStep ? finish() : next())}
+              onClick={() => (isLastStep ? void create() : next())}
               disabled={!canAdvance || saving}
             >
               {saving ? (
@@ -494,6 +498,19 @@ export function NewOutreachPage() {
           </div>
         </div>
       </main>
+
+      <ConfirmDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        title="Leave without creating this campaign?"
+        description="Nothing here has been saved — a campaign is only created on the last step. Leaving now loses everything you have filled in, and it would have to be started again."
+        confirmLabel="Leave and lose it"
+        destructive
+        onConfirm={() => {
+          setLeaving(true)
+          navigate("/campaigns")
+        }}
+      />
     </div>
   )
 }

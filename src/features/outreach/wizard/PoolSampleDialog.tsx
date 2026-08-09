@@ -15,6 +15,15 @@ import {
 } from "@/components/ui/table"
 import type { ContactPoolSample } from "@/types/outreach"
 
+/** The person's name as the sample carries it. */
+function who(sample: ContactPoolSample): string {
+  return (
+    (sample.full_name ??
+      [sample.first_name, sample.last_name].filter(Boolean).join(" ")).trim() ||
+    "—"
+  )
+}
+
 /** Company size as the provider knows it: an exact headcount when it has one,
  * otherwise the band it puts them in. */
 function size(sample: ContactPoolSample): string {
@@ -33,11 +42,10 @@ interface PoolSampleDialogProps {
 /**
  * A page of the people the profile currently matches.
  *
- * The role and the company rather than the name: the point is to check the aim
+ * Who they are, where they work and what they do — enough to check the aim
  * ("these are agency marketing managers, not enterprise CMOs") before anyone
- * commits to writing to them, and a name adds nothing to that judgement. The
- * rows do carry one — the Approach step's preview writes against a real person
- * — but nothing here can contact them.
+ * commits to writing to them. Nothing here can contact them: no address, no
+ * profile URL.
  */
 export function PoolSampleDialog({
   open,
@@ -52,8 +60,8 @@ export function PoolSampleDialog({
           <DialogDescription>
             {samples.length} people from the first page of this profile's
             matches, as the provider describes them — anyone whose company it
-            could not name is left out. Nothing here can contact them: this is a
-            sample of who is out there, not a list to write to.
+            could not name is left out. Nothing here can contact them: this is
+            a sample of who is out there, not a list to write to.
           </DialogDescription>
         </DialogHeader>
 
@@ -64,6 +72,7 @@ export function PoolSampleDialog({
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow>
+                <TableHead>Name</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Domain</TableHead>
                 <TableHead>Sector</TableHead>
@@ -77,6 +86,9 @@ export function PoolSampleDialog({
             <TableBody>
               {samples.map((sample, index) => (
                 <TableRow key={index}>
+                  <TableCell className="font-medium whitespace-nowrap">
+                    {who(sample)}
+                  </TableCell>
                   <TableCell className="font-medium">
                     {sample.company_name ?? "—"}
                   </TableCell>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { TagInput } from "@/components/form/TagInput"
 import { JOB_FUNCTIONS } from "@/features/companies/job-functions"
 import { SENIORITY } from "@/features/companies/seniority"
+import { formatPoolSize } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { placeService } from "@/services/place.service"
 import type { OutreachIcpDraft, RunPoolSample } from "@/types/outreach"
@@ -17,28 +18,6 @@ import { useContactPoolSize } from "./useContactPoolSize"
  * lookup and its response cache on it. */
 const findPlaces = (query: string, signal: AbortSignal) =>
   placeService.suggest(query, signal)
-
-/**
- * The pool size, rounded to how precisely it is worth reading.
- *
- * A provider total is an estimate that moves between one search and the next, so
- * showing all six digits claims a precision nobody has — one decimal is as far
- * as it is worth reading (3,800 → "3.8K", 885,421 → "885.4K", 1,437,000 →
- * "1.4M"). It is rounded *down* throughout, so a pool never reads bigger than it
- * is. Under a hundred is exact, because at that size every single person matters
- * and the difference between 11 and 90 is the whole decision.
- */
-function formatPoolSize(total: number): string {
-  // Divide as integers and only then place the point: `Math.floor(2900 / 1000 *
-  // 10)` is 28 in floating point, which would print 2,900 as "2.8K".
-  const tenths = (value: number) =>
-    Number.isInteger(value / 10) ? String(value / 10) : (value / 10).toFixed(1)
-
-  if (total >= 1_000_000) return `${tenths(Math.floor(total / 100_000))}M`
-  if (total >= 1_000) return `${tenths(Math.floor(total / 100))}K`
-  if (total >= 100) return "Less than 1K"
-  return String(total)
-}
 
 interface StepContactsProps {
   value: OutreachIcpDraft

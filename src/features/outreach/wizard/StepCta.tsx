@@ -13,7 +13,7 @@ import { formatSlug } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ctaTypeService } from "@/services/ctaType.service"
 import type { CtaFriction, CtaTypeOption } from "@/types/ctaType"
-import type { CtaOption, OutreachRun } from "@/types/outreach"
+import type { CampaignSetup, CtaOption } from "@/types/outreach"
 import { StepFrame } from "./StepFrame"
 
 /** Lowest ask first: the list reads as a ramp from "worth a look?" to "book a
@@ -62,7 +62,7 @@ export function StepCta({
   run,
   onChange,
 }: {
-  run: OutreachRun
+  run: CampaignSetup
   onChange: (patch: { cta_type: CtaOption }) => void
 }) {
   const fetchTypes = useCallback(() => ctaTypeService.list(), [])
