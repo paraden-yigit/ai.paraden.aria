@@ -2,6 +2,7 @@ import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
 import type {
   CompanyDomains,
+  CompanyListParams,
   OutreachCompany,
   OutreachDraft,
   OutreachEmail,
@@ -11,7 +12,9 @@ import type {
   OutreachProspect,
   OutreachRun,
   OutreachRunCreate,
+  OutreachRunSettings,
   OutreachRunUpdate,
+  ProspectListParams,
   Selection,
 } from "@/types/outreach"
 import { apiClient } from "./http"
@@ -60,14 +63,45 @@ export const outreachService = {
     })
   },
 
+  /** Change the two settings a campaign owner may change while it is going. */
+  updateSettings(id: number, payload: OutreachRunSettings): Promise<OutreachRun> {
+    return apiClient.patch<OutreachRun>(
+      `/api/outreach-runs/${id}/settings`,
+      payload,
+    )
+  },
+
   /** Start a Flow campaign running, from now. */
   start(id: number): Promise<OutreachRun> {
     return apiClient.post<OutreachRun>(`/api/outreach-runs/${id}/start`)
   },
 
-  /** The campaign's companies, as the Companies tab shows them. */
-  listCompanies(id: number): Promise<OutreachCompany[]> {
-    return apiClient.get<OutreachCompany[]>(`/api/outreach-runs/${id}/companies`)
+  /** One page of the campaign's companies — the search and the order are the API's. */
+  async listCompanies(
+    id: number,
+    params: CompanyListParams = {},
+  ): Promise<ListResult<OutreachCompany>> {
+    const data = await apiClient.get<unknown>(
+      `/api/outreach-runs/${id}/companies${buildQuery({
+        skip: params.skip,
+        limit: params.limit,
+        q: params.q,
+      })}`,
+    )
+    return normalizeList<OutreachCompany>(data)
+  },
+
+  /**
+   * Every uploaded domain on the campaign.
+   *
+   * What anyone sending the whole list back has to read first: `listCompanies`
+   * is one page of two kinds of company, and writing that back would both drop
+   * the pages it never saw and turn discovered employers into uploaded ones.
+   */
+  getCompanyDomains(id: number): Promise<CompanyDomains> {
+    return apiClient.get<CompanyDomains>(
+      `/api/outreach-runs/${id}/company-domains`,
+    )
   },
 
   importProspects(
@@ -80,14 +114,20 @@ export const outreachService = {
     )
   },
 
+  /** One page of the campaign's people — the search and the order are the API's. */
   async listProspects(
     id: number,
-    params: PaginationParams = {},
+    params: ProspectListParams = {},
   ): Promise<ListResult<OutreachProspect>> {
     const data = await apiClient.get<unknown>(
       `/api/outreach-runs/${id}/prospects${buildQuery({
         skip: params.skip,
         limit: params.limit,
+        q: params.q,
+        added_from: params.added_from,
+        added_to: params.added_to,
+        sort: params.sort,
+        direction: params.direction,
       })}`,
     )
     return normalizeList<OutreachProspect>(data)

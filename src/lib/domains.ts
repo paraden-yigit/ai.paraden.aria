@@ -78,6 +78,33 @@ export function extractDomains(
   return { domains, skipped, duplicates }
 }
 
+/** The most companies one campaign may be aimed at. Mirrored by the API. */
+export const MAX_COMPANIES = 500
+
+/**
+ * Why a batch of domains cannot be added, or null when it can.
+ *
+ * All or nothing: a list that is too long is refused whole rather than trimmed
+ * to fit. Quietly keeping the first 500 of somebody's 800 would mean a campaign
+ * aimed at a list nobody chose, and the 300 that were dropped would never be
+ * mentioned again.
+ *
+ * Counted in companies rather than in rows — a file padded with headers and
+ * blank lines is as long as the domains that come out of it, not as long as it
+ * looks.
+ */
+export function companyLimitError(
+  existing: number,
+  incoming: number,
+): string | null {
+  const total = existing + incoming
+  if (total <= MAX_COMPANIES) return null
+  if (existing === 0) {
+    return `That is ${total} companies, and a campaign can hold ${MAX_COMPANIES}. Nothing was added — split the list or shorten it.`
+  }
+  return `That would make ${total} companies, and a campaign can hold ${MAX_COMPANIES}. ${existing} ${existing === 1 ? "is" : "are"} already on the list, so nothing was added.`
+}
+
 /** Split pasted text into candidate values: one per line, or comma-separated. */
 export function splitPasted(text: string): string[] {
   return text

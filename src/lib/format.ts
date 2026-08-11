@@ -33,6 +33,24 @@ export function formatDate(iso: string | null | undefined): string {
   })
 }
 
+/**
+ * A `YYYY-MM-DD` day as a person would read it.
+ *
+ * Not `formatDate`: `new Date("2026-08-01")` is midnight **UTC**, which anywhere
+ * west of Greenwich renders as the 31st. A day chosen in a date picker is a day,
+ * not an instant, so it is rebuilt as local midnight before it is formatted.
+ */
+export function formatDay(iso: string | null | undefined): string {
+  if (!iso) return "Not set"
+  const [year, month, day] = iso.split("-").map(Number)
+  if (!year || !month || !day) return iso
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
 // Each unit, and how many of it make one of the unit after it.
 const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60],

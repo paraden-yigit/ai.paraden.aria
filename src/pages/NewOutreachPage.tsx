@@ -22,7 +22,6 @@ import { StepCta } from "@/features/outreach/wizard/StepCta"
 import { StepCompanies } from "@/features/outreach/wizard/StepCompanies"
 import { StepContacts } from "@/features/outreach/wizard/StepContacts"
 import { StepDomains } from "@/features/outreach/wizard/StepDomains"
-import { ReachSlider } from "@/features/outreach/wizard/ReachSlider"
 import {
   HEADCOUNT_MAX,
   HEADCOUNT_MIN,
@@ -35,10 +34,8 @@ import {
 } from "@/features/outreach/wizard/sequenceGaps"
 import { StepType } from "@/features/outreach/wizard/StepType"
 import type { CampaignType } from "@/features/outreach/campaignTypes"
-import { useAsync } from "@/hooks/useAsync"
 import { useProductOptions } from "@/hooks/useProductOptions"
 import { outreachService } from "@/services/outreach.service"
-import { reachService } from "@/services/reach.service"
 import type {
   CampaignSetup,
   DraftStep,
@@ -85,15 +82,16 @@ function steps(campaignType: CampaignType | null): (WizardStep & {
  * full width rather than the reading-width column the rest sit in. */
 const WIDE_STEPS = new Set<StepKey>(["approach"])
 
-const NUMBER = new Intl.NumberFormat("en-GB")
-
-/** Nothing is chosen until the second step answers it, and nothing at all is
- * written until the last one. */
+/** Nothing is chosen until the step that asks answers it, and nothing at all is
+ * written until the last one — except the sequence, which starts on the shape
+ * its step draws: two emails, four working days apart. The step showed those
+ * from the moment it rendered, so they are what the campaign holds whether or
+ * not anybody pressed anything. */
 const EMPTY_SETUP: CampaignSetup = {
   campaign_type: null,
-  sequence_touches: null,
-  sequence_advancer_gap: null,
-  sequence_closer_gap: null,
+  sequence_touches: 2,
+  sequence_advancer_gap: DEFAULT_ADVANCER_GAP,
+  sequence_closer_gap: DEFAULT_CLOSER_GAP,
   cta_type: null,
 }
 
@@ -138,15 +136,7 @@ export function NewOutreachPage() {
   // Details, before the run exists.
   const [name, setName] = useState("")
   const [productId, setProductId] = useState<string>("")
-  const [reach, setReach] = useState<number | null>(null)
   const products = useProductOptions()
-
-  // What the allocation is measured against: this seat's monthly reach, from
-  // the client's current plan and its add-ons.
-  // Excluding this run, so editing a campaign does not count its own claim
-  // against itself.
-  const fetchAllowance = useCallback(() => reachService.allowance(), [])
-  const { data: allowance } = useAsync(fetchAllowance, [fetchAllowance])
 
   // The profile a Flow run builds its pool from. Local, because the API has
   // nowhere to keep it yet — unlike the campaign type, which lives on the run.
@@ -187,24 +177,6 @@ export function NewOutreachPage() {
   const stepKey = wizardSteps[step]?.key ?? "details"
   const isLastStep = step === wizardSteps.length - 1
 
-  // Null means "not allocated", which the API stores as null — a different
-  // thing from allocating none.
-  const reachValue = reach
-  // What this campaign can still take. An unlimited plan has no ceiling to draw
-  // a slider against, so it gets a generous one; a workspace with no plan gets
-  // a nominal one rather than a slider with nowhere to go.
-  const reachCeiling = allowance
-    ? allowance.unlimited
-      ? Math.max(100_000, (reachValue ?? 0) * 2)
-      : Math.max(allowance.available, reachValue ?? 0, 1)
-    : 1
-  // What would be left after this campaign takes its share. `available` already
-  // excludes this run's stored claim, so the subtraction is of the figure on
-  // screen rather than of anything already counted.
-  const remainingReach = Math.max(
-    0,
-    (allowance?.available ?? 0) - (reachValue ?? 0),
-  )
 
   /** Write the whole campaign, once, at the end.
    *
@@ -218,17 +190,13 @@ export function NewOutreachPage() {
       const created = await outreachService.create({
         name: name.trim(),
         product_id: Number(productId),
-        monthly_reach: reachValue,
         campaign_type: setup.campaign_type,
         icp: toRunIcp(icp),
         pool_sample: pool,
         company_domains: icp.company_domains,
         sequence_touches: setup.sequence_touches,
-        // The timeline states "wait 4 working days" from the moment it renders,
-        // so those are the gaps the campaign is created with, touched or not.
-        sequence_advancer_gap:
-          setup.sequence_advancer_gap ?? DEFAULT_ADVANCER_GAP,
-        sequence_closer_gap: setup.sequence_closer_gap ?? DEFAULT_CLOSER_GAP,
+        sequence_advancer_gap: setup.sequence_advancer_gap,
+        sequence_closer_gap: setup.sequence_closer_gap,
         cta_type: setup.cta_type,
         // The angle per step; the copy is read back from the preview it was
         // picked from rather than posted up from here.
@@ -284,7 +252,9 @@ export function NewOutreachPage() {
           icp.locations.length,
       )
     }
-    if (stepKey === "sequence") return Boolean(setup.sequence_touches)
+    // No check for the sequence step: it opens on two emails four working days
+    // apart, and those are already in `setup`. Requiring a click to continue
+    // asked people to re-choose what was on screen and correct.
     if (stepKey === "cta") return Boolean(setup.cta_type?.type)
     if (stepKey === "approach") {
       const needed = setup.sequence_touches ?? 0
@@ -351,11 +321,11 @@ export function NewOutreachPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="run-product">Product</Label>
-                  <Select
-                    value={productId}
-                    onValueChange={setProductId}
-                  >
-                    <SelectTrigger id="run-product">
+                  <Select value={productId} onValueChange={setProductId}>
+                    {/* The trigger is `w-fit` by default, which would leave it
+                      * as wide as whichever product is chosen and shorter than
+                      * the name field above it. */}
+                    <SelectTrigger id="run-product" className="w-full">
                       <SelectValue placeholder="Choose a product" />
                     </SelectTrigger>
                     <SelectContent>
@@ -369,58 +339,6 @@ export function NewOutreachPage() {
                   <p className="text-xs text-muted-foreground">
                     Its value proposition, differentiator and pain points are
                     most of what the emails are written from.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <Label htmlFor="run-reach">Reach</Label>
-                    {/* The two figures the allocation is judged against: what
-                      * the seat gets in a month, and what is left once this
-                      * campaign has taken its share. Available counts down as
-                      * the slider moves, so the cost of the choice is visible
-                      * while it is being made. Both numbers are fixed-width and
-                      * right-aligned: they change on every notch, and a label
-                      * that jumps sideways is harder to read than one that
-                      * does not. */}
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      Total{" "}
-                      <span className="inline-block min-w-14 text-right font-medium text-foreground">
-                        {allowance == null
-                          ? "—"
-                          : allowance.unlimited
-                            ? "unlimited"
-                            : NUMBER.format(allowance.monthly_reach)}
-                      </span>{" "}
-                      · Available{" "}
-                      <span className="inline-block min-w-14 text-right font-medium text-foreground">
-                        {allowance == null
-                          ? "—"
-                          : allowance.unlimited
-                            ? "unlimited"
-                            : NUMBER.format(remainingReach)}
-                      </span>
-                    </p>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="min-w-20 text-2xl font-semibold tabular-nums">
-                      {NUMBER.format(reachValue ?? 0)}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      contacts a month
-                    </span>
-                  </div>
-                  <ReachSlider
-                    id="run-reach"
-                    value={reachValue}
-                    onChange={setReach}
-                    max={reachCeiling}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {allowance != null &&
-                    !allowance.unlimited &&
-                    allowance.monthly_reach === 0
-                      ? "No plan is active on this workspace, so there is no reach to allocate yet."
-                      : "How many contacts of your monthly reach this campaign may spend."}
                   </p>
                 </div>
               </div>

@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { extractDomains, splitPasted } from "@/lib/domains"
+import { companyLimitError, extractDomains, splitPasted } from "@/lib/domains"
 import { isSpreadsheetFile, readFirstColumn } from "@/lib/spreadsheet"
 import { outreachService } from "@/services/outreach.service"
 import { DomainSource } from "./DomainSource"
@@ -52,6 +52,13 @@ export function CompanyUploadDialog({
       )
       return
     }
+    // Against what is staged here only — the campaign's own count is not known
+    // until the save reads it, and that check is done there too.
+    const overLimit = companyLimitError(pending.length, found.domains.length)
+    if (overLimit) {
+      toast.error(overLimit)
+      return
+    }
     setPending((current) => [...current, ...found.domains])
     if (found.skipped.length) {
       toast.info(
@@ -77,13 +84,21 @@ export function CompanyUploadDialog({
   async function save() {
     setSaving(true)
     try {
-      const existing = await outreachService.listCompanies(runId)
-      const domains = [
-        ...existing.map((company) => company.domain).filter(Boolean),
-        ...pending,
-      ] as string[]
+      // The domains endpoint, not the companies list: that list is one page of
+      // two kinds of company, and sending it back would drop the pages this
+      // never saw and file discovered employers as uploaded ones.
+      const existing = await outreachService.getCompanyDomains(runId)
+      // The real total, at last: what is staged plus what the campaign already
+      // holds. Checked before the write rather than after, since the endpoint
+      // replaces the whole list.
+      const overLimit = companyLimitError(existing.domains.length, pending.length)
+      if (overLimit) {
+        toast.error(overLimit)
+        return
+      }
+      const domains = [...existing.domains, ...pending]
       const saved = await outreachService.saveCompanyDomains(runId, domains)
-      const added = saved.domains.length - existing.length
+      const added = saved.domains.length - existing.domains.length
       toast.success(
         added > 0
           ? `Added ${added} ${added === 1 ? "company" : "companies"}.`

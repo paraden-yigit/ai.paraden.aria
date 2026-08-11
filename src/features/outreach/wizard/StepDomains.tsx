@@ -2,7 +2,7 @@ import { Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { extractDomains, splitPasted } from "@/lib/domains"
+import { companyLimitError, extractDomains, splitPasted } from "@/lib/domains"
 import { isSpreadsheetFile, readFirstColumn } from "@/lib/spreadsheet"
 import { DomainSource } from "../DomainSource"
 import type { OutreachIcpDraft } from "@/types/outreach"
@@ -44,6 +44,13 @@ export function StepDomains({ value, onChange }: StepDomainsProps) {
           ? "No new domains in that — everything was either already on the list or not a domain."
           : `Nothing to read in ${source}.`,
       )
+      return
+    }
+    // Refused whole, before anything is added: a file over the cap is the
+    // user's to shorten, not ours to trim.
+    const overLimit = companyLimitError(domains.length, found.domains.length)
+    if (overLimit) {
+      toast.error(overLimit)
       return
     }
     setDomains([...domains, ...found.domains])

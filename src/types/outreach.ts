@@ -36,6 +36,9 @@ export interface OutreachRun {
   /** Contacts this campaign may spend of the sender's monthly reach. Null means
    * it was never allocated — which is not the same as none, or as all of it. */
   monthly_reach: number | null
+  /** Working days the written emails sit before the first one may leave. Zero
+   * is no wait, which is what every campaign did before the setting existed. */
+  review_days: number
   /** The targeting profile, as the wizard last saved it. Null until then. */
   icp: RunIcp | null
   /** How many people the profile last matched — the run's prospect count. Null
@@ -141,6 +144,20 @@ export interface ReachAllowance {
   available: number
   unlimited: boolean
   plan_name: string | null
+}
+
+/**
+ * What the dashboard's Settings tab may change.
+ *
+ * Deliberately not `OutreachRunUpdate`: those are the wizard's fields and
+ * describe a campaign that has not started. These two only say what happens
+ * next, so the API accepts them while a campaign is running.
+ */
+export interface OutreachRunSettings {
+  /** Contacts a month. Zero stops the spending without stopping the campaign. */
+  monthly_reach?: number
+  /** Working days, matching the sequence gaps. */
+  review_days?: number
 }
 
 export interface OutreachRunUpdate {
@@ -301,9 +318,66 @@ export interface OutreachImportResult {
   reachable_count: number
 }
 
-/** A company on a campaign's list, enrichment included. */
+/** Where someone or something on a campaign came from. */
+export type OutreachSource = "uploaded" | "discovered"
+
+/** What the Prospects tab can be sorted by. Mirrors the API's whitelist. */
+export type ProspectSort =
+  | "name"
+  | "role"
+  | "company"
+  | "domain"
+  | "location"
+  | "email"
+  | "added"
+
+export type SortDirection = "asc" | "desc"
+
+/**
+ * A page of a campaign's people.
+ *
+ * Searching, sorting and paging all happen in the database: a Flow campaign's
+ * pool is filled by a background task for as long as the campaign runs, so
+ * there is no size at which loading it and filtering here would be safe.
+ */
+/**
+ * A page of a campaign's companies.
+ *
+ * Paged and searched by the API for the same reason its people are: half the
+ * list is the employers of a pool the campaign keeps filling.
+ */
+export interface CompanyListParams {
+  skip?: number
+  limit?: number
+  /** Matched against company name and domain. */
+  q?: string
+}
+
+export interface ProspectListParams {
+  skip?: number
+  limit?: number
+  /**
+   * Matched against name, role, company and domain — every word has to hit
+   * something, though not all of them the same field.
+   */
+  q?: string
+  /** Added on or after this day, inclusive. `YYYY-MM-DD`, read as a UTC day. */
+  added_from?: string
+  /** Added on or before this day, inclusive. */
+  added_to?: string
+  sort?: ProspectSort
+  direction?: SortDirection
+}
+
+/**
+ * A company on a campaign's list, enrichment included.
+ *
+ * An uploaded one is a real row. A discovered one is the employer of people the
+ * campaign found for itself, summed up at read time — so it has no `id` and
+ * none of the enriched fields, only a name, a domain and its own headcount.
+ */
 export interface OutreachCompany {
-  id: number
+  id: number | null
   name: string | null
   domain: string | null
   industry: string | null
@@ -314,7 +388,10 @@ export interface OutreachCompany {
   linkedin_url: string | null
   description: string | null
   context: string | null
-  /** When it joined the campaign. */
+  source: OutreachSource
+  /** How many of the campaign's people work there. */
+  prospect_count: number
+  /** When it joined the campaign — for a discovered one, when its first person was found. */
   created_at: string
 }
 
@@ -333,8 +410,19 @@ export interface OutreachProspect {
   company_id: number | null
   company_name: string | null
   company_domain: string | null
+  source: OutreachSource
   /** False when they have no address: shown, but never written for or enrolled. */
   reachable: boolean
+  /** How the hunt for that address is going. */
+  email_enrichment_status:
+    | "pending"
+    | "requested"
+    | "found"
+    | "not_found"
+    | "excluded"
+    | "failed"
+  /** When they joined the campaign — uploaded with the list, or found for it. */
+  created_at: string
 }
 
 /** One angle for one step, as the model wrote it. */

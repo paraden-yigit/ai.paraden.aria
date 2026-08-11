@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Loader2, Rocket } from "lucide-react"
+import { ArrowLeft, Rocket } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -13,20 +13,24 @@ import { CAMPAIGN_TYPES } from "@/features/outreach/campaignTypes"
 import { CampaignCompanies } from "@/features/outreach/CampaignCompanies"
 import { CampaignIcp } from "@/features/outreach/CampaignIcp"
 import { CampaignPerformance } from "@/features/outreach/CampaignPerformance"
+import { CampaignProspects } from "@/features/outreach/CampaignProspects"
+import { CampaignSettings } from "@/features/outreach/CampaignSettings"
+import { LaunchDialog } from "@/features/outreach/LaunchDialog"
 
 const TABS = [
   { value: "performance", label: "Performance" },
   { value: "icp", label: "ICP" },
   { value: "companies", label: "Companies" },
   { value: "contacts", label: "Prospects" },
+  { value: "settings", label: "Settings" },
 ] as const
 
 /**
  * One campaign, after it has been created.
  *
- * Four views of the same thing, down the side: how it is doing, who it was
- * aimed at, which companies, which people. Only what belongs to the campaign
- * rather than to a view sits in the header above them — its name, and whether
+ * Five views of the same thing, down the side: how it is doing, who it was
+ * aimed at, which companies, which people, and what can still be changed. Only
+ * what belongs to the campaign rather than to a view sits in the header above them — its name, and whether
  * it has launched. The period is a Performance control and lives there.
  */
 export function CampaignDashboardPage() {
@@ -42,17 +46,28 @@ export function CampaignDashboardPage() {
   // Only a started campaign is sending, and only sending produces figures. A
   // Flow campaign runs; a Strategic one is launched once. Both are "going".
   const running = run?.status === "running" || launched
-  // Only a Flow campaign can be started from here: a Strategic one sends a
-  // written list, and writing it is a step that does not exist yet.
-  const startable = run?.campaign_type === "flow" && !running
+  // Either kind can be started: both are a standing instruction against a pool
+  // of people, and the only difference is whether the companies were described
+  // or named.
+  const startable = Boolean(run) && !running
+  const [confirming, setConfirming] = useState(false)
   const [starting, setStarting] = useState(false)
 
-  async function start() {
+  /** Save what the dialog was shown with, then start. */
+  async function start(settings: {
+    monthly_reach: number
+    review_days: number
+  }) {
     if (!run) return
     setStarting(true)
     try {
+      // Two calls rather than one: starting is not the place to also be a
+      // settings endpoint, and a campaign that started on figures nobody
+      // stored would be worse than one that failed to start.
+      await outreachService.updateSettings(run.id, settings)
       await outreachService.start(run.id)
       toast.success("Campaign started.")
+      setConfirming(false)
       refetch()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not start it.")
@@ -61,8 +76,8 @@ export function CampaignDashboardPage() {
     }
   }
 
-  // Kept in the page rather than the URL: these are four views of one campaign,
-  // not four places.
+  // Kept in the page rather than the URL: these are views of one campaign,
+  // not separate places.
   const [tab, setTab] = useState<string>(TABS[0].value)
 
   return (
@@ -99,34 +114,21 @@ export function CampaignDashboardPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {/* A Flow campaign can be started here; a Strategic one cannot,
-              * and the title says why rather than leaving a dead button to
-              * puzzle over. */}
             <span
-              title={
-                running
-                  ? "This campaign is already going."
-                  : startable
-                    ? undefined
-                    : "A Strategic campaign sends a written list, and the step that writes it is not back in the flow yet."
-              }
+              title={running ? "This campaign is already going." : undefined}
             >
+              {/* Opens the dialog rather than starting: the two figures that
+                * decide what happens next are confirmed first. */}
               <Button
                 disabled={!startable || starting}
-                onClick={() => void start()}
+                onClick={() => setConfirming(true)}
               >
-                {starting ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Rocket className="size-4" />
-                )}
+                <Rocket className="size-4" />
                 {running
                   ? launched
                     ? "Launched"
                     : "Running"
-                  : starting
-                    ? "Starting…"
-                    : "Launch campaign"}
+                  : "Launch campaign"}
               </Button>
             </span>
           </div>
@@ -177,18 +179,37 @@ export function CampaignDashboardPage() {
             </TabsContent>
 
             <TabsContent value="contacts" className="mt-0">
-              {/* Nothing to list and nothing pretending otherwise: prospects
-                * are created by sending, and no campaign is sending yet. */}
-              <div className="rounded-xl border border-dashed py-20 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Nobody has been contacted yet. The people this campaign
-                  reaches will be listed here once it starts sending.
-                </p>
-              </div>
+              <CampaignProspects
+                runId={runId}
+                campaignType={run?.campaign_type ?? null}
+              />
+            </TabsContent>
+
+            <TabsContent value="settings" className="mt-0">
+              {/* Keyed on the campaign's last change: saving reloads the run,
+                * which re-mounts this with the stored values rather than
+                * leaving the fields holding what was typed. */}
+              {run && (
+                <CampaignSettings
+                  key={run.updated_at}
+                  run={run}
+                  onSaved={refetch}
+                />
+              )}
             </TabsContent>
           </div>
         </Tabs>
       </DataState>
+
+      {run && (
+        <LaunchDialog
+          run={run}
+          open={confirming}
+          onOpenChange={setConfirming}
+          onConfirm={(settings) => void start(settings)}
+          launching={starting}
+        />
+      )}
     </div>
   )
 }
