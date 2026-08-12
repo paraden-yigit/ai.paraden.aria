@@ -53,6 +53,20 @@ export function StepCompanies({ value, onChange }: StepCompaniesProps) {
         )}
       </ProfileField>
       <ProfileField
+        label="Specialties"
+        description="What those companies actually do, narrower than their industry — in their words rather than ours. Type one and press Enter."
+      >
+        {({ id, describedBy }) => (
+          <TagInput
+            id={id}
+            aria-describedby={describedBy}
+            value={value.specialties}
+            onChange={(next) => set("specialties", next)}
+            placeholder="Fleet telematics"
+          />
+        )}
+      </ProfileField>
+      <ProfileField
         label="Company location"
         description="Where the company itself is based. Start typing and pick from the list — a country on its own works, or a city within one."
       >

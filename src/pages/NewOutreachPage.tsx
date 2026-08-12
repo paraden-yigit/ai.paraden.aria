@@ -100,6 +100,7 @@ const EMPTY_SETUP: CampaignSetup = {
 const EMPTY_ICP: OutreachIcpDraft = {
   company_domains: [],
   industries: [],
+  specialties: [],
   company_locations: [],
   headcount_min: HEADCOUNT_MIN,
   headcount_max: HEADCOUNT_MAX,
@@ -245,6 +246,7 @@ export function NewOutreachPage() {
       return Boolean(
         icp.company_domains.length ||
           icp.industries.length ||
+          icp.specialties.length ||
           icp.company_locations.length ||
           icp.departments.length ||
           icp.job_titles.length ||

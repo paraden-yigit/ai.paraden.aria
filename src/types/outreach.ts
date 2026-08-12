@@ -183,6 +183,7 @@ export interface OutreachRunUpdate {
  */
 export interface RunIcp {
   industries: string[]
+  specialties: string[]
   company_locations: string[]
   headcount_min: number | null
   headcount_max: number | null
@@ -218,6 +219,8 @@ export interface OutreachIcpDraft {
   company_domains: string[]
   /** From the industries taxonomy. */
   industries: string[]
+  /** Free text: what those companies do, narrower than their industry. */
+  specialties: string[]
   /** Free text: countries, regions or cities the company is based in. */
   company_locations: string[]
   headcount_min: number
@@ -237,6 +240,7 @@ export interface OutreachIcpDraft {
 export interface ContactPoolFilters {
   company_domains: string[]
   industries: string[]
+  specialties: string[]
   company_locations: string[]
   headcount_min: number | null
   headcount_max: number | null

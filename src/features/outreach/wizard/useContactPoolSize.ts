@@ -20,6 +20,7 @@ const DEBOUNCE_MS = 700
 export function toRunIcp(icp: OutreachIcpDraft): RunIcp {
   return {
     industries: icp.industries,
+    specialties: icp.specialties,
     company_locations: icp.company_locations,
     headcount_min: icp.headcount_min > HEADCOUNT_MIN ? icp.headcount_min : null,
     headcount_max: icp.headcount_max < HEADCOUNT_MAX ? icp.headcount_max : null,
@@ -39,6 +40,7 @@ export function toPoolFilters(icp: OutreachIcpDraft): ContactPoolFilters {
   return {
     company_domains: icp.company_domains,
     industries: icp.industries,
+    specialties: icp.specialties,
     company_locations: icp.company_locations,
     headcount_min: icp.headcount_min > HEADCOUNT_MIN ? icp.headcount_min : null,
     headcount_max: icp.headcount_max < HEADCOUNT_MAX ? icp.headcount_max : null,
