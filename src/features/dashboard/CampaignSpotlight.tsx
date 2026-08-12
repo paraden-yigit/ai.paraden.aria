@@ -1,6 +1,6 @@
 import { useCallback } from "react"
-import { Link } from "react-router-dom"
-import { ArrowRight, AtSign, Building2, CalendarRange, Users } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { ArrowRight, AtSign, Megaphone, Users } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,52 +12,50 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { MetricTile } from "@/components/MetricTile"
 import { Skeleton } from "@/components/ui/skeleton"
-import { loadContactStats } from "@/features/campaigns/contactStats"
-import { ResumeCampaignDialog } from "@/features/campaigns/ResumeCampaignDialog"
-import { useResumeCampaign } from "@/features/campaigns/useResumeCampaign"
 import { useAsync } from "@/hooks/useAsync"
-import { campaignService } from "@/services/campaign.service"
-import { formatDateTime } from "@/lib/format"
-import type { Campaign } from "@/types/campaign"
+import { outreachService } from "@/services/outreach.service"
+import type { OutreachRun, OutreachRunStatus } from "@/types/outreach"
 
-interface Spotlight {
-  campaign: Campaign
-  stats: { people: number; companies: number; reachable: number }
+const STATUS_LABELS: Record<OutreachRunStatus, string> = {
+  draft: "Draft",
+  composing: "Writing",
+  ready: "Ready to launch",
+  running: "Running",
+  launched: "Launched",
+  failed: "Needs attention",
 }
 
-/** The newest campaign plus its headline numbers, or null when none exist. */
-async function loadSpotlight(): Promise<Spotlight | null> {
-  const res = await campaignService.list({ limit: 100 })
+/** The newest run, or null when there are none. */
+async function loadNewest(): Promise<OutreachRun | null> {
+  const res = await outreachService.list({ limit: 20 })
   if (res.items.length === 0) return null
-  const latest = [...res.items].sort((a, b) =>
+  return [...res.items].sort((a, b) =>
     b.created_at.localeCompare(a.created_at),
   )[0]!
-  const stats = await loadContactStats(latest.id)
-  return { campaign: latest, stats }
 }
 
-const statTiles = [
-  { key: "companies", label: "Companies", icon: Building2 },
-  { key: "people", label: "People", icon: Users },
-  { key: "reachable", label: "Ready to email", icon: AtSign },
-] as const
-
-/** Dashboard hero: what the most recent campaign has prepared, at a glance. */
+/**
+ * Dashboard hero: what the most recent campaign has prepared, at a glance.
+ *
+ * Shows the newest run rather than the newest *launched* one, because the useful
+ * thing to surface is usually the one still being worked on — a half-built run
+ * is the thing with an action attached to it.
+ */
 export function CampaignSpotlight() {
-  const fetcher = useCallback(() => loadSpotlight(), [])
-  const spotlight = useAsync(fetcher, [])
-  const resume = useResumeCampaign()
+  const navigate = useNavigate()
+  const fetcher = useCallback(() => loadNewest(), [])
+  const { data: run, loading } = useAsync(fetcher, [])
 
-  if (spotlight.loading) {
+  if (loading) {
     return (
       <Card>
         <CardHeader>
           <Skeleton className="h-4 w-36" />
           <Skeleton className="h-7 w-64" />
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <Skeleton className="h-20" />
+        <CardContent className="grid gap-4 sm:grid-cols-2">
           <Skeleton className="h-20" />
           <Skeleton className="h-20" />
         </CardContent>
@@ -65,77 +63,52 @@ export function CampaignSpotlight() {
     )
   }
 
-  // No campaigns (or the probe failed): the dashboard's setup path covers this.
-  if (spotlight.error || !spotlight.data) return null
+  if (!run) return null
 
-  const { campaign, stats } = spotlight.data
-  const touches = campaign.sequence_touches ?? 0
+  const unreachable = run.prospect_count - run.reachable_count
 
   return (
-    <>
     <Card>
       <CardHeader>
-        <CardDescription className="font-mono text-[11px] tracking-widest uppercase">
-          Latest campaign
+        <CardDescription className="flex items-center gap-2">
+          Most recent campaign
+          <Badge variant={run.status === "launched" ? "default" : "outline"}>
+            {STATUS_LABELS[run.status]}
+          </Badge>
         </CardDescription>
-        <div className="flex flex-wrap items-center gap-3">
-          <CardTitle className="text-xl">{campaign.name}</CardTitle>
-          {campaign.setup_completed ? (
-            <Badge variant="outline">Ready</Badge>
-          ) : (
-            <Badge variant="secondary">Setup incomplete</Badge>
-          )}
-        </div>
-        <CardDescription>
-          {campaign.product_name ? `For ${campaign.product_name}. ` : ""}
-          Created {formatDateTime(campaign.created_at)}.
-        </CardDescription>
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Megaphone className="size-5 text-muted-foreground" aria-hidden="true" />
+          {run.name}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {statTiles.map((tile) => (
-            <div key={tile.key} className="rounded-lg border bg-muted/40 p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <tile.icon className="size-4" />
-                {tile.label}
-              </div>
-              <div className="mt-1 text-3xl font-semibold tracking-tight">
-                {stats[tile.key]}
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <CalendarRange className="size-4" />
-          {touches > 0
-            ? `${touches}-email sequence saved and ready for review.`
-            : "No sequence saved yet."}
-        </p>
+      <CardContent className="grid gap-4 sm:grid-cols-2">
+        <MetricTile
+          icon={Users}
+          label="On the list"
+          value={String(run.prospect_count)}
+          caption={run.product_name ?? "No product"}
+        />
+        <MetricTile
+          icon={AtSign}
+          label="Can be emailed"
+          value={String(run.reachable_count)}
+          caption={
+            unreachable > 0
+              ? `${unreachable} without an address`
+              : "everyone on the list"
+          }
+          emphasis
+        />
       </CardContent>
-      <CardFooter>
-        {campaign.setup_completed ? (
-          <Button asChild>
-            <Link to={`/campaigns/${campaign.id}`}>
-              Open campaign
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        ) : (
-          <Button onClick={() => resume.open(campaign)}>
-            Finish setup
-            <ArrowRight className="size-4" />
-          </Button>
-        )}
+      <CardFooter className="gap-2">
+        <Button onClick={() => navigate(`/campaigns/new?resume=${run.id}`)}>
+          {run.status === "launched" ? "Review" : "Continue"}
+          <ArrowRight className="size-4" />
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/campaigns">All campaigns</Link>
+        </Button>
       </CardFooter>
     </Card>
-
-    <ResumeCampaignDialog
-      campaign={resume.incomplete}
-      resetting={resume.resetting}
-      onClose={resume.close}
-      onContinue={resume.continueSetup}
-      onStartOver={resume.startOver}
-    />
-    </>
   )
 }

@@ -1,66 +1,104 @@
 import { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus } from "lucide-react"
+import { Plus, Rocket, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
-import { ConfirmDialog } from "@/components/ConfirmDialog"
-import { CampaignCards } from "@/features/campaigns/CampaignCards"
-import { ResumeCampaignDialog } from "@/features/campaigns/ResumeCampaignDialog"
-import { useResumeCampaign } from "@/features/campaigns/useResumeCampaign"
-import { CampaignSpotlight } from "@/features/dashboard/CampaignSpotlight"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
-import { campaignService } from "@/services/campaign.service"
-import { ApiError } from "@/services/http"
-import type { Campaign } from "@/types/campaign"
+import { formatDateTime, formatPoolSize } from "@/lib/format"
+import { CAMPAIGN_TYPES } from "@/features/outreach/campaignTypes"
+import { outreachService } from "@/services/outreach.service"
+import type {
+  CampaignType,
+  OutreachRun,
+  OutreachRunStatus,
+} from "@/types/outreach"
+
+const NUMBER = new Intl.NumberFormat("en-GB")
+
+/** What each status means, in the reader's terms rather than the model's. */
+const STATUS_LABELS: Record<OutreachRunStatus, string> = {
+  draft: "Draft",
+  composing: "Writing",
+  ready: "Ready to launch",
+  running: "Running",
+  launched: "Launched",
+  failed: "Needs attention",
+}
+
+/** Strategic or Flow, with the same icon the wizard offered it under. Runs
+ * started before the choice existed have no type; they are not broken, they
+ * were simply never asked. */
+function TypeBadge({ type }: { type: CampaignType | null }) {
+  const option = CAMPAIGN_TYPES.find((o) => o.value === type)
+  if (!option) return <span className="text-muted-foreground">—</span>
+  return (
+    <Badge variant="outline" className="gap-1.5 font-normal">
+      <option.icon className="size-3.5" aria-hidden />
+      {option.label}
+    </Badge>
+  )
+}
+
+function StatusBadge({ status }: { status: OutreachRunStatus }) {
+  if (status === "running" || status === "launched")
+    return <Badge>{STATUS_LABELS[status]}</Badge>
+  if (status === "failed")
+    return <Badge variant="destructive">{STATUS_LABELS[status]}</Badge>
+  return <Badge variant="outline">{STATUS_LABELS[status]}</Badge>
+}
 
 export function CampaignsPage() {
   const navigate = useNavigate()
-
-  const fetchCampaigns = useCallback(
-    (params: { skip?: number; limit?: number }) => campaignService.list(params),
+  const fetchRuns = useCallback(
+    (params: { skip?: number; limit?: number }) => outreachService.list(params),
     [],
   )
-
-  const {
-    items: campaigns,
-    total,
-    page,
-    setPage,
-    skip,
-    hasNextPage,
-    loading,
-    error,
-    refetch,
-  } = usePaginatedList<Campaign>(fetchCampaigns)
-
-  const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null)
+  const list = usePaginatedList<OutreachRun>(fetchRuns)
+  const [toDelete, setToDelete] = useState<OutreachRun | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const resume = useResumeCampaign()
 
-  async function handleDelete() {
-    if (!campaignToDelete) return
+  /** Campaigns are created finished, so a row opens the campaign itself —
+   * there is no half-built wizard to return to. */
+  function open(run: OutreachRun) {
+    navigate(`/campaigns/${run.id}`)
+  }
+
+  async function confirmDelete() {
+    if (!toDelete) return
     setDeleting(true)
     try {
-      await campaignService.remove(campaignToDelete.id)
-      toast.success(`Campaign "${campaignToDelete.name}" deleted.`)
-      setCampaignToDelete(null)
-      refetch()
+      await outreachService.remove(toDelete.id)
+      toast.success("Run deleted.")
+      list.refetch()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to delete campaign.")
+      toast.error(err instanceof Error ? err.message : "Could not delete it.")
     } finally {
       setDeleting(false)
+      setToDelete(null)
     }
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
-          <p className="text-muted-foreground">Manage your campaigns.</p>
+          <p className="text-muted-foreground">
+            Build a list, pick an angle, and let Paraden write the sequence.
+          </p>
         </div>
         <Button onClick={() => navigate("/campaigns/new")}>
           <Plus className="size-4" />
@@ -69,56 +107,111 @@ export function CampaignsPage() {
       </div>
 
       <DataState
-        loading={loading}
-        error={error}
-        isEmpty={campaigns.length === 0}
-        emptyMessage="No campaigns yet. When you start one, Paraden finds matching prospects and drafts the outreach for you."
+        loading={list.loading}
+        error={list.error}
+        isEmpty={list.items.length === 0}
+        emptyMessage="No campaigns yet. Start one and Paraden will research each prospect and draft the outreach for you."
         emptyAction={
           <Button onClick={() => navigate("/campaigns/new")}>
-            <Plus className="size-4" />
-            Start your first campaign
+            <Rocket className="size-4" />
+            Start a campaign
           </Button>
         }
-        onRetry={refetch}
+        onRetry={list.refetch}
       >
-        {page === 0 && <CampaignSpotlight />}
-        <CampaignCards
-          campaigns={campaigns}
-          onOpen={resume.open}
-          onDelete={setCampaignToDelete}
-        />
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Reach</TableHead>
+                <TableHead>Prospects</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.items.map((run) => (
+                <TableRow
+                  key={run.id}
+                  className="cursor-pointer"
+                  onClick={() => open(run)}
+                >
+                  <TableCell className="font-medium">{run.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {run.product_name ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <TypeBadge type={run.campaign_type} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={run.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">
+                    {run.monthly_reach == null ? (
+                      // Never allocated, which is not the same as none.
+                      "—"
+                    ) : (
+                      <>
+                        {NUMBER.format(run.monthly_reach)}
+                        <span className="ml-1 text-xs">/mo</span>
+                      </>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">
+                    {/* The pool the profile matched, read the same way the
+                      * wizard reads it — there is no reachable/unreachable
+                      * split to make: the pool is the prospects. */}
+                    {run.pool_total == null
+                      ? "—"
+                      : formatPoolSize(run.pool_total)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDateTime(run.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Delete ${run.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setToDelete(run)
+                      }}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
         <PaginationFooter
-          page={page}
-          skip={skip}
-          count={campaigns.length}
-          total={total}
-          hasNextPage={hasNextPage}
-          onPrev={() => setPage((p) => Math.max(0, p - 1))}
-          onNext={() => setPage((p) => p + 1)}
+          page={list.page}
+          skip={list.skip}
+          count={list.items.length}
+          total={list.total}
+          hasNextPage={list.hasNextPage}
+          onPrev={() => list.setPage((p) => Math.max(0, p - 1))}
+          onNext={() => list.setPage((p) => p + 1)}
         />
       </DataState>
 
-      <ResumeCampaignDialog
-        campaign={resume.incomplete}
-        resetting={resume.resetting}
-        onClose={resume.close}
-        onContinue={resume.continueSetup}
-        onStartOver={resume.startOver}
-      />
-
       <ConfirmDialog
-        open={campaignToDelete !== null}
-        onOpenChange={(open) => !open && setCampaignToDelete(null)}
-        title="Delete campaign?"
+        open={toDelete !== null}
+        onOpenChange={(open) => !open && setToDelete(null)}
+        title={`Delete "${toDelete?.name}"?`}
         description={
-          campaignToDelete
-            ? `This will permanently delete "${campaignToDelete.name}". This action cannot be undone.`
-            : ""
+          toDelete?.status === "launched"
+            ? "This run has been launched. Deleting it removes the setup — anything already queued or sent is kept."
+            : "This removes the run, its list and everything written for it."
         }
-        confirmLabel="Delete"
-        destructive
-        loading={deleting}
-        onConfirm={handleDelete}
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        onConfirm={() => void confirmDelete()}
       />
     </div>
   )

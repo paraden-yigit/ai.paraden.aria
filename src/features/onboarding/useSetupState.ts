@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 
-import { campaignService } from "@/services/campaign.service"
 import { clientService } from "@/services/client.service"
 import { icpService } from "@/services/icp.service"
+import { outreachService } from "@/services/outreach.service"
 import { productService } from "@/services/product.service"
 
 // How many products to probe for a ready targeting profile before giving up;
@@ -35,10 +35,10 @@ export function useSetupState(): SetupState {
   useEffect(() => {
     let active = true
     const load = async () => {
-      const [company, products, campaigns] = await Promise.allSettled([
+      const [company, products, runs] = await Promise.allSettled([
         clientService.get(),
         productService.list({ limit: MAX_ICP_PROBES }),
-        campaignService.list({ limit: 1 }),
+        outreachService.list({ limit: 1 }),
       ])
 
       // Company messaging lives on the client: any core answer counts as started.
@@ -55,8 +55,8 @@ export function useSetupState(): SetupState {
       const firstProductId = productItems[0]?.id ?? null
 
       const campaignDone =
-        campaigns.status === "fulfilled" &&
-        (campaigns.value.items.length > 0 || (campaigns.value.total ?? 0) > 0)
+        runs.status === "fulfilled" &&
+        (runs.value.items.length > 0 || (runs.value.total ?? 0) > 0)
 
       // A targeting profile counts once any probed product has one ready.
       const probes = await Promise.allSettled(

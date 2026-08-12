@@ -20,13 +20,10 @@ import { ProfileSettingsPage } from "@/pages/ProfileSettingsPage"
 import { EmailSettingsPage } from "@/pages/EmailSettingsPage"
 import { ExclusionListPage } from "@/pages/ExclusionListPage"
 import { CampaignsPage } from "@/pages/CampaignsPage"
-import { InboxPage } from "@/pages/InboxPage"
-import { NewCampaignPage } from "@/pages/NewCampaignPage"
-import { OnboardingPage } from "@/pages/OnboardingPage"
-import { CampaignLayout } from "@/components/layout/CampaignLayout"
 import { CampaignDashboardPage } from "@/pages/CampaignDashboardPage"
-import { CampaignContactsPage } from "@/pages/CampaignContactsPage"
-import { CampaignEmailsPage } from "@/pages/CampaignEmailsPage"
+import { NewOutreachPage } from "@/pages/NewOutreachPage"
+import { InboxPage } from "@/pages/InboxPage"
+import { OnboardingPage } from "@/pages/OnboardingPage"
 import { ProductsPage } from "@/pages/ProductsPage"
 import { NewProductPage } from "@/pages/NewProductPage"
 import { ProductDetailPage } from "@/pages/ProductDetailPage"
@@ -78,11 +75,10 @@ function App() {
               {/* Full-screen first-login onboarding wizard — outside AppLayout so
                   it has no sidebar/header, only its own minimal chrome. */}
               <Route path="/onboarding" element={<OnboardingPage />} />
-              {/* Full-page campaign wizard — deliberately outside AppLayout so it
-                  has no sidebar or header, only its own close button. */}
-              <Route path="/campaigns/new" element={<NewCampaignPage />} />
-              {/* Full-page product creation wizard — outside AppLayout, same as
-                  the campaign wizard (its own minimal chrome, no app shell). */}
+              {/* Full-page wizards — outside AppLayout: their own minimal
+                  chrome, no app shell. Building one is a task with an end, not a
+                  place in the app. */}
+              <Route path="/campaigns/new" element={<NewOutreachPage />} />
               <Route path="/products/new" element={<NewProductPage />} />
               {/* Everything under the app shell first passes the onboarding gate:
                   unonboarded owners go to the wizard, other users wait. */}
@@ -106,15 +102,14 @@ function App() {
                   <Route path="/exclusions" element={<ExclusionListPage />} />
                 </Route>
                 <Route path="/campaigns" element={<CampaignsPage />} />
-                {/* Ungated, like /campaigns and /products: everyone with a
-                    mailbox has an inbox, and there is no inbox permission in
-                    the API catalog to gate it on. */}
+                {/* Below /campaigns/new, which is a static segment and so wins
+                    the match — the wizard is its own full-page route outside
+                    this shell. */}
+                <Route path="/campaigns/:id" element={<CampaignDashboardPage />} />
+                {/* Ungated, like /products: everyone with a mailbox has an
+                    inbox, and there is no inbox permission in the API catalog to
+                    gate it on. */}
                 <Route path="/inbox" element={<InboxPage />} />
-                <Route path="/campaigns/:id" element={<CampaignLayout />}>
-                  <Route index element={<CampaignDashboardPage />} />
-                  <Route path="contacts" element={<CampaignContactsPage />} />
-                  <Route path="emails" element={<CampaignEmailsPage />} />
-                </Route>
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />
                 <Route

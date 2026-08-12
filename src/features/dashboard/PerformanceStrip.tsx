@@ -8,7 +8,25 @@ import {
 } from "lucide-react"
 
 import { MetricTile } from "@/components/MetricTile"
-import type { Campaign, CampaignMetrics } from "@/types/campaign"
+
+/**
+ * The funnel counts this strip sums. Declared here rather than imported from a
+ * campaign type: the strip is about outreach performance, and it should keep
+ * working whatever the thing producing the numbers ends up being called.
+ */
+export interface CampaignMetrics {
+  sent: number
+  opens: number
+  replies: number
+  success: number
+  fail: number
+  opt_out: number
+}
+
+/** Anything that can report metrics — a campaign today, whatever replaces it next. */
+export interface MetricsSource {
+  metrics?: CampaignMetrics | null
+}
 
 /** A whole-number count, thousands-separated. */
 function formatCount(value: number): string {
@@ -24,7 +42,7 @@ function rate(num: number, denom: number): string {
 
 /** Sum one metric across every campaign that has run. */
 function total(
-  campaigns: Campaign[],
+  campaigns: MetricsSource[],
   pick: (m: CampaignMetrics) => number,
 ): number {
   return campaigns.reduce(
@@ -42,7 +60,7 @@ function total(
  * same order — this is that view summed across campaigns, and two layouts for one
  * funnel would invite the reader to look for a difference that isn't there.
  */
-export function PerformanceStrip({ campaigns }: { campaigns: Campaign[] }) {
+export function PerformanceStrip({ campaigns }: { campaigns: MetricsSource[] }) {
   const ran = campaigns.filter((c) => c.metrics != null)
   if (ran.length === 0) return null
 

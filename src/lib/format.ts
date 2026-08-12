@@ -11,3 +11,147 @@ export function formatDateTime(iso: string | null | undefined): string {
     minute: "2-digit",
   })
 }
+
+/**
+ * A snake_case identifier as a person would read it: `one_word_reply` becomes
+ * "One word reply".
+ *
+ * Sentence case, not title case — these are phrases ("Permission to send"), and
+ * capitalising every word would make them read like product names.
+ */
+const POOL_NUMBER = new Intl.NumberFormat("en-GB")
+
+/** A date on its own, no time: "9 Aug 2026". */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "Not set"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+/**
+ * A `YYYY-MM-DD` day as a person would read it.
+ *
+ * Not `formatDate`: `new Date("2026-08-01")` is midnight **UTC**, which anywhere
+ * west of Greenwich renders as the 31st. A day chosen in a date picker is a day,
+ * not an instant, so it is rebuilt as local midnight before it is formatted.
+ */
+export function formatDay(iso: string | null | undefined): string {
+  if (!iso) return "Not set"
+  const [year, month, day] = iso.split("-").map(Number)
+  if (!year || !month || !day) return iso
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+// Each unit, and how many of it make one of the unit after it.
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["minute", 60],
+  ["hour", 24],
+  ["day", 7],
+  ["week", 4.348],
+  ["month", 12],
+  ["year", Infinity],
+]
+
+const RELATIVE = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" })
+
+/**
+ * How long ago, in the largest unit that still says something: "3 minutes ago",
+ * "yesterday", "3 weeks ago".
+ *
+ * For a column nobody reads for precision — "was this today or last month" is
+ * the question, and an exact timestamp answers it more slowly. Pair it with the
+ * real date on hover, which is what `formatDate` is for.
+ */
+export function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return "Not set"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+
+  const seconds = (date.getTime() - Date.now()) / 1000
+  // Below a minute there is no unit worth naming, and "0 minutes ago" is worse
+  // than saying so.
+  if (Math.abs(seconds) < 60) return "just now"
+
+  let value = seconds / 60
+  for (const [unit, perNext] of RELATIVE_UNITS) {
+    if (Math.abs(value) < perNext) return RELATIVE.format(Math.round(value), unit)
+    value /= perNext
+  }
+  return RELATIVE.format(Math.round(value), "year")
+}
+
+/**
+ * How long something has been going, in the largest unit that still says
+ * something: "6 hours", "3 days", "2 weeks".
+ *
+ * A duration rather than a point in time — "running for 3 days" is the question
+ * a campaign's status answers, not "started on the 6th".
+ */
+export function formatDuration(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+
+  const minutes = Math.max(0, (Date.now() - date.getTime()) / 60000)
+  if (minutes < 60) {
+    const value = Math.max(1, Math.round(minutes))
+    return `${value} minute${value === 1 ? "" : "s"}`
+  }
+  const scale: [string, number][] = [
+    ["hour", 24],
+    ["day", 7],
+    ["week", 4.348],
+    ["month", 12],
+  ]
+  let value = minutes / 60
+  for (const [unit, perNext] of scale) {
+    if (value < perNext) {
+      const rounded = Math.round(value)
+      return `${rounded} ${unit}${rounded === 1 ? "" : "s"}`
+    }
+    value /= perNext
+  }
+  const years = Math.round(value)
+  return `${years} year${years === 1 ? "" : "s"}`
+}
+
+export function formatSlug(slug: string): string {
+  const words = slug.replace(/[_-]+/g, " ").trim()
+  return words ? words[0].toUpperCase() + words.slice(1) : words
+}
+
+/**
+ * The pool size, rounded to how precisely it is worth reading.
+ *
+ * A provider total is an estimate that moves between one search and the next, so
+ * showing all six digits claims a precision nobody has — one decimal is as far
+ * as it is worth reading (3,800 → "3.8K", 885,421 → "885.4K", 1,437,000 →
+ * "1.4M"), and thousands are rounded *down* so a large pool never reads bigger
+ * than it is.
+ *
+ * Below a thousand the figure is rounded *up* to the nearest fifty and marked
+ * with a tilde (135 → "~150", 487 → "~500"). The tilde is the point: down there
+ * the exact number invites arithmetic it cannot support, and a rough shape read
+ * as "about 150" is the honest version. Zero is left exact — "about fifty" when
+ * there is nobody would be a lie rather than a rounding.
+ */
+export function formatPoolSize(total: number): string {
+  // Divide as integers and only then place the point: `Math.floor(2900 / 1000 *
+  // 10)` is 28 in floating point, which would print 2,900 as "2.8K".
+  const tenths = (value: number) =>
+    Number.isInteger(value / 10) ? String(value / 10) : (value / 10).toFixed(1)
+
+  if (total >= 1_000_000) return `${tenths(Math.floor(total / 100_000))}M`
+  if (total >= 1_000) return `${tenths(Math.floor(total / 100))}K`
+  if (total <= 0) return "0"
+  return `~${POOL_NUMBER.format(Math.ceil(total / 50) * 50)}`
+}

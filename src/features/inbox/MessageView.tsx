@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { EmailBody } from "@/components/EmailBody"
 import { formatDateTime } from "@/lib/format"
-import { CATEGORY_LABEL, type InboxMessage } from "./sampleMessages"
+import { CATEGORY_LABEL, type InboxMessage } from "./messages"
 
 const STEP_KIND_LABEL: Record<string, string> = {
   opener: "Opener",
