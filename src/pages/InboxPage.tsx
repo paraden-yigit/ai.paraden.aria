@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Inbox as InboxIcon, Search } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -12,19 +11,18 @@ import {
 } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
+import { useAsync } from "@/hooks/useAsync"
+import type { ListResult } from "@/types/api"
+import type { OutboxItem } from "@/types/outbox"
+import { outboxService } from "@/services/outbox.service"
+import { toInboxMessage } from "@/features/inbox/outboxMessages"
 import { MessageList } from "@/features/inbox/MessageList"
 import { MessageView } from "@/features/inbox/MessageView"
 import {
-  INBOX_IS_SAMPLE_DATA,
-  SampleDataBanner,
-} from "@/features/inbox/SampleDataBanner"
-import {
   FOLDERS,
-  SAMPLE_MAILBOXES,
-  SAMPLE_MESSAGES,
   type Folder,
   type InboxMessage,
-} from "@/features/inbox/sampleMessages"
+} from "@/features/inbox/messages"
 
 const ALL_MAILBOXES = "all"
 
@@ -55,9 +53,13 @@ function useIsWideLayout(): boolean {
  * The salesperson's mail, across every campaign: what came back, what went out,
  * and what is queued to go.
  *
- * Running on sample data until the API exposes it per user. See
- * `features/inbox/sampleMessages.ts` for why, and for the types this will be
- * wired to.
+ * **Outbox** is this sender's own queued mail, from `/api/outbox`: written,
+ * timed and not yet sent, which is what makes a review window worth having.
+ *
+ * Sent and received are empty, and honestly so. There is no user-scoped
+ * endpoint for either yet — the history is behind an admin route aria cannot
+ * reach — and an invented inbox was worse than an empty one, because nothing
+ * on screen said which it was.
  *
  * Layout is the usual mail-client split at desktop width and a Sheet below it,
  * matching how the campaign Outbox tab already handles the same problem.
@@ -88,15 +90,26 @@ export function InboxPage() {
 
   const terms = query.trim().toLowerCase()
 
+  // The one folder with a real backend. Loaded whole rather than paged: a
+  // sender's queue is a day or two of sends, and the search below works over
+  // what is loaded.
+  const fetchOutbox = useCallback(() => outboxService.list({ limit: 200 }), [])
+  const { data: outbox } = useAsync<ListResult<OutboxItem>>(fetchOutbox, [
+    fetchOutbox,
+  ])
+  const queued = useMemo<InboxMessage[]>(
+    () => (outbox?.items ?? []).map(toInboxMessage),
+    [outbox],
+  )
+
   const matches = useMemo(() => {
-    return SAMPLE_MESSAGES.filter(
+    return queued.filter(
       (m) =>
         (mailbox === ALL_MAILBOXES || m.mailbox === mailbox) &&
         (terms === "" || haystack(m).includes(terms)),
     )
-    // haystack is pure and stable; the inputs that matter are below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mailbox, terms])
+    // haystack is pure and stable; the inputs that matter are listed.
+  }, [mailbox, terms, queued])
 
   const messages = useMemo(
     () => matches.filter((m) => m.folder === folder),
@@ -120,6 +133,13 @@ export function InboxPage() {
     if (!wide) setSheetOpen(true)
   }
 
+  // Whichever addresses are really sending. Empty until something is queued,
+  // which is why the filter offers "All mailboxes" on its own until then.
+  const mailboxes = useMemo(
+    () => [...new Set(queued.map((m) => m.mailbox))],
+    [queued],
+  )
+
   function changeFolder(next: Folder) {
     setFolder(next)
     setSelectedId(null)
@@ -131,9 +151,6 @@ export function InboxPage() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-tight">Inbox</h2>
-            {INBOX_IS_SAMPLE_DATA && (
-              <Badge variant="secondary">Sample data</Badge>
-            )}
           </div>
           <p className="text-muted-foreground">
             What came back, what went out, and what is queued to go.
@@ -146,7 +163,7 @@ export function InboxPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL_MAILBOXES}>All mailboxes</SelectItem>
-            {SAMPLE_MAILBOXES.map((address) => (
+            {mailboxes.map((address) => (
               <SelectItem key={address} value={address}>
                 {address}
               </SelectItem>
@@ -154,8 +171,6 @@ export function InboxPage() {
           </SelectContent>
         </Select>
       </div>
-
-      <SampleDataBanner />
 
       <div className="flex flex-wrap items-end justify-between gap-3 border-b">
         {/* Folders. A plain button row rather than shadcn Tabs, because the

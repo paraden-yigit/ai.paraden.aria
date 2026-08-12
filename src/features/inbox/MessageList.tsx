@@ -7,7 +7,7 @@ import {
   CATEGORY_LABEL,
   type Folder,
   type InboxMessage,
-} from "./sampleMessages"
+} from "./messages"
 
 /** Two initials for the avatar circle, matching the campaign Outbox tab. */
 function initials(name: string): string {
