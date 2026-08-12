@@ -14,15 +14,17 @@
 export type CampaignType = "strategic" | "flow"
 
 /**
- * `draft` → `composing` → `ready`, then either `running` (a Flow campaign
- * working its pool) or `launched` (a Strategic one handed to the sending
- * queue). `failed` if composing broke.
+ * `draft` → `composing` → `ready`, then `running` (working its pool) or
+ * `launched` (handed to the sending queue in one go). A running campaign can be
+ * `paused` and resumed — it keeps its pool, its plan and its queue while it is.
+ * `failed` if composing broke.
  */
 export type OutreachRunStatus =
   | "draft"
   | "composing"
   | "ready"
   | "running"
+  | "paused"
   | "launched"
   | "failed"
 
@@ -131,6 +133,23 @@ export interface PreviewStart {
   icp?: RunIcp | null
   samples: ContactPoolSample[]
   prospect_index?: number
+}
+
+/** One day of a campaign's plot, and the totals over the period asked for.
+ * Quiet days are present as zeroes rather than missing. */
+export interface CampaignPerformancePoint {
+  day: string
+  sent: number
+  /** Distinct people who opened, not open events. */
+  opens: number
+  /** From a human — a bounce or an out-of-office is not somebody answering. */
+  replies: number
+  positive: number
+}
+
+export interface CampaignPerformance {
+  points: CampaignPerformancePoint[]
+  totals: Record<string, number>
 }
 
 /** What one seat may reach in a month, from the client's current plan plus its

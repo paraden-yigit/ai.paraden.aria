@@ -34,6 +34,7 @@ const STATUS_LABELS: Record<OutreachRunStatus, string> = {
   composing: "Writing",
   ready: "Ready to launch",
   running: "Running",
+  paused: "Paused",
   launched: "Launched",
   failed: "Needs attention",
 }
