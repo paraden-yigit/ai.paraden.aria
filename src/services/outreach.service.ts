@@ -1,6 +1,8 @@
 import { buildQuery } from "@/lib/query"
 import type { ListResult, PaginationParams } from "@/types/api"
+import type { DateRange } from "@/lib/dateRanges"
 import type {
+  CampaignPerformance,
   CompanyDomains,
   CompanyListParams,
   OutreachCompany,
@@ -68,6 +70,25 @@ export const outreachService = {
     return apiClient.patch<OutreachRun>(
       `/api/outreach-runs/${id}/settings`,
       payload,
+    )
+  },
+
+  /** Stop a running campaign. Nothing is unpicked; resuming continues it. */
+  pause(id: number): Promise<OutreachRun> {
+    return apiClient.post<OutreachRun>(`/api/outreach-runs/${id}/pause`)
+  },
+
+  resume(id: number): Promise<OutreachRun> {
+    return apiClient.post<OutreachRun>(`/api/outreach-runs/${id}/resume`)
+  },
+
+  /** What the campaign actually sent, and what came back, day by day. */
+  performance(id: number, range: DateRange): Promise<CampaignPerformance> {
+    return apiClient.get<CampaignPerformance>(
+      `/api/outreach-runs/${id}/performance${buildQuery({
+        start: range.from,
+        end: range.to,
+      })}`,
     )
   },
 

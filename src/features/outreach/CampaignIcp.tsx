@@ -19,11 +19,14 @@ function companySize(icp: RunIcp): string | null {
   return `Up to ${NUMBER.format(max as number)} employees`
 }
 
-function Field({ label, values }: { label: string; values: string[] }) {
+/** `values` is optional because the run's profile comes back as the JSON it was
+ * saved as: a campaign set up before a field existed simply has no key for it,
+ * which reads the same as an empty one — not narrowed. */
+function Field({ label, values }: { label: string; values?: string[] }) {
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium">{label}</p>
-      {values.length === 0 ? (
+      {!values || values.length === 0 ? (
         // Said rather than left blank: an empty filter is a decision — it means
         // "do not narrow on this" — and a gap on the page reads as missing data.
         <p className="text-sm text-muted-foreground">Not narrowed</p>
@@ -109,6 +112,7 @@ export function CampaignIcp({
         ) : (
           <>
             <Field label="Industry" values={icp.industries} />
+            <Field label="Specialties" values={icp.specialties} />
             <Field label="Company location" values={icp.company_locations} />
             <div className="space-y-2">
               <p className="text-sm font-medium">Company size</p>
