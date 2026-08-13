@@ -1,11 +1,8 @@
 import { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus, Rocket, Trash2 } from "lucide-react"
-import { toast } from "sonner"
+import { LayoutGrid, List, Plus, Rocket } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { DataState } from "@/components/DataState"
 import { PaginationFooter } from "@/components/PaginationFooter"
 import {
@@ -18,48 +15,22 @@ import {
 } from "@/components/ui/table"
 import { usePaginatedList } from "@/hooks/usePaginatedList"
 import { formatDateTime, formatPoolSize } from "@/lib/format"
-import { CAMPAIGN_TYPES } from "@/features/outreach/campaignTypes"
+import { cn } from "@/lib/utils"
+import { CampaignCards } from "@/features/outreach/CampaignCards"
+import { CampaignTypeBadge } from "@/features/outreach/campaignTypeBadge"
+import { RunStatusBadge } from "@/features/outreach/runStatus"
 import { outreachService } from "@/services/outreach.service"
-import type {
-  CampaignType,
-  OutreachRun,
-  OutreachRunStatus,
-} from "@/types/outreach"
+import type { OutreachRun } from "@/types/outreach"
 
 const NUMBER = new Intl.NumberFormat("en-GB")
 
-/** What each status means, in the reader's terms rather than the model's. */
-const STATUS_LABELS: Record<OutreachRunStatus, string> = {
-  draft: "Draft",
-  composing: "Writing",
-  ready: "Ready to launch",
-  running: "Running",
-  paused: "Paused",
-  launched: "Launched",
-  failed: "Needs attention",
-}
+/** The two ways of reading the same page: a row each, or a card each. */
+const VIEWS = [
+  { value: "list", label: "List view", icon: List },
+  { value: "grid", label: "Grid view", icon: LayoutGrid },
+] as const
 
-/** Strategic or Flow, with the same icon the wizard offered it under. Runs
- * started before the choice existed have no type; they are not broken, they
- * were simply never asked. */
-function TypeBadge({ type }: { type: CampaignType | null }) {
-  const option = CAMPAIGN_TYPES.find((o) => o.value === type)
-  if (!option) return <span className="text-muted-foreground">—</span>
-  return (
-    <Badge variant="outline" className="gap-1.5 font-normal">
-      <option.icon className="size-3.5" aria-hidden />
-      {option.label}
-    </Badge>
-  )
-}
-
-function StatusBadge({ status }: { status: OutreachRunStatus }) {
-  if (status === "running" || status === "launched")
-    return <Badge>{STATUS_LABELS[status]}</Badge>
-  if (status === "failed")
-    return <Badge variant="destructive">{STATUS_LABELS[status]}</Badge>
-  return <Badge variant="outline">{STATUS_LABELS[status]}</Badge>
-}
+type View = (typeof VIEWS)[number]["value"]
 
 export function CampaignsPage() {
   const navigate = useNavigate()
@@ -68,28 +39,14 @@ export function CampaignsPage() {
     [],
   )
   const list = usePaginatedList<OutreachRun>(fetchRuns)
-  const [toDelete, setToDelete] = useState<OutreachRun | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  // Which of the two the reader is looking at. Kept in the page rather than the
+  // URL: it is how this page is being read, not a different place to be.
+  const [view, setView] = useState<View>("list")
 
   /** Campaigns are created finished, so a row opens the campaign itself —
    * there is no half-built wizard to return to. */
   function open(run: OutreachRun) {
     navigate(`/campaigns/${run.id}`)
-  }
-
-  async function confirmDelete() {
-    if (!toDelete) return
-    setDeleting(true)
-    try {
-      await outreachService.remove(toDelete.id)
-      toast.success("Run deleted.")
-      list.refetch()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not delete it.")
-    } finally {
-      setDeleting(false)
-      setToDelete(null)
-    }
   }
 
   return (
@@ -101,10 +58,38 @@ export function CampaignsPage() {
             Build a list, pick an angle, and let Paraden write the sequence.
           </p>
         </div>
-        <Button onClick={() => navigate("/campaigns/new")}>
-          <Plus className="size-4" />
-          New campaign
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* A segmented pair rather than two loose buttons: they are one
+            * choice, and the pressed one has to look chosen rather than
+            * merely hovered. */}
+          <div
+            role="group"
+            aria-label="View"
+            className="flex items-center rounded-md border p-0.5"
+          >
+            {VIEWS.map((option) => (
+              <Button
+                key={option.value}
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "size-8",
+                  view === option.value && "bg-muted text-foreground",
+                )}
+                aria-pressed={view === option.value}
+                title={option.label}
+                onClick={() => setView(option.value)}
+              >
+                <option.icon className="size-4" />
+                <span className="sr-only">{option.label}</span>
+              </Button>
+            ))}
+          </div>
+          <Button onClick={() => navigate("/campaigns/new")}>
+            <Plus className="size-4" />
+            New campaign
+          </Button>
+        </div>
       </div>
 
       <DataState
@@ -120,77 +105,70 @@ export function CampaignsPage() {
         }
         onRetry={list.refetch}
       >
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Reach</TableHead>
-                <TableHead>Prospects</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.items.map((run) => (
-                <TableRow
-                  key={run.id}
-                  className="cursor-pointer"
-                  onClick={() => open(run)}
-                >
-                  <TableCell className="font-medium">{run.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {run.product_name ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <TypeBadge type={run.campaign_type} />
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={run.status} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">
-                    {run.monthly_reach == null ? (
-                      // Never allocated, which is not the same as none.
-                      "—"
-                    ) : (
-                      <>
-                        {NUMBER.format(run.monthly_reach)}
-                        <span className="ml-1 text-xs">/mo</span>
-                      </>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">
-                    {/* The pool the profile matched, read the same way the
-                      * wizard reads it — there is no reachable/unreachable
-                      * split to make: the pool is the prospects. */}
-                    {run.pool_total == null
-                      ? "—"
-                      : formatPoolSize(run.pool_total)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDateTime(run.created_at)}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Delete ${run.name}`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setToDelete(run)
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </TableCell>
+        {view === "grid" ? (
+          <CampaignCards runs={list.items} />
+        ) : (
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Reach</TableHead>
+                  <TableHead>Prospects</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {list.items.map((run) => (
+                  <TableRow
+                    key={run.id}
+                    // Taller than the default row: this is a list you scan for
+                    // one campaign by name, and the extra air is what makes a
+                    // row findable rather than a line in a block of text.
+                    className="cursor-pointer [&>td]:py-4"
+                    onClick={() => open(run)}
+                  >
+                    <TableCell className="font-medium">{run.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {run.product_name ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      <CampaignTypeBadge type={run.campaign_type} />
+                    </TableCell>
+                    <TableCell>
+                      <RunStatusBadge status={run.status} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      {run.monthly_reach == null ? (
+                        // Never allocated, which is not the same as none.
+                        "—"
+                      ) : (
+                        <>
+                          {NUMBER.format(run.monthly_reach)}
+                          <span className="ml-1 text-xs">/mo</span>
+                        </>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      {/* The pool the profile matched, read the same way the
+                        * wizard reads it — there is no reachable/unreachable
+                        * split to make: the pool is the prospects. */}
+                      {run.pool_total == null
+                        ? "—"
+                        : formatPoolSize(run.pool_total)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDateTime(run.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
         <PaginationFooter
           page={list.page}
           skip={list.skip}
@@ -201,19 +179,6 @@ export function CampaignsPage() {
           onNext={() => list.setPage((p) => p + 1)}
         />
       </DataState>
-
-      <ConfirmDialog
-        open={toDelete !== null}
-        onOpenChange={(open) => !open && setToDelete(null)}
-        title={`Delete "${toDelete?.name}"?`}
-        description={
-          toDelete?.status === "launched"
-            ? "This run has been launched. Deleting it removes the setup — anything already queued or sent is kept."
-            : "This removes the run, its list and everything written for it."
-        }
-        confirmLabel={deleting ? "Deleting…" : "Delete"}
-        onConfirm={() => void confirmDelete()}
-      />
     </div>
   )
 }

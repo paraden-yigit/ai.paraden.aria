@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAsync } from "@/hooks/useAsync"
@@ -43,6 +45,10 @@ function Figure({ label, value }: { label: string; value: string }) {
  * leave.
  *
  * Reach is the only place this is set, now that the wizard no longer asks.
+ *
+ * Deleting the campaign lives here too, at the bottom and behind a confirmation
+ * — it is the one thing on this page that cannot be undone, and the list is no
+ * place for a one-click version of it.
  */
 export function CampaignSettings({
   run,
@@ -51,6 +57,7 @@ export function CampaignSettings({
   run: OutreachRun
   onSaved: () => void
 }) {
+  const navigate = useNavigate()
   // Seeded once, from the campaign. The parent keys this component on the
   // campaign's `updated_at`, so a save re-mounts it and the fields come back
   // holding what was actually stored — which is why there is no effect here
@@ -58,6 +65,8 @@ export function CampaignSettings({
   const [reach, setReach] = useState<number | null>(run.monthly_reach)
   const [reviewDays, setReviewDays] = useState(String(run.review_days ?? 0))
   const [saving, setSaving] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // What is left of the sender's allowance, with this campaign's own claim
   // excluded so it is not counted against itself.
@@ -102,6 +111,21 @@ export function CampaignSettings({
       toast.error(err instanceof Error ? err.message : "Could not save that.")
     } finally {
       setSaving(false)
+    }
+  }
+
+  /** There is nothing to return to once this succeeds, so it leaves for the
+   * list rather than re-reading a campaign that is gone. */
+  async function remove() {
+    setDeleting(true)
+    try {
+      await outreachService.remove(run.id)
+      toast.success("Campaign deleted.")
+      navigate("/campaigns")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete it.")
+      setDeleting(false)
+      setConfirmingDelete(false)
     }
   }
 
@@ -222,6 +246,42 @@ export function CampaignSettings({
         {saving && <Loader2 className="size-4 animate-spin" />}
         {saving ? "Saving…" : "Save settings"}
       </Button>
+
+      {/* Below a rule and last on the page: everything above changes what the
+        * campaign does next, this ends it. */}
+      <div className="space-y-3 border-t pt-8">
+        <div className="space-y-1">
+          <h2 className="font-medium">Delete campaign</h2>
+          <p className="text-sm text-muted-foreground">
+            {run.status === "launched"
+              ? "This campaign has been launched. Deleting it removes the setup, its list and everything written for it — anything already queued or sent is kept. This cannot be undone."
+              : "This removes the campaign, its list and everything written for it. This cannot be undone."}
+          </p>
+        </div>
+        <Button
+          variant="destructive"
+          disabled={deleting}
+          onClick={() => setConfirmingDelete(true)}
+        >
+          <Trash2 className="size-4" />
+          Delete campaign
+        </Button>
+      </div>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={(open) => !deleting && setConfirmingDelete(open)}
+        title={`Delete "${run.name}"?`}
+        description={
+          run.status === "launched"
+            ? "This campaign has been launched. Deleting it removes the setup, its list and everything written for it; anything already queued or sent is kept. This cannot be undone."
+            : "This removes the campaign, its list and everything written for it. This cannot be undone."
+        }
+        confirmLabel={deleting ? "Deleting…" : "Delete campaign"}
+        loading={deleting}
+        destructive
+        onConfirm={() => void remove()}
+      />
     </div>
   )
 }

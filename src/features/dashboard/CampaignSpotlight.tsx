@@ -2,7 +2,6 @@ import { useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowRight, AtSign, Megaphone, Users } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -15,18 +14,9 @@ import {
 import { MetricTile } from "@/components/MetricTile"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAsync } from "@/hooks/useAsync"
+import { RunStatusBadge } from "@/features/outreach/runStatus"
 import { outreachService } from "@/services/outreach.service"
-import type { OutreachRun, OutreachRunStatus } from "@/types/outreach"
-
-const STATUS_LABELS: Record<OutreachRunStatus, string> = {
-  draft: "Draft",
-  composing: "Writing",
-  ready: "Ready to launch",
-  running: "Running",
-  paused: "Paused",
-  launched: "Launched",
-  failed: "Needs attention",
-}
+import type { OutreachRun } from "@/types/outreach"
 
 /** The newest run, or null when there are none. */
 async function loadNewest(): Promise<OutreachRun | null> {
@@ -73,9 +63,7 @@ export function CampaignSpotlight() {
       <CardHeader>
         <CardDescription className="flex items-center gap-2">
           Most recent campaign
-          <Badge variant={run.status === "launched" ? "default" : "outline"}>
-            {STATUS_LABELS[run.status]}
-          </Badge>
+          <RunStatusBadge status={run.status} />
         </CardDescription>
         <CardTitle className="flex items-center gap-2 text-xl">
           <Megaphone className="size-5 text-muted-foreground" aria-hidden="true" />

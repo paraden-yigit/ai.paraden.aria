@@ -152,6 +152,34 @@ export interface CampaignPerformance {
   totals: Record<string, number>
 }
 
+export interface ProspectsFoundDay {
+  /** `YYYY-MM-DD`, a UTC day. */
+  day: string
+  count: number
+}
+
+/** One campaign's share of the period's new prospects. */
+export interface ProspectsFoundCampaign {
+  run_id: number
+  name: string
+  count: number
+}
+
+/**
+ * Everyone the client's campaigns picked up over a period, two ways.
+ *
+ * Every day in the range is present even when nothing happened on it — a month
+ * with its quiet days missing would draw as a busier month than it was — and
+ * the caller buckets them into whatever periods it draws.
+ */
+export interface ProspectsFound {
+  start: string
+  end: string
+  total: number
+  days: ProspectsFoundDay[]
+  campaigns: ProspectsFoundCampaign[]
+}
+
 /** What one seat may reach in a month, from the client's current plan plus its
  * add-ons. `unlimited` carries the catalog's 0-means-unlimited convention, so a
  * client with no plan at all (also 0) is not mistaken for an unlimited one. */

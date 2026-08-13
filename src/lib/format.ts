@@ -34,21 +34,41 @@ export function formatDate(iso: string | null | undefined): string {
 }
 
 /**
- * A `YYYY-MM-DD` day as a person would read it.
+ * A `YYYY-MM-DD` day as a local `Date`, or null when it is not one.
  *
- * Not `formatDate`: `new Date("2026-08-01")` is midnight **UTC**, which anywhere
- * west of Greenwich renders as the 31st. A day chosen in a date picker is a day,
- * not an instant, so it is rebuilt as local midnight before it is formatted.
+ * Never `new Date(iso)`: that is midnight **UTC**, which anywhere west of
+ * Greenwich is the day before. A day is a day, not an instant, so it is rebuilt
+ * as local midnight — which is also what makes its weekday and its date safe to
+ * read.
  */
-export function formatDay(iso: string | null | undefined): string {
-  if (!iso) return "Not set"
+export function parseDay(iso: string | null | undefined): Date | null {
+  if (!iso) return null
   const [year, month, day] = iso.split("-").map(Number)
-  if (!year || !month || !day) return iso
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+/** A `YYYY-MM-DD` day as a person would read it: "9 Aug 2026". */
+export function formatDay(iso: string | null | undefined): string {
+  const date = parseDay(iso)
+  if (!date) return iso || "Not set"
+  return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   })
+}
+
+/**
+ * The same day, short: "9 Aug".
+ *
+ * For axes and labels, where the year is either obvious from the period or not
+ * worth the width.
+ */
+export function formatDayShort(iso: string | null | undefined): string {
+  const date = parseDay(iso)
+  if (!date) return iso || "Not set"
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short" })
 }
 
 // Each unit, and how many of it make one of the unit after it.
