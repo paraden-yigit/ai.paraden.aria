@@ -27,6 +27,9 @@ export interface ActiveWorkspace extends Workspace {
   permissions: string[]
   email_tone: string | null
   email_signature: string | null
+  /** The line emails sign off with. Null means it was never chosen, and the
+   * default ("Regards, <first name>") is what actually goes out. */
+  email_closing: string | null
   forwarding_email: string | null
 }
 
@@ -80,4 +83,5 @@ export interface UserProfileUpdate {
   forwarding_email?: string | null
   email_tone?: string | null
   email_signature?: string | null
+  email_closing?: string | null
 }

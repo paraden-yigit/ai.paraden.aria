@@ -14,19 +14,36 @@ import type { User, UserProfileUpdate } from "@/types/auth"
 const profileSettingsSchema = z.object({
   first_name: z.string(),
   last_name: z.string(),
+  email_closing: z.string().max(255, "Keep the closing to a single line."),
   email_signature: z.string(),
 })
 
 type ProfileSettingsFormValues = z.infer<typeof profileSettingsSchema>
 
 // Each field maps 1:1 to a UserProfileUpdate key; all optional ("" → null).
-const FIELDS = ["first_name", "last_name", "email_signature"] as const
+const FIELDS = [
+  "first_name",
+  "last_name",
+  "email_closing",
+  "email_signature",
+] as const
+
+/** What an email closes with when nobody has chosen anything else. The API
+ * resolves the same default when the field is empty, so the line shown here is
+ * the line that actually goes out — saving it changes nothing but makes it the
+ * user's own. */
+function defaultClosing(user: User): string {
+  const name = (user.first_name ?? "").trim() || (user.last_name ?? "").trim()
+  return name ? `Regards, ${name}` : ""
+}
 
 function toFormValues(user: User): ProfileSettingsFormValues {
   return {
     first_name: user.first_name ?? "",
     last_name: user.last_name ?? "",
-    // Per workspace — the signature carries a company name.
+    // Both are per workspace: the signature carries a company name, and the
+    // closing is how this person signs off for this company.
+    email_closing: user.active_workspace?.email_closing ?? defaultClosing(user),
     email_signature: user.active_workspace?.email_signature ?? "",
   }
 }
@@ -78,17 +95,30 @@ export function ProfileSettingsForm({
               disabled={submitting}
             />
 
+            {/* The name stacked down the left, the closing beside it on the
+              * right: the closing is built from the first name, so the two
+              * belong on the same row rather than in a block of their own. */}
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-4">
+                <TextField
+                  control={form.control}
+                  name="first_name"
+                  label="First name"
+                  disabled={submitting}
+                />
+                <TextField
+                  control={form.control}
+                  name="last_name"
+                  label="Last name"
+                  disabled={submitting}
+                />
+              </div>
               <TextField
                 control={form.control}
-                name="first_name"
-                label="First name"
-                disabled={submitting}
-              />
-              <TextField
-                control={form.control}
-                name="last_name"
-                label="Last name"
+                name="email_closing"
+                label="How should your emails close"
+                placeholder={defaultClosing(user) || "Regards, Jane"}
+                description="The last line before your company name and signature. Leave it as it is and every email closes this way."
                 disabled={submitting}
               />
             </div>
