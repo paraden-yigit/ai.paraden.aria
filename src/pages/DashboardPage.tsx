@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { Briefcase, Megaphone, Package, Plus } from "lucide-react"
 
@@ -12,11 +13,14 @@ import {
 import { CampaignSpotlight } from "@/features/dashboard/CampaignSpotlight"
 import { KnowledgeMeter } from "@/features/dashboard/KnowledgeMeter"
 import { PerformanceStrip } from "@/features/dashboard/PerformanceStrip"
-import { SampleCharts } from "@/features/dashboard/SampleCharts"
+import { ProspectCharts } from "@/features/dashboard/ProspectCharts"
 import { SetupChecklist } from "@/features/onboarding/SetupChecklist"
 import { useSetupState } from "@/features/onboarding/useSetupState"
 import { useAuth } from "@/features/auth/useAuth"
+import { useAsync } from "@/hooks/useAsync"
+import { presetRange } from "@/lib/dateRanges"
 import { roleLabel } from "@/lib/roles"
+import { outreachService } from "@/services/outreach.service"
 
 function AccountCard() {
   const { user } = useAuth()
@@ -86,6 +90,17 @@ export function DashboardPage() {
   // than showing a funnel of zeros.
   const campaigns: never[] = []
 
+  // Month to date, decided once per mount: a range rebuilt on every render is
+  // a new dependency every render, and the fetch would never settle.
+  const month = useMemo(() => presetRange("this_month"), [])
+  const loadFound = useCallback(
+    () => outreachService.prospectsFound(month),
+    [month],
+  )
+  // One request behind both cards, so the two cannot disagree about how many
+  // people the month has produced.
+  const { data: found, loading: loadingFound } = useAsync(loadFound, [loadFound])
+
   return (
     <div className="space-y-6">
       <div>
@@ -108,7 +123,7 @@ export function DashboardPage() {
                 charts), followed by the actionable spotlight, then the
                 campaign sections. */}
             <PerformanceStrip campaigns={campaigns} />
-            <SampleCharts />
+            <ProspectCharts data={found} loading={loadingFound} />
             <CampaignSpotlight />
           </div>
           <div className="space-y-6">

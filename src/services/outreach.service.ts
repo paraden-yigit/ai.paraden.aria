@@ -17,6 +17,7 @@ import type {
   OutreachRunSettings,
   OutreachRunUpdate,
   ProspectListParams,
+  ProspectsFound,
   Selection,
 } from "@/types/outreach"
 import { apiClient } from "./http"
@@ -42,6 +43,20 @@ export const outreachService = {
 
   get(id: number): Promise<OutreachRun> {
     return apiClient.get<OutreachRun>(`/api/outreach-runs/${id}`)
+  },
+
+  /**
+   * Everyone every campaign picked up over `range`, day by day and campaign by
+   * campaign — the dashboard's two cards, in one request so they cannot
+   * disagree.
+   */
+  prospectsFound(range: DateRange): Promise<ProspectsFound> {
+    return apiClient.get<ProspectsFound>(
+      `/api/outreach-runs/prospects-found${buildQuery({
+        start: range.from,
+        end: range.to,
+      })}`,
+    )
   },
 
   create(payload: OutreachRunCreate): Promise<OutreachRun> {

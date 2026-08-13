@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Rocket } from "lucide-react"
+import { ArrowLeft, Pause, Play, Rocket } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +16,7 @@ import { CampaignPerformance } from "@/features/outreach/CampaignPerformance"
 import { CampaignProspects } from "@/features/outreach/CampaignProspects"
 import { CampaignSettings } from "@/features/outreach/CampaignSettings"
 import { LaunchDialog } from "@/features/outreach/LaunchDialog"
+import { RunStatusBadge } from "@/features/outreach/runStatus"
 
 const TABS = [
   { value: "performance", label: "Performance" },
@@ -42,16 +43,21 @@ export function CampaignDashboardPage() {
   const { data: run, loading, error, refetch } = useAsync(fetchRun, [fetchRun])
 
   const type = CAMPAIGN_TYPES.find((o) => o.value === run?.campaign_type)
+  // The one-shot launch of the older flow. It has no pause: its whole sequence
+  // was handed to the queue in one go.
   const launched = run?.status === "launched"
-  // Only a started campaign is sending, and only sending produces figures. A
-  // Flow campaign runs; a Strategic one is launched once. Both are "going".
-  const running = run?.status === "running" || launched
+  const running = run?.status === "running"
+  const paused = run?.status === "paused"
   // Either kind can be started: both are a standing instruction against a pool
   // of people, and the only difference is whether the companies were described
-  // or named.
-  const startable = Boolean(run) && !running
+  // or named. A paused one is resumed rather than started — that is the button
+  // below, not this one.
+  const startable = Boolean(run) && !running && !paused && !launched
   const [confirming, setConfirming] = useState(false)
   const [starting, setStarting] = useState(false)
+  // A pause or a resume in flight. Its own flag: it is a different button from
+  // the launch dialog's, and one spinner for both would freeze the wrong one.
+  const [switching, setSwitching] = useState(false)
 
   /** Save what the dialog was shown with, then start. */
   async function start(settings: {
@@ -73,6 +79,40 @@ export function CampaignDashboardPage() {
       toast.error(err instanceof Error ? err.message : "Could not start it.")
     } finally {
       setStarting(false)
+    }
+  }
+
+  /**
+   * Stop the campaign, or start it again where it left off.
+   *
+   * No confirmation on either. Pausing is the safe direction and is undone by
+   * the button it turns into; resuming picks up a campaign the same person
+   * paused, with its pool, its plan and its queue untouched.
+   */
+  async function toggleRunning(next: "pause" | "resume") {
+    if (!run) return
+    setSwitching(true)
+    try {
+      const updated =
+        next === "pause"
+          ? await outreachService.pause(run.id)
+          : await outreachService.resume(run.id)
+      toast.success(
+        updated.status === "paused"
+          ? "Campaign paused. Nothing more will be found, written or sent."
+          : "Campaign running again, where it left off.",
+      )
+      refetch()
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : next === "pause"
+            ? "Could not pause it."
+            : "Could not resume it.",
+      )
+    } finally {
+      setSwitching(false)
     }
   }
 
@@ -112,25 +152,46 @@ export function CampaignDashboardPage() {
                 {type.label}
               </Badge>
             )}
+            {/* What it is doing, beside what it is. The button says what
+              * pressing it would change; this says where the campaign stands
+              * whether or not anybody is about to press anything. */}
+            {run && <RunStatusBadge status={run.status} />}
           </div>
           <div className="flex items-center gap-2">
-            <span
-              title={running ? "This campaign is already going." : undefined}
-            >
-              {/* Opens the dialog rather than starting: the two figures that
-                * decide what happens next are confirmed first. */}
+            {/* One button, three campaigns: a running one is stopped, a paused
+              * one is started again, and one that has never gone is launched
+              * through the dialog. Whatever the campaign is doing, the button
+              * says what pressing it will do instead. */}
+            {running ? (
               <Button
-                disabled={!startable || starting}
-                onClick={() => setConfirming(true)}
+                variant="outline"
+                disabled={switching}
+                onClick={() => void toggleRunning("pause")}
               >
-                <Rocket className="size-4" />
-                {running
-                  ? launched
-                    ? "Launched"
-                    : "Running"
-                  : "Launch campaign"}
+                <Pause className="size-4" />
+                Pause campaign
               </Button>
-            </span>
+            ) : paused ? (
+              <Button
+                disabled={switching}
+                onClick={() => void toggleRunning("resume")}
+              >
+                <Play className="size-4" />
+                Resume campaign
+              </Button>
+            ) : (
+              <span title={launched ? "This campaign is already going." : undefined}>
+                {/* Opens the dialog rather than starting: the two figures that
+                  * decide what happens next are confirmed first. */}
+                <Button
+                  disabled={!startable || starting}
+                  onClick={() => setConfirming(true)}
+                >
+                  <Rocket className="size-4" />
+                  {launched ? "Launched" : "Launch campaign"}
+                </Button>
+              </span>
+            )}
           </div>
         </div>
 
@@ -156,11 +217,7 @@ export function CampaignDashboardPage() {
 
           <div className="mt-6 min-w-0">
             <TabsContent value="performance" className="mt-0">
-              <CampaignPerformance
-                run={run ?? null}
-                running={running}
-                launched={launched}
-              />
+              <CampaignPerformance run={run ?? null} />
             </TabsContent>
 
             <TabsContent value="icp" className="mt-0">
