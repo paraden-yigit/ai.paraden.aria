@@ -1,34 +1,24 @@
 import { useEffect, useState } from "react"
 
 import { clientService } from "@/services/client.service"
-import { icpService } from "@/services/icp.service"
 import { outreachService } from "@/services/outreach.service"
 import { productService } from "@/services/product.service"
-
-// How many products to probe for a ready targeting profile before giving up;
-// keeps the dashboard cheap for clients with long product lists.
-const MAX_ICP_PROBES = 5
 
 export interface SetupState {
   loading: boolean
   messagingDone: boolean
   productDone: boolean
-  targetingDone: boolean
   campaignDone: boolean
-  /** The first product's id, for deep-linking the targeting step. */
-  firstProductId: number | null
   allDone: boolean
 }
 
-/** Read the four setup signals in parallel; every failure counts as not-done. */
+/** Read the three setup signals in parallel; every failure counts as not-done. */
 export function useSetupState(): SetupState {
   const [state, setState] = useState<SetupState>({
     loading: true,
     messagingDone: false,
     productDone: false,
-    targetingDone: false,
     campaignDone: false,
-    firstProductId: null,
     allDone: false,
   })
 
@@ -37,7 +27,7 @@ export function useSetupState(): SetupState {
     const load = async () => {
       const [company, products, runs] = await Promise.allSettled([
         clientService.get(),
-        productService.list({ limit: MAX_ICP_PROBES }),
+        productService.list({ limit: 1 }),
         outreachService.list({ limit: 1 }),
       ])
 
@@ -49,32 +39,20 @@ export function useSetupState(): SetupState {
           company.value.industry,
         ].some((v) => !!v?.trim())
 
-      const productItems =
-        products.status === "fulfilled" ? products.value.items : []
-      const productDone = productItems.length > 0
-      const firstProductId = productItems[0]?.id ?? null
+      const productDone =
+        products.status === "fulfilled" && products.value.items.length > 0
 
       const campaignDone =
         runs.status === "fulfilled" &&
         (runs.value.items.length > 0 || (runs.value.total ?? 0) > 0)
-
-      // A targeting profile counts once any probed product has one ready.
-      const probes = await Promise.allSettled(
-        productItems.slice(0, MAX_ICP_PROBES).map((p) => icpService.get(p.id)),
-      )
-      const targetingDone = probes.some(
-        (r) => r.status === "fulfilled" && r.value.status === "ready",
-      )
 
       if (!active) return
       setState({
         loading: false,
         messagingDone,
         productDone,
-        targetingDone,
         campaignDone,
-        firstProductId,
-        allDone: messagingDone && productDone && targetingDone && campaignDone,
+        allDone: messagingDone && productDone && campaignDone,
       })
     }
     void load()

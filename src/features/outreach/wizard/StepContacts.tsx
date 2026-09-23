@@ -30,9 +30,9 @@ interface StepContactsProps {
 /**
  * The people half of a Flow run's profile, with the pool it currently reaches.
  *
- * The pool size is a real FullEnrich people-search, run against both halves of
- * the profile — the company filters from the previous step ride along inside the
- * same people search, so the number is how many *reachable people* there are
+ * The pool size is a real Apollo search, run against both halves of the profile:
+ * the company filters from the previous step resolve to companies first and the
+ * people search is scoped to them, so the number is how many *people* match
  * rather than how many companies they work at. It is the only honest feedback
  * this step can give: a profile that matches eleven people is a mistake worth
  * seeing here, not after a launch.
@@ -140,7 +140,7 @@ function PoolSize({
         * the row's height with it. */}
       <div className="flex h-8 items-center gap-2 text-sm font-medium">
         <Users className="size-4" aria-hidden />
-        Pool size
+        Estimated Pool Size
         {loading && (
           <span className="flex items-center gap-1.5 font-normal text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" aria-hidden />

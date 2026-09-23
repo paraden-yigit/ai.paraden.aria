@@ -24,15 +24,6 @@ function who(sample: ContactPoolSample): string {
   )
 }
 
-/** Company size as the provider knows it: an exact headcount when it has one,
- * otherwise the band it puts them in. */
-function size(sample: ContactPoolSample): string {
-  if (sample.company_headcount != null) {
-    return new Intl.NumberFormat("en-GB").format(sample.company_headcount)
-  }
-  return sample.company_headcount_range ?? "—"
-}
-
 interface PoolSampleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -46,6 +37,13 @@ interface PoolSampleDialogProps {
  * ("these are agency marketing managers, not enterprise CMOs") before anyone
  * commits to writing to them. Nothing here can contact them: no address, no
  * profile URL.
+ *
+ * Three columns, deliberately. The provider knows more about each person —
+ * sector, headcount, seniority, location — but this table answers one question,
+ * "are these the right people", and the name, the company and the title settle
+ * it. The rest was mostly em dashes anyway: the search endpoint leaves those
+ * fields empty, and nine columns of blanks read as a broken table rather than
+ * as a provider that does not return them.
  */
 export function PoolSampleDialog({
   open,
@@ -54,7 +52,7 @@ export function PoolSampleDialog({
 }: PoolSampleDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-4xl">
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>A sample of the pool</DialogTitle>
           <DialogDescription>
@@ -67,20 +65,14 @@ export function PoolSampleDialog({
 
         {/* The whole page is here, so the table scrolls inside the dialog
           * rather than the dialog growing past the viewport. The header stays
-          * put — fifty rows of "Seniority" is unreadable without it. */}
+          * put — fifty rows deep, a column of job titles needs its label. */}
         <div className="min-h-0 flex-1 overflow-auto rounded-lg border">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Company</TableHead>
-                <TableHead>Domain</TableHead>
-                <TableHead>Sector</TableHead>
-                <TableHead>Size</TableHead>
                 <TableHead>Job title</TableHead>
-                <TableHead>Function</TableHead>
-                <TableHead>Seniority</TableHead>
-                <TableHead>Location</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -92,30 +84,7 @@ export function PoolSampleDialog({
                   <TableCell className="font-medium">
                     {sample.company_name ?? "—"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sample.company_domain ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sample.company_industry ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">
-                    {size(sample)}
-                  </TableCell>
                   <TableCell>{sample.job_title ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sample.job_function ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sample.seniority ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sample.location ?? "—"}
-                    {sample.location_is_company && sample.location && (
-                      // Their company's head office, not where they are — a
-                      // different claim, and worth not blurring.
-                      <span className="ml-1 text-xs opacity-70">(HQ)</span>
-                    )}
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

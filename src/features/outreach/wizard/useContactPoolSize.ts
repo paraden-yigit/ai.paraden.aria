@@ -10,8 +10,8 @@ import type {
 } from "@/types/outreach"
 import { HEADCOUNT_MAX, HEADCOUNT_MIN } from "./headcountScale"
 
-// One request per pause in editing, not one per keystroke: each is a billed
-// FullEnrich search.
+// One request per pause in editing, not one per keystroke: each sizing is a
+// billed provider search — and a two-step one, so it is several requests.
 const DEBOUNCE_MS = 700
 
 /** The profile as the run stores it: everything except the uploaded domains,

@@ -26,7 +26,7 @@ interface PainPointsSectionProps {
 /**
  * Pain points on the product detail page: the structured challenges the product
  * solves (challenge / why it matters / how it helps). Managed one at a time via
- * the shared modal; feeds the targeting profile and outreach.
+ * the shared modal; feeds outreach.
  */
 export function PainPointsSection({
   productId,
@@ -99,8 +99,7 @@ export function PainPointsSection({
         <CardTitle>Pain points</CardTitle>
         <CardDescription>
           The challenges this product solves — the challenge, why it matters,
-          and how the product helps. These feed the targeting profile and
-          outreach.
+          and how the product helps. These feed the outreach emails.
         </CardDescription>
       </CardHeader>
       <CardContent>

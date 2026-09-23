@@ -95,9 +95,9 @@ export function ProfileSettingsForm({
               disabled={submitting}
             />
 
-            {/* The name stacked down the left, the closing beside it on the
-              * right: the closing is built from the first name, so the two
-              * belong on the same row rather than in a block of their own. */}
+            {/* Everything typed sits in the left column, one field under the
+              * next, with only the signature's preview on the right — the fields
+              * read as one column to fill in rather than a form that zig-zags. */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-4">
                 <TextField
@@ -113,29 +113,37 @@ export function ProfileSettingsForm({
                   disabled={submitting}
                 />
               </div>
-              <TextField
-                control={form.control}
-                name="email_closing"
-                label="How should your emails close"
-                placeholder={defaultClosing(user) || "Regards, Jane"}
-                description="The last line before your company name and signature. Leave it as it is and every email closes this way."
-                disabled={submitting}
-              />
             </div>
 
             <div className="space-y-2">
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextareaField
-                  control={form.control}
-                  name="email_signature"
-                  label="Email signature"
-                  placeholder={
-                    '<p>Best regards,<br />Jane Doe<br /><a href="https://example.com">example.com</a></p>'
-                  }
-                  rows={6}
-                  disabled={submitting}
-                />
-                <div className="space-y-2">
+                <div className="space-y-4">
+                  {/* A textarea, not an input: "Regards," and a name underneath
+                    * is how most people sign a letter, and the line breaks are
+                    * kept exactly as they are typed. */}
+                  <TextareaField
+                    control={form.control}
+                    name="email_closing"
+                    label="How should your emails close"
+                    description="The last thing said before your signature. Write it over as many lines as you like."
+                    placeholder={defaultClosing(user) || "Regards,\nJane"}
+                    rows={3}
+                    disabled={submitting}
+                  />
+                  <TextareaField
+                    control={form.control}
+                    name="email_signature"
+                    label="Email signature"
+                    placeholder={
+                      '<p>Best regards,<br />Jane Doe<br /><a href="https://example.com">example.com</a></p>'
+                    }
+                    rows={6}
+                    disabled={submitting}
+                  />
+                </div>
+                {/* Pinned to the bottom of the row so it sits beside the
+                  * signature it previews rather than beside the closing. */}
+                <div className="space-y-2 sm:self-end">
                   <p className="text-sm font-medium leading-none">Preview</p>
                   {signature.trim() !== "" ? (
                     <div

@@ -1,7 +1,7 @@
 /**
  * A product owned by the authenticated user's client. Shape mirrors the API's
  * ProductRead: a `name` plus the wizard answers (value proposition, USP,
- * demonstrable ROI). Structured pain points and personas are fetched separately.
+ * demonstrable ROI). Structured pain points are fetched separately.
  */
 export interface Product {
   id: number
@@ -47,23 +47,6 @@ export interface ProductAssignments {
   team_ids: number[]
   user_ids: number[]
 }
-
-/**
- * A product persona — an exact job title/role the client wants to reach.
- * Mirrors the API's ProductPersonaRead. Deliberately not tied to the FullEnrich
- * taxonomy: these exact titles take priority when picking company contacts. A
- * product keeps between 2 and 5.
- */
-export interface ProductPersona {
-  id: number
-  product_id: number
-  title: string
-  created_at: string
-}
-
-/** How many personas a product may have (min is a UI nudge, max is enforced). */
-export const PERSONA_MIN = 2
-export const PERSONA_MAX = 5
 
 /**
  * A product's stored pain point. Mirrors the API's ProductPainPointRead: the
