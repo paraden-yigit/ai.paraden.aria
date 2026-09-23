@@ -21,8 +21,7 @@ interface StepCompaniesProps {
  *
  * Asked before the people because it is the coarser cut — the same job title
  * means something different at a fifty-person agency and a fifty-thousand-person
- * bank. Nothing here is prefilled from the product's own ICP; a run is a
- * decision about this campaign.
+ * bank. Nothing here is prefilled; a run is a decision about this campaign.
  */
 export function StepCompanies({ value, onChange }: StepCompaniesProps) {
   function set<K extends keyof OutreachIcpDraft>(

@@ -24,7 +24,7 @@ interface ProductCardsProps {
 }
 
 // The product-brief answers, used for the completeness hint. A fuller
-// brief means sharper ICP generation and better outreach drafts.
+// brief means better outreach drafts.
 const BRIEF_KEYS = [
   "value_proposition",
   "usp",

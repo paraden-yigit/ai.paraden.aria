@@ -19,8 +19,8 @@ interface StepDef {
 }
 
 /**
- * The first-run path: four steps from empty account to first campaign, shown
- * until all four are done. Deliberately calm: any order works, nothing can
+ * The first-run path: three steps from empty account to first campaign, shown
+ * until all three are done. Deliberately calm: any order works, nothing can
  * break, everything stays editable.
  */
 export function SetupChecklist({ state }: { state: SetupState }) {
@@ -51,15 +51,6 @@ export function SetupChecklist({ state }: { state: SetupState }) {
       blurb: "What you sell, in a few short answers. Supporting files help too.",
       to: "/products",
       done: state.productDone,
-    },
-    {
-      title: "Generate your targeting profile",
-      blurb: "Paraden works out which companies and people to look for.",
-      to:
-        state.firstProductId != null
-          ? `/products/${state.firstProductId}?tab=icp`
-          : "/products",
-      done: state.targetingDone,
     },
     {
       title: "Create your first campaign",

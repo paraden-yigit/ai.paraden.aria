@@ -1,28 +1,11 @@
 import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  FileText,
-  Pencil,
-  Plus,
-  Trash2,
-  Upload,
-  UserRound,
-  X,
-} from "lucide-react"
+import { FileText, Pencil, Plus, Trash2, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { WizardStepper, type WizardStep } from "@/components/WizardStepper"
 import { StepFrame } from "@/features/products/wizard/StepFrame"
@@ -30,12 +13,7 @@ import { PainPointModal } from "@/features/products/wizard/PainPointModal"
 import { FileCategoryModal } from "@/features/products/wizard/FileCategoryModal"
 import { productService } from "@/services/product.service"
 import { ApiError } from "@/services/http"
-import {
-  fileCategoryLabel,
-  PERSONA_MAX,
-  PERSONA_MIN,
-  type PainPointInput,
-} from "@/types/product"
+import { fileCategoryLabel, type PainPointInput } from "@/types/product"
 
 // Accepted upload types (kept in sync with the API's allowed list).
 const ACCEPT =
@@ -52,12 +30,11 @@ const STEPS: WizardStep[] = [
   { title: "USP" },
   { title: "Pain points" },
   { title: "ROI" },
-  { title: "Personas" },
   { title: "Files" },
 ]
 
-type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6
-const LAST_STEP: Step = 6
+type Step = 0 | 1 | 2 | 3 | 4 | 5
+const LAST_STEP: Step = 5
 
 /** A file staged for upload, with the category the user tagged it with. */
 interface StagedFile {
@@ -69,8 +46,7 @@ interface StagedFile {
  * Full-page product creation wizard (mirrors the campaign wizard's chrome). All
  * answers are held in local state and nothing is persisted until the final step:
  * completing creates the product, its pain points (in one call), then its
- * personas and files. On success the user lands on the product detail page,
- * which opens the ICP approval modal.
+ * files. On success the user lands on the product detail page.
  */
 export function NewProductPage() {
   const navigate = useNavigate()
@@ -81,17 +57,12 @@ export function NewProductPage() {
   const [usp, setUsp] = useState("")
   const [roi, setRoi] = useState("")
   const [painPoints, setPainPoints] = useState<PainPointInput[]>([])
-  const [personas, setPersonas] = useState<string[]>([])
   const [files, setFiles] = useState<StagedFile[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   // Pain point modal (add or edit-by-index).
   const [painModalOpen, setPainModalOpen] = useState(false)
   const [editingPain, setEditingPain] = useState<number | null>(null)
-
-  // Persona modal (single job title).
-  const [personaModalOpen, setPersonaModalOpen] = useState(false)
-  const [personaTitle, setPersonaTitle] = useState("")
 
   // File flow: a pending file awaits a category in the modal before it's added.
   const inputRef = useRef<HTMLInputElement>(null)
@@ -118,19 +89,6 @@ export function NewProductPage() {
       return copy
     })
     setEditingPain(null)
-  }
-
-  // --- Personas ---
-  function addPersona() {
-    const title = personaTitle.trim()
-    if (!title) return
-    if (personas.some((p) => p.toLowerCase() === title.toLowerCase())) {
-      toast.error("That job title is already on the list.")
-      return
-    }
-    setPersonas((prev) => [...prev, title])
-    setPersonaTitle("")
-    setPersonaModalOpen(false)
   }
 
   // --- Files ---
@@ -172,16 +130,9 @@ export function NewProductPage() {
         pain_points: painPoints,
       })
 
-      // Personas and files are added after the product exists. Best-effort: a
-      // single failure is surfaced but doesn't discard the created product.
+      // Files are uploaded after the product exists. Best-effort: a single
+      // failure is surfaced but doesn't discard the created product.
       let failures = 0
-      for (const title of personas) {
-        try {
-          await productService.addPersona(product.id, title)
-        } catch {
-          failures += 1
-        }
-      }
       for (const staged of files) {
         try {
           await productService.uploadFile(
@@ -196,13 +147,12 @@ export function NewProductPage() {
 
       if (failures > 0) {
         toast.warning(
-          `Product created, but ${failures} item${failures === 1 ? "" : "s"} couldn't be saved.`,
+          `Product created, but ${failures} file${failures === 1 ? "" : "s"} couldn't be uploaded.`,
         )
       } else {
         toast.success("Product created.")
       }
-      // Land on the detail page and open the ICP approval flow.
-      navigate(`/products/${product.id}`, { state: { generateIcp: true } })
+      navigate(`/products/${product.id}`)
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to create the product.",
@@ -212,7 +162,7 @@ export function NewProductPage() {
   }
 
   // List-heavy steps use the wider column; focused form steps read narrower.
-  const wideStep = step === 3 || step === 5 || step === 6
+  const wideStep = step === 3 || step === 5
 
   function renderStep() {
     switch (step) {
@@ -370,74 +320,6 @@ export function NewProductPage() {
       case 5:
         return (
           <StepFrame
-            title="Who are we reaching out to?"
-            subline="List 5 job titles that represent your ideal buyers so we can match them to enriched contacts."
-            onBack={back}
-            onNext={next}
-          >
-            <div className="space-y-3">
-              {personas.length > 0 && (
-                <ul className="divide-y rounded-md border">
-                  {personas.map((title, index) => (
-                    <li
-                      key={index}
-                      className="flex items-center gap-3 px-4 py-3"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-                      >
-                        <UserRound className="size-4" />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                        {title}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 shrink-0 text-destructive hover:text-destructive"
-                        onClick={() =>
-                          setPersonas((prev) =>
-                            prev.filter((_, i) => i !== index),
-                          )
-                        }
-                      >
-                        <Trash2 className="size-4" />
-                        <span className="sr-only">Remove job title</span>
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setPersonaTitle("")
-                    setPersonaModalOpen(true)
-                  }}
-                  disabled={personas.length >= PERSONA_MAX}
-                >
-                  <Plus className="size-4" />
-                  Add job title
-                </Button>
-                {personas.length > 0 && (
-                  <Badge variant="secondary">
-                    {personas.length} of {PERSONA_MAX}
-                  </Badge>
-                )}
-              </div>
-              {personas.length > 0 && personas.length < PERSONA_MIN && (
-                <p className="text-sm text-muted-foreground">
-                  Add at least {PERSONA_MIN} job titles.
-                </p>
-              )}
-            </div>
-          </StepFrame>
-        )
-      case 6:
-        return (
-          <StepFrame
             title="Upload your supporting files"
             subline="Attach anything that helps us write better outreach. After each upload, you'll be asked to tag it with a category so we know how to use it."
             onBack={back}
@@ -569,47 +451,6 @@ export function NewProductPage() {
         onConfirm={confirmFile}
         onCancel={() => setPendingFile(null)}
       />
-
-      <Dialog open={personaModalOpen} onOpenChange={setPersonaModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add a job title</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-1.5">
-            <Label htmlFor="persona-title">Job title</Label>
-            <Input
-              id="persona-title"
-              autoFocus
-              value={personaTitle}
-              onChange={(e) => setPersonaTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  addPersona()
-                }
-              }}
-              placeholder="e.g. Regional Marketing Director"
-              maxLength={255}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPersonaModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={addPersona}
-              disabled={personaTitle.trim() === ""}
-            >
-              Add job title
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

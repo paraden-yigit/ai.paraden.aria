@@ -37,8 +37,8 @@ export function ProfileSettingsPage() {
           Profile settings
         </h1>
         <p className="text-muted-foreground">
-          Your profile picture, name, and the signature appended to every email
-          Paraden writes for your campaigns.
+          Your profile picture, name, and how every email Paraden writes for your
+          campaigns closes and signs off.
         </p>
       </div>
 

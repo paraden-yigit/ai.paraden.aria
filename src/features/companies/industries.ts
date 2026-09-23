@@ -1,4 +1,4 @@
-// Canonical list of company industries (LinkedIn/FullEnrich taxonomy). Edit the
+// Canonical list of company industries (LinkedIn taxonomy). Edit the
 // RAW block to add/remove entries; the export is deduped and alphabetised.
 const RAW = `Import & Export
 Think Tanks

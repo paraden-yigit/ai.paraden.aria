@@ -158,11 +158,17 @@ export function formatSlug(slug: string): string {
  * "1.4M"), and thousands are rounded *down* so a large pool never reads bigger
  * than it is.
  *
- * Below a thousand the figure is rounded *up* to the nearest fifty and marked
- * with a tilde (135 → "~150", 487 → "~500"). The tilde is the point: down there
- * the exact number invites arithmetic it cannot support, and a rough shape read
- * as "about 150" is the honest version. Zero is left exact — "about fifty" when
- * there is nobody would be a lie rather than a rounding.
+ * Between a hundred and a thousand the figure is rounded *up* to the nearest
+ * ten (135 → "140", 487 → "490"). No tilde: the panel around this number says
+ * "Estimated Pool Size", so every figure in it is already understood to be an
+ * estimate, and a squiggle in front of one of them only makes the reader wonder
+ * what is different about that one.
+ *
+ * Under a hundred it is shown exactly. A pool that small is not a shape to be
+ * read, it is a list somebody is about to look at one prospect at a time — and
+ * the difference between 38 and 40 decides whether the campaign is worth
+ * launching at all. Rounding 38 up would overstate the one number nobody can
+ * afford to have overstated.
  */
 export function formatPoolSize(total: number): string {
   // Divide as integers and only then place the point: `Math.floor(2900 / 1000 *
@@ -172,6 +178,6 @@ export function formatPoolSize(total: number): string {
 
   if (total >= 1_000_000) return `${tenths(Math.floor(total / 100_000))}M`
   if (total >= 1_000) return `${tenths(Math.floor(total / 100))}K`
-  if (total <= 0) return "0"
-  return `~${POOL_NUMBER.format(Math.ceil(total / 50) * 50)}`
+  if (total < 100) return POOL_NUMBER.format(Math.max(total, 0))
+  return POOL_NUMBER.format(Math.ceil(total / 10) * 10)
 }

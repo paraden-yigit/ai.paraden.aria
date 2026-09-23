@@ -14,7 +14,7 @@ import { useAsync } from "@/hooks/useAsync"
 import { agentInstructionsService } from "@/services/agent-instructions.service"
 import type { SetupState } from "@/features/onboarding/useSetupState"
 
-/** How Paraden has been taught so far. Three signals ride along from the setup
+/** How Paraden has been taught so far. Two signals ride along from the setup
  * state; agent instructions get their own cheap probe. */
 export function KnowledgeMeter({ setup }: { setup: SetupState }) {
   const fetcher = useCallback(() => agentInstructionsService.get(), [])
@@ -44,18 +44,9 @@ export function KnowledgeMeter({ setup }: { setup: SetupState }) {
     },
     {
       label: "Product brief",
-      hint: "What you sell and to whom.",
+      hint: "What you sell and why it matters.",
       to: "/products",
       done: setup.productDone,
-    },
-    {
-      label: "Targeting profile",
-      hint: "Who Paraden looks for.",
-      to:
-        setup.firstProductId != null
-          ? `/products/${setup.firstProductId}?tab=icp`
-          : "/products",
-      done: setup.targetingDone,
     },
     {
       label: "Agent instructions",
